@@ -110,6 +110,7 @@ echo
 
 # ---- fetch the set of existing raw/ keys once ----
 declare -A EXISTING=()
+declare -A PREV_PARSED=()
 if [[ "$FORCE" == false ]]; then
   while IFS= read -r key; do
     [[ -n "$key" ]] && EXISTING["$key"]=1
@@ -141,6 +142,10 @@ for file in "${FILES[@]}"; do
   fi
 
   echo "UPLOAD $base -> $key  ($size)"
+  if [[ "$WAIT" == true ]]; then
+    PREV_PARSED["$match_id"]="$(aws s3api head-object --bucket "$BUCKET" --key "parsed/${match_id}.json" \
+      --profile "$PROFILE" --region "$REGION" --query LastModified --output text 2>/dev/null || true)"
+  fi
   if aws s3 cp "$file" "s3://$BUCKET/$key" \
        --profile "$PROFILE" --region "$REGION" --only-show-errors; then
     uploaded+=("$match_id")
@@ -155,15 +160,19 @@ echo "done: ${#uploaded[@]} uploaded, ${#skipped[@]} skipped, ${#failed[@]} fail
 # ---- optionally wait for the parser+aggregator to produce parsed output ----
 if [[ "$WAIT" == true && "$DRY_RUN" == false && ${#uploaded[@]} -gt 0 ]]; then
   echo
-  echo "waiting for parsed/*.json (parser ~30-90s per replay)..."
+  echo "waiting for parsed/*.json to be (re)written (parser ~30-90s per replay)..."
   for match_id in "${uploaded[@]}"; do
-    for _ in $(seq 1 60); do
-      if aws s3api head-object --bucket "$BUCKET" --key "parsed/${match_id}.json" \
-           --profile "$PROFILE" --region "$REGION" >/dev/null 2>&1; then
-        echo "  parsed/${match_id}.json ready"; break
+    prev="${PREV_PARSED[$match_id]:-}"
+    ready=false
+    for _ in $(seq 1 120); do
+      cur="$(aws s3api head-object --bucket "$BUCKET" --key "parsed/${match_id}.json" \
+        --profile "$PROFILE" --region "$REGION" --query LastModified --output text 2>/dev/null || true)"
+      if [[ -n "$cur" && "$cur" != "$prev" ]]; then
+        echo "  parsed/${match_id}.json ready ($cur)"; ready=true; break
       fi
       sleep 10
     done
+    [[ "$ready" == true ]] || echo "  timed out waiting for parsed/${match_id}.json" >&2
   done
   echo "check stats/stats.json for the updated aggregate."
 fi
