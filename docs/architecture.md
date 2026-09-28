@@ -158,6 +158,8 @@ A parsed match is skipped if it does not have:
 
 Player identity uses `account_id`, never `player_name`. A player with no `account_id` still contributes to the match summary and hero pick statistics, but is excluded from long-term player, player-hero, teammate, and head-to-head statistics.
 
+`player_name` is carried through as a display-only label (the most recent non-empty name seen per `account_id`) in `players` and `player_heroes`, and `hero_name` is attached to each `heroes` entry from a static `hero_id`-to-name table. Neither field affects identity or any aggregation math.
+
 ### Generated statistics
 
 `stats/stats.json` contains:
@@ -181,6 +183,8 @@ Heroes:         5 picks
 Teammate pairs: 3 matches
 H2H pairs:      3 matches
 ```
+
+These thresholds are configurable through the aggregator's `MIN_PLAYER_MATCHES`, `MIN_HERO_PICKS`, `MIN_TEAMMATE_MATCHES`, and `MIN_H2H_MATCHES` environment variables. The current deployment temporarily lowers all of them to `2` so the leaderboards are populated for the small early dataset; raise them back toward the defaults as history grows.
 
 ## IAM Boundaries
 

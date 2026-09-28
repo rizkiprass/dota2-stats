@@ -73,10 +73,12 @@ resource "aws_lambda_function" "statistics_aggregator" {
 
   environment {
     variables = {
-      MIN_PLAYER_MATCHES   = "5"
-      MIN_HERO_PICKS       = "5"
-      MIN_TEAMMATE_MATCHES = "3"
-      MIN_H2H_MATCHES      = "3"
+      # Temporarily lowered for the small early dataset so leaderboards are not
+      # empty. Raise back toward the plan defaults (5/5/3/3) as history grows.
+      MIN_PLAYER_MATCHES   = "2"
+      MIN_HERO_PICKS       = "2"
+      MIN_TEAMMATE_MATCHES = "2"
+      MIN_H2H_MATCHES      = "2"
       LEADERBOARD_LIMIT    = "10"
     }
   }
