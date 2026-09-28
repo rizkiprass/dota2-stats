@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Dota 2 Lobby Stats</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="site-header">
+    <div class="wrap">
+      <h1>Dota&nbsp;2 Lobby Stats</h1>
+      <p class="subtitle" id="meta">Memuat data…</p>
+    </div>
+  </header>
+
+  <main class="wrap" id="app">
+    <p class="status" id="status">Memuat statistik…</p>
+
+    <section class="section" id="summary-section" hidden>
+      <h2>Ringkasan</h2>
+      <div class="cards" id="summary"></div>
+    </section>
+
+    <section class="section" id="leaderboards-section" hidden>
+      <h2>Leaderboards</h2>
+      <div class="grid" id="leaderboards"></div>
+    </section>
+
+    <section class="section" id="players-section" hidden>
+      <h2>Pemain</h2>
+      <div class="table-scroll" id="players"></div>
+    </section>
+
+    <section class="section" id="heroes-section" hidden>
+      <h2>Hero</h2>
+      <div class="table-scroll" id="heroes"></div>
+    </section>
+
+    <section class="section" id="teammates-section" hidden>
+      <h2>Pasangan Teammate</h2>
+      <div class="table-scroll" id="teammates"></div>
+    </section>
+
+    <section class="section" id="h2h-section" hidden>
+      <h2>Head-to-Head</h2>
+      <div class="table-scroll" id="h2h"></div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap" id="footer"></div>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>

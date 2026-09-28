@@ -29,6 +29,12 @@ s3 = boto3.client("s3")
 PARSED_PREFIX = "parsed/"
 STATS_KEY = "stats/stats.json"
 SCHEMA_VERSION = "1.0"
+
+# Optional static-website mirror. When set, the same dashboard payload is also
+# written here so the browser can fetch it same-origin (no CORS, no public data
+# bucket). Failures are logged and never break the primary aggregation.
+DASHBOARD_BUCKET = os.environ.get("DASHBOARD_BUCKET")
+DASHBOARD_STATS_KEY = os.environ.get("DASHBOARD_STATS_KEY", "stats.json")
 MIN_PLAYER_MATCHES = int(os.environ.get("MIN_PLAYER_MATCHES", "5"))
 MIN_HERO_PICKS = int(os.environ.get("MIN_HERO_PICKS", "5"))
 MIN_TEAMMATE_MATCHES = int(os.environ.get("MIN_TEAMMATE_MATCHES", "3"))
@@ -496,6 +502,11 @@ def rebuild_statistics(bucket: str) -> dict[str, Any]:
     }
     payload = json.dumps(stats, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
     s3.put_object(Bucket=bucket, Key=STATS_KEY, Body=payload, ContentType="application/json")
+    if DASHBOARD_BUCKET:
+        try:
+            s3.put_object(Bucket=DASHBOARD_BUCKET, Key=DASHBOARD_STATS_KEY, Body=payload, ContentType="application/json")
+        except Exception:  # noqa: BLE001 - the data bucket remains the source of truth
+            logger.exception("Failed to publish dashboard copy to %s", DASHBOARD_BUCKET)
     _log_event(
         message="Aggregation completed",
         parsed_files_found=parsed_file_count,

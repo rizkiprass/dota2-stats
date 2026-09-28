@@ -37,3 +37,13 @@ output "aggregator_cloudwatch_log_group" {
   description = "CloudWatch Logs group for the statistics Lambda function."
   value       = aws_cloudwatch_log_group.statistics_aggregator.name
 }
+
+output "dashboard_bucket_name" {
+  description = "S3 bucket serving the static statistics dashboard."
+  value       = aws_s3_bucket.dashboard.bucket
+}
+
+output "dashboard_website_url" {
+  description = "S3 static website endpoint for the statistics dashboard."
+  value       = "http://${aws_s3_bucket_website_configuration.dashboard.website_endpoint}"
+}

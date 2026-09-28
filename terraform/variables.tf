@@ -27,6 +27,12 @@ variable "bucket_name" {
   default     = "dota-replay-data"
 }
 
+variable "dashboard_bucket_name" {
+  description = "Globally unique S3 bucket name for the static statistics dashboard website."
+  type        = string
+  default     = "dota-replay-dashboard"
+}
+
 variable "ecr_repository_name" {
   description = "Name of the ECR repository holding the Lambda container image."
   type        = string

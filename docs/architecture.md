@@ -43,6 +43,15 @@ Developer / Dota 2 Replay Folder
 |                                                        |
 | stats/stats.json                                       |
 | dashboard-ready historical statistics                  |
++---------------------------+----------------------------+
+                            |
+                            | aggregator mirrors the payload
+                            v
++--------------------------------------------------------+
+| Amazon S3: dta-replay-dashboard-rizkiprass-2026         |
+|                                                        |
+| index.html, app.js, styles.css, stats.json             |
+| public-read static website (browser fetches same-origin)|
 +--------------------------------------------------------+
 ```
 
@@ -51,7 +60,7 @@ Developer / Dota 2 Replay Folder
 ## S3 Data Layout
 
 ```text
-dta-replay-data-rizkiprass-2026/
+dta-replay-data-rizkiprass-2026/          # private data bucket
 |
 +-- raw/
 |   +-- 8987451980.dem              # Original replay source of truth
@@ -61,6 +70,11 @@ dta-replay-data-rizkiprass-2026/
 |
 +-- stats/
     +-- stats.json                   # Rebuilt dashboard payload
+
+dta-replay-dashboard-rizkiprass-2026/     # public-read website bucket
+|
++-- index.html, styles.css, app.js   # Static dashboard frontend
++-- stats.json                       # Mirror of stats/stats.json, fetched same-origin
 ```
 
 ## Components
@@ -69,7 +83,8 @@ dta-replay-data-rizkiprass-2026/
 |---|---|
 | Amazon S3 | Stores replay sources, normalized matches, and the one dashboard payload. |
 | `dota-replay-parser` Lambda | Parses one new `.dem` replay and writes its normalized JSON. |
-| `dota-replay-aggregator` Lambda | Rebuilds all statistics from every valid parsed match when a parsed JSON object is created. |
+| `dota-replay-aggregator` Lambda | Rebuilds all statistics from every valid parsed match when a parsed JSON object is created, and mirrors the payload to the dashboard bucket. |
+| Dashboard website bucket | Serves the static HTML/CSS/JS and a same-origin `stats.json` copy over the S3 website endpoint. |
 | Amazon ECR | Stores the parser Lambda container image. |
 | Amazon CloudWatch Logs | Stores parser/aggregator execution logs and Lambda metrics. |
 | IAM | Applies separate least-privilege roles to the parser and aggregator. |
@@ -215,4 +230,4 @@ Useful CloudWatch log groups:
 
 ## Out of Scope
 
-The current system intentionally has no database, API Gateway, dashboard hosting, DynamoDB, Athena, Glue, SQS, Step Functions, or ECS. The next phase can serve `stats/stats.json` directly from a static React dashboard hosted on S3 and CloudFront.
+The current system intentionally has no database, API Gateway, DynamoDB, Athena, Glue, SQS, Step Functions, or ECS. The dashboard is served from a public-read S3 website bucket only — no CloudFront, custom domain, HTTPS, or authentication yet. Advanced analytics (timelines, positions, combat logs) remain out of scope.

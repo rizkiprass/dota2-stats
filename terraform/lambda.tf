@@ -80,6 +80,8 @@ resource "aws_lambda_function" "statistics_aggregator" {
       MIN_TEAMMATE_MATCHES = "2"
       MIN_H2H_MATCHES      = "2"
       LEADERBOARD_LIMIT    = "10"
+      # Mirror the dashboard payload into the static website bucket.
+      DASHBOARD_BUCKET = aws_s3_bucket.dashboard.bucket
     }
   }
 

@@ -21,7 +21,7 @@ dota-lobby-stats2/
 |   +-- aggregator.py      Lists parsed JSON, validates/deduplicates, then writes stats/stats.json
 |   +-- requirements.txt
 |
-+-- terraform/            Infrastructure as code (S3, ECR, Lambda, IAM)
++-- terraform/            Infrastructure as code (S3, ECR, Lambda, IAM, dashboard)
 |   +-- main.tf
 |   +-- variables.tf
 |   +-- outputs.tf
@@ -29,6 +29,12 @@ dota-lobby-stats2/
 |   +-- ecr.tf
 |   +-- lambda.tf
 |   +-- iam.tf
+|   +-- dashboard.tf      Static website bucket for the dashboard
+|
++-- web/                  Vanilla static dashboard (HTML/CSS/JS)
+|   +-- index.html
+|   +-- styles.css
+|   +-- app.js            Fetches stats.json and renders summaries/tables
 |
 +-- samples/
 |   +-- parsed-example.json
@@ -98,6 +104,22 @@ aws s3 cp s3://<bucket>/parsed/<match_id>.json - | jq .
 
 Check CloudWatch Logs (`/aws/lambda/dota-replay-parser`) for parse duration, replay size, and any errors.
 
+## Dashboard
+
+A vanilla static dashboard (no build step) reads `stats.json` and renders the summary, leaderboards, and player/hero/teammate/head-to-head tables.
+
+- Terraform creates a dedicated, public-read S3 website bucket (`dashboard.tf`) — separate from the private data bucket.
+- The aggregator mirrors every `stats/stats.json` payload to `stats.json` in the website bucket, so the page always shows the latest rebuild with no cross-bucket CORS.
+- Deploy the frontend with:
+
+  ```bash
+  aws s3 sync web/ s3://<dashboard_bucket>/ \
+    --exclude "stats.json" --delete \
+    --profile <profile> --region <region>
+  ```
+
+- The website URL is emitted by Terraform as `dashboard_website_url` (plain HTTP S3 website endpoint). `GET /stats.json` is served same-origin from the website bucket.
+
 ## Implementation order
 
 Matches the plan's recommended order:
@@ -117,4 +139,10 @@ Matches the plan's recommended order:
 
 ## Status
 
-This repository implements the MVP scope from the plan (Section 2-12): S3 raw storage, Lambda container parsing, and normalized JSON output. Phase 2 (aggregated stats), Phase 3 (dashboard), and Phase 4 (advanced analytics) are intentionally not implemented yet.
+Implemented and deployed:
+
+- **MVP 1** — S3 raw storage, Lambda container replay parsing, normalized `parsed/<match_id>.json` output.
+- **MVP 2** — full-rebuild aggregator producing dashboard-ready `stats/stats.json` (summary, players, heroes, player-heroes, teammates, head-to-head, leaderboards).
+- **Dashboard** — vanilla static S3 website rendering `stats.json` (summary, leaderboards, detail tables).
+
+Not implemented yet: advanced analytics (timelines, positions, combat logs), custom domain/HTTPS via CloudFront, and authentication.

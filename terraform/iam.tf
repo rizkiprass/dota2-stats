@@ -97,6 +97,12 @@ resource "aws_iam_role_policy" "aggregator_lambda_s3" {
             "s3:prefix" = ["parsed/*"]
           }
         }
+      },
+      {
+        Sid      = "PublishDashboardStats"
+        Effect   = "Allow"
+        Action   = ["s3:PutObject"]
+        Resource = "${aws_s3_bucket.dashboard.arn}/*"
       }
     ]
   })
