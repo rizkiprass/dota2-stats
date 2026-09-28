@@ -1,0 +1,382 @@
+"""Full-rebuild Dota 2 private-lobby statistics Lambda.
+
+The function is invoked for a new ``parsed/*.json`` S3 object, but always
+rebuilds the complete historical dashboard payload from every object under the
+``parsed/`` prefix. Invalid objects and duplicate match IDs are logged and do
+not prevent a new ``stats/stats.json`` from being published.
+"""
+
+from __future__ import annotations
+
+import itertools
+import json
+import logging
+import math
+import os
+import time
+import urllib.parse
+from collections import defaultdict
+from datetime import datetime, timezone
+from typing import Any, Iterable
+
+import boto3
+
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
+
+s3 = boto3.client("s3")
+
+PARSED_PREFIX = "parsed/"
+STATS_KEY = "stats/stats.json"
+SCHEMA_VERSION = "1.0"
+MIN_PLAYER_MATCHES = int(os.environ.get("MIN_PLAYER_MATCHES", "5"))
+MIN_HERO_PICKS = int(os.environ.get("MIN_HERO_PICKS", "5"))
+MIN_TEAMMATE_MATCHES = int(os.environ.get("MIN_TEAMMATE_MATCHES", "3"))
+MIN_H2H_MATCHES = int(os.environ.get("MIN_H2H_MATCHES", "3"))
+LEADERBOARD_LIMIT = int(os.environ.get("LEADERBOARD_LIMIT", "10"))
+
+
+class MatchValidationError(ValueError):
+    """Raised when an input parsed-match object does not meet the contract."""
+
+
+def _log_event(**fields: Any) -> None:
+    logger.info(json.dumps(fields, default=str, sort_keys=True))
+
+
+def _is_number(value: Any) -> bool:
+    return isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(value)
+
+
+def _round(value: float) -> float:
+    """Round dashboard-facing calculated values consistently."""
+    return round(value, 2)
+
+
+def _rate(numerator: int | float, denominator: int | float) -> float:
+    return _round((numerator / denominator) * 100) if denominator else 0.0
+
+
+def _player_id(player: dict[str, Any]) -> str | None:
+    """Return the canonical long-term identity; names are never identifiers."""
+    account_id = player.get("account_id")
+    if account_id is None:
+        return None
+    value = str(account_id).strip()
+    return value or None
+
+
+def _pair_key(player_a: str, player_b: str) -> tuple[str, str, str]:
+    first, second = sorted((player_a, player_b))
+    return f"{first}#{second}", first, second
+
+
+def validate_match(match: Any) -> dict[str, Any]:
+    """Validate the MVP input contract and return the typed match object."""
+    if not isinstance(match, dict):
+        raise MatchValidationError("match must be an object")
+    if match.get("match_id") is None or not str(match["match_id"]).strip():
+        raise MatchValidationError("match_id is required")
+    players = match.get("players")
+    if not isinstance(players, list):
+        raise MatchValidationError("players must be a list")
+    if len(players) != 10:
+        raise MatchValidationError(f"player count must be 10, got {len(players)}")
+    if not isinstance(match.get("radiant_win"), bool):
+        raise MatchValidationError("radiant_win must be boolean")
+    if not _is_number(match.get("duration")):
+        raise MatchValidationError("duration must be numeric")
+
+    for index, player in enumerate(players):
+        if not isinstance(player, dict):
+            raise MatchValidationError(f"player {index} must be an object")
+        if player.get("hero_id") is None:
+            raise MatchValidationError(f"player {index} hero_id is required")
+        if player.get("team") not in {"radiant", "dire"}:
+            raise MatchValidationError(f"player {index} team must be radiant or dire")
+        for field in ("kills", "deaths", "assists"):
+            if not _is_number(player.get(field)):
+                raise MatchValidationError(f"player {index} {field} must be numeric")
+        if not isinstance(player.get("win"), bool):
+            raise MatchValidationError(f"player {index} win must be boolean")
+    return match
+
+
+def _new_record() -> dict[str, int]:
+    return {"matches": 0, "wins": 0, "kills": 0, "deaths": 0, "assists": 0}
+
+
+def _new_pair_record() -> dict[str, int]:
+    return {"matches": 0, "wins": 0}
+
+
+def _new_h2h_record() -> dict[str, int]:
+    return {"matches": 0, "player_a_wins": 0, "player_b_wins": 0}
+
+
+def _add_player_observation(record: dict[str, int], player: dict[str, Any]) -> None:
+    record["matches"] += 1
+    record["wins"] += int(player["win"])
+    record["kills"] += player["kills"]
+    record["deaths"] += player["deaths"]
+    record["assists"] += player["assists"]
+
+
+def _finalize_player_record(record: dict[str, int]) -> dict[str, Any]:
+    matches = record["matches"]
+    wins = record["wins"]
+    return {
+        "matches": matches,
+        "wins": wins,
+        "losses": matches - wins,
+        "win_rate": _rate(wins, matches),
+        "kills": record["kills"],
+        "deaths": record["deaths"],
+        "assists": record["assists"],
+        "avg_kills": _round(record["kills"] / matches) if matches else 0.0,
+        "avg_deaths": _round(record["deaths"] / matches) if matches else 0.0,
+        "avg_assists": _round(record["assists"] / matches) if matches else 0.0,
+        "kda": _round((record["kills"] + record["assists"]) / max(record["deaths"], 1)),
+    }
+
+
+def _finalize_player_hero_record(record: dict[str, int]) -> dict[str, Any]:
+    result = _finalize_player_record(record)
+    del result["avg_kills"]
+    del result["avg_deaths"]
+    del result["avg_assists"]
+    return result
+
+
+def _load_matches(bucket: str) -> tuple[list[tuple[str, dict[str, Any]]], int]:
+    """Read all parsed JSON objects, returning valid matches and file count."""
+    paginator = s3.get_paginator("list_objects_v2")
+    matches: list[tuple[str, dict[str, Any]]] = []
+    file_count = 0
+    for page in paginator.paginate(Bucket=bucket, Prefix=PARSED_PREFIX):
+        for item in page.get("Contents", []):
+            key = item["Key"]
+            if key == PARSED_PREFIX or not key.lower().endswith(".json"):
+                continue
+            file_count += 1
+            try:
+                response = s3.get_object(Bucket=bucket, Key=key)
+                payload = json.loads(response["Body"].read().decode("utf-8"))
+                matches.append((key, validate_match(payload)))
+            except (MatchValidationError, UnicodeDecodeError, json.JSONDecodeError) as exc:
+                logger.warning("Skipping invalid parsed match %s: %s", key, exc)
+            except Exception:  # noqa: BLE001 - one S3 object must not abort rebuilding history
+                logger.exception("Skipping unreadable parsed match %s", key)
+    return sorted(matches, key=lambda item: item[0]), file_count
+
+
+def _leaderboard(entries: Iterable[dict[str, Any]], metric: str) -> list[dict[str, Any]]:
+    """Rank deterministic payloads by a descending metric and stable ID tie-break."""
+    return sorted(entries, key=lambda entry: (-entry[metric], entry["id"]))[:LEADERBOARD_LIMIT]
+
+
+def _generate_leaderboards(
+    players: dict[str, dict[str, Any]],
+    heroes: dict[str, dict[str, Any]],
+    player_heroes: dict[str, dict[str, dict[str, Any]]],
+    teammates: dict[str, dict[str, Any]],
+    head_to_head: dict[str, dict[str, Any]],
+) -> dict[str, list[dict[str, Any]]]:
+    eligible_players = [
+        {"id": player_id, **record}
+        for player_id, record in players.items()
+        if record["matches"] >= MIN_PLAYER_MATCHES
+    ]
+    eligible_heroes = [
+        {"id": hero_id, **record}
+        for hero_id, record in heroes.items()
+        if record["picks"] >= MIN_HERO_PICKS
+    ]
+    eligible_duos = [
+        {"id": pair_id, **record}
+        for pair_id, record in teammates.items()
+        if record["matches"] >= MIN_TEAMMATE_MATCHES
+    ]
+    eligible_rivalries = [
+        {"id": pair_id, **record}
+        for pair_id, record in head_to_head.items()
+        if record["matches"] >= MIN_H2H_MATCHES
+    ]
+    player_hero_entries = [
+        {"id": f"{player_id}#{hero_id}", "player_id": player_id, "hero_id": int(hero_id), **record}
+        for player_id, hero_records in player_heroes.items()
+        for hero_id, record in hero_records.items()
+        if record["matches"] >= MIN_HERO_PICKS
+    ]
+    return {
+        "most_matches": _leaderboard(eligible_players, "matches"),
+        "highest_win_rate": _leaderboard(eligible_players, "win_rate"),
+        "most_kills": _leaderboard(eligible_players, "kills"),
+        "best_kda": _leaderboard(eligible_players, "kda"),
+        "most_assists": _leaderboard(eligible_players, "assists"),
+        "most_picked_hero": _leaderboard(eligible_heroes, "picks"),
+        "best_hero_win_rate": _leaderboard(player_hero_entries, "win_rate"),
+        "best_duo_win_rate": _leaderboard(eligible_duos, "win_rate"),
+        "most_played_duo": _leaderboard(eligible_duos, "matches"),
+        "most_played_rivalry": _leaderboard(eligible_rivalries, "matches"),
+    }
+
+
+def aggregate_matches(matches: Iterable[tuple[str, dict[str, Any]]]) -> tuple[dict[str, Any], dict[str, int]]:
+    """Aggregate validated objects into the dashboard schema without S3 I/O."""
+    processed_match_ids: set[str] = set()
+    players: defaultdict[str, dict[str, int]] = defaultdict(_new_record)
+    heroes: defaultdict[str, dict[str, int]] = defaultdict(lambda: {"picks": 0, "wins": 0})
+    player_heroes: defaultdict[str, defaultdict[str, dict[str, int]]] = defaultdict(lambda: defaultdict(_new_record))
+    teammates: defaultdict[str, dict[str, int]] = defaultdict(_new_pair_record)
+    head_to_head: defaultdict[str, dict[str, int]] = defaultdict(_new_h2h_record)
+    radiant_wins = 0
+    total_duration = 0.0
+    duplicate_count = 0
+    valid_count = 0
+
+    for _, match in matches:
+        match_id = str(match["match_id"])
+        if match_id in processed_match_ids:
+            duplicate_count += 1
+            logger.warning("Skipping duplicate match_id %s", match_id)
+            continue
+        processed_match_ids.add(match_id)
+        valid_count += 1
+        total_duration += match["duration"]
+        radiant_wins += int(match["radiant_win"])
+
+        radiant: list[tuple[str, dict[str, Any]]] = []
+        dire: list[tuple[str, dict[str, Any]]] = []
+        for player in match["players"]:
+            hero_id = str(player["hero_id"])
+            heroes[hero_id]["picks"] += 1
+            heroes[hero_id]["wins"] += int(player["win"])
+            player_id = _player_id(player)
+            if player_id is None:
+                continue
+            _add_player_observation(players[player_id], player)
+            _add_player_observation(player_heroes[player_id][hero_id], player)
+            (radiant if player["team"] == "radiant" else dire).append((player_id, player))
+
+        for team in (radiant, dire):
+            for (first_id, first), (second_id, _) in itertools.combinations(team, 2):
+                key, player_a, player_b = _pair_key(first_id, second_id)
+                record = teammates[key]
+                record["matches"] += 1
+                record["wins"] += int(first["win"])
+
+        for radiant_id, radiant_player in radiant:
+            for dire_id, dire_player in dire:
+                key, player_a, player_b = _pair_key(radiant_id, dire_id)
+                record = head_to_head[key]
+                record["matches"] += 1
+                if player_a == radiant_id:
+                    record["player_a_wins"] += int(radiant_player["win"])
+                    record["player_b_wins"] += int(dire_player["win"])
+                else:
+                    record["player_a_wins"] += int(dire_player["win"])
+                    record["player_b_wins"] += int(radiant_player["win"])
+
+    finalized_players = {player_id: _finalize_player_record(record) for player_id, record in sorted(players.items())}
+    finalized_heroes = {
+        hero_id: {
+            "hero_id": int(hero_id) if hero_id.lstrip("-").isdigit() else hero_id,
+            "picks": record["picks"],
+            "wins": record["wins"],
+            "losses": record["picks"] - record["wins"],
+            "win_rate": _rate(record["wins"], record["picks"]),
+        }
+        for hero_id, record in sorted(heroes.items(), key=lambda item: item[0])
+    }
+    finalized_player_heroes = {
+        player_id: {hero_id: _finalize_player_hero_record(record) for hero_id, record in sorted(hero_records.items())}
+        for player_id, hero_records in sorted(player_heroes.items())
+    }
+    finalized_teammates = {
+        pair_id: {
+            "player_a": pair_id.split("#", 1)[0], "player_b": pair_id.split("#", 1)[1],
+            "matches": record["matches"], "wins": record["wins"], "losses": record["matches"] - record["wins"],
+            "win_rate": _rate(record["wins"], record["matches"]),
+        }
+        for pair_id, record in sorted(teammates.items())
+    }
+    finalized_h2h = {
+        pair_id: {
+            "player_a": pair_id.split("#", 1)[0], "player_b": pair_id.split("#", 1)[1],
+            "matches": record["matches"], "player_a_wins": record["player_a_wins"], "player_b_wins": record["player_b_wins"],
+            "player_a_win_rate": _rate(record["player_a_wins"], record["matches"]),
+            "player_b_win_rate": _rate(record["player_b_wins"], record["matches"]),
+        }
+        for pair_id, record in sorted(head_to_head.items())
+    }
+    summary = {
+        "total_matches": valid_count,
+        "total_players": len(finalized_players),
+        "total_hero_picks": sum(record["picks"] for record in heroes.values()),
+        "average_duration_seconds": _round(total_duration / valid_count) if valid_count else 0.0,
+        "radiant_wins": radiant_wins,
+        "dire_wins": valid_count - radiant_wins,
+        "radiant_win_rate": _rate(radiant_wins, valid_count),
+        "dire_win_rate": _rate(valid_count - radiant_wins, valid_count),
+    }
+    stats = {
+        "summary": summary,
+        "players": finalized_players,
+        "heroes": finalized_heroes,
+        "player_heroes": finalized_player_heroes,
+        "teammates": finalized_teammates,
+        "head_to_head": finalized_h2h,
+        "leaderboards": _generate_leaderboards(finalized_players, finalized_heroes, finalized_player_heroes, finalized_teammates, finalized_h2h),
+    }
+    return stats, {
+        "valid_matches": valid_count,
+        "duplicate_matches": duplicate_count,
+        "unique_players": len(finalized_players),
+        "unique_heroes": len(finalized_heroes),
+        "teammate_pairs": len(finalized_teammates),
+        "head_to_head_pairs": len(finalized_h2h),
+    }
+
+
+def rebuild_statistics(bucket: str) -> dict[str, Any]:
+    """Load history from S3, publish one stats JSON object, and return it."""
+    started_at = time.monotonic()
+    _log_event(message="Aggregation started", bucket=bucket)
+    matches, parsed_file_count = _load_matches(bucket)
+    stats, counts = aggregate_matches(matches)
+    stats["metadata"] = {
+        "generated_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+        "schema_version": SCHEMA_VERSION,
+        "source_match_count": counts["valid_matches"],
+    }
+    payload = json.dumps(stats, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    s3.put_object(Bucket=bucket, Key=STATS_KEY, Body=payload, ContentType="application/json")
+    _log_event(
+        message="Aggregation completed",
+        parsed_files_found=parsed_file_count,
+        invalid_matches=parsed_file_count - len(matches),
+        duplicate_matches_skipped=counts["duplicate_matches"],
+        unique_players=counts["unique_players"],
+        unique_heroes=counts["unique_heroes"],
+        teammate_pairs=counts["teammate_pairs"],
+        head_to_head_pairs=counts["head_to_head_pairs"],
+        stats_json_bytes=len(payload),
+        aggregation_duration_seconds=_round(time.monotonic() - started_at),
+    )
+    return stats
+
+
+def lambda_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
+    """Rebuild once per affected bucket, even when S3 batches records."""
+    buckets = {
+        record.get("s3", {}).get("bucket", {}).get("name")
+        for record in event.get("Records", [])
+        if urllib.parse.unquote_plus(record.get("s3", {}).get("object", {}).get("key", "")).startswith(PARSED_PREFIX)
+    }
+    buckets.discard(None)
+    results = []
+    for bucket in sorted(buckets):
+        stats = rebuild_statistics(bucket)
+        results.append({"bucket": bucket, "source_match_count": stats["metadata"]["source_match_count"]})
+    return {"results": results}

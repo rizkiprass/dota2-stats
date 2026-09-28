@@ -1,0 +1,26 @@
+# Local Terraform state, provider cache, and machine-specific deployment values
+.terraform/
+*.tfstate
+*.tfstate.*
+crash.log
+crash.*.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+terraform.tfvars
+*.auto.tfvars
+
+# Python build/runtime artifacts
+__pycache__/
+*.py[cod]
+
+# Terraform-generated Lambda deployment archive
+terraform/aggregator.zip
+
+# Saved Terraform plan files (binary, machine-specific)
+*.tfplan
+
+# Locally generated replay parsing output
+*.events.jsonl
+/parsed-*.json

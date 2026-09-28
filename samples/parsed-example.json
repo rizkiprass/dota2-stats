@@ -1,0 +1,31 @@
+{
+  "match_id": "8938123456",
+  "duration": 2518,
+  "radiant_win": true,
+  "start_time": 1700000000,
+  "game_mode": 22,
+  "players": [
+    {
+      "account_id": "123456789",
+      "steam_id": "76561198084064457",
+      "player_name": "Player A",
+      "hero_id": 2,
+      "team": "radiant",
+      "kills": 12,
+      "deaths": 4,
+      "assists": 18,
+      "win": true
+    },
+    {
+      "account_id": "987654321",
+      "steam_id": "76561198947920049",
+      "player_name": "Player B",
+      "hero_id": 14,
+      "team": "dire",
+      "kills": 7,
+      "deaths": 8,
+      "assists": 10,
+      "win": false
+    }
+  ]
+}
