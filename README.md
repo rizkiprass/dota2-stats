@@ -36,6 +36,9 @@ dota-lobby-stats2/
 |   +-- styles.css
 |   +-- app.js            Fetches stats.json and renders summaries/tables
 |
++-- scripts/
+|   +-- upload-replays.sh Batch-upload .dem replays to s3://<bucket>/raw/
+|
 +-- samples/
 |   +-- parsed-example.json
 |
@@ -119,6 +122,21 @@ A vanilla static dashboard (no build step) reads `stats.json` and renders the su
   ```
 
 - The website URL is emitted by Terraform as `dashboard_website_url` (plain HTTP S3 website endpoint). `GET /stats.json` is served same-origin from the website bucket.
+
+## Batch replay upload
+
+`scripts/upload-replays.sh` uploads every `<match_id>.dem` in a replay folder to `raw/`, skipping replays already present in S3 (unless `--force`). Each upload triggers the parser → aggregator chain automatically.
+
+```bash
+scripts/upload-replays.sh --dry-run        # show the plan, change nothing
+scripts/upload-replays.sh                  # upload every missing replay
+scripts/upload-replays.sh --latest 3       # only the 3 newest files
+scripts/upload-replays.sh --since 2026-09-28
+scripts/upload-replays.sh --files a.dem b.dem
+scripts/upload-replays.sh --wait           # upload, then await parsed/*.json
+```
+
+`--bucket`, `--profile`, `--region`, and `--source` override the defaults; the same values can be set through the `S3_BUCKET`, `AWS_PROFILE_NAME`, `AWS_REGION_NAME`, and `DOTA_REPLAY_DIR` environment variables.
 
 ## Implementation order
 
