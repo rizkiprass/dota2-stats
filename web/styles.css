@@ -100,6 +100,22 @@ table { width: 100%; border-collapse: collapse; font-size: 14px; }
   border-radius: 8px;
   background: var(--panel);
 }
+/* Keep leaderboard overflow discoverable without changing section tables. */
+#leaderboards .table-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: var(--muted) var(--panel-2);
+}
+#leaderboards .table-scroll::-webkit-scrollbar { height: 8px; }
+#leaderboards .table-scroll::-webkit-scrollbar-track {
+  background: var(--panel-2);
+  border-radius: 8px;
+}
+#leaderboards .table-scroll::-webkit-scrollbar-thumb {
+  background: var(--muted);
+  border: 2px solid var(--panel-2);
+  border-radius: 8px;
+}
+#leaderboards .table-scroll::-webkit-scrollbar-thumb:hover { background: var(--accent); }
 th, td { padding: 8px 12px; text-align: left; white-space: nowrap; }
 th {
   color: var(--muted);
