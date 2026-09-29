@@ -99,12 +99,12 @@ function renderTable(container, columns, rows) {
 function renderSummary() {
   const s = STATS.summary;
   const cards = [
-    ["Total Match", fmtInt(s.total_matches)],
-    ["Total Pemain", fmtInt(s.total_players)],
-    ["Total Hero Pick", fmtInt(s.total_hero_picks)],
-    ["Rata-rata Durasi", fmtDuration(s.average_duration_seconds)],
-    ["Win Radiant", `${fmtInt(s.radiant_wins)} · ${fmtPct(s.radiant_win_rate)}`, "radiant"],
-    ["Win Dire", `${fmtInt(s.dire_wins)} · ${fmtPct(s.dire_win_rate)}`, "dire"],
+    ["Total Matches", fmtInt(s.total_matches)],
+    ["Total Players", fmtInt(s.total_players)],
+    ["Total Hero Picks", fmtInt(s.total_hero_picks)],
+    ["Average Duration", fmtDuration(s.average_duration_seconds)],
+    ["Radiant Wins", `${fmtInt(s.radiant_wins)} · ${fmtPct(s.radiant_win_rate)}`, "radiant"],
+    ["Dire Wins", `${fmtInt(s.dire_wins)} · ${fmtPct(s.dire_win_rate)}`, "dire"],
   ];
   const frag = document.createDocumentFragment();
   for (const [label, value, cls] of cards) {
@@ -124,30 +124,30 @@ function renderSummary() {
 }
 
 const LEADERBOARD_TITLES = {
-  most_matches: "Paling Banyak Match",
-  highest_win_rate: "Win Rate Tertinggi",
-  most_kills: "Total Kill Terbanyak",
-  best_kda: "KDA Terbaik",
-  most_assists: "Total Assist Terbanyak",
-  most_picked_hero: "Hero Paling Sering Dipakai",
-  best_hero_win_rate: "Win Rate Hero Terbaik",
-  best_duo_win_rate: "Duo Win Rate Terbaik",
-  most_played_duo: "Duo Paling Sering",
-  most_played_rivalry: "Rivalry Terbanyak",
+  most_matches: "Most Matches",
+  highest_win_rate: "Highest Win Rate",
+  most_kills: "Most Kills",
+  best_kda: "Best KDA",
+  most_assists: "Most Assists",
+  most_picked_hero: "Most Picked Hero",
+  best_hero_win_rate: "Best Hero Win Rate",
+  best_duo_win_rate: "Best Duo Win Rate",
+  most_played_duo: "Most Played Duo",
+  most_played_rivalry: "Most Played Rivalry",
 };
 
 // Which value column to show for each leaderboard category.
 const LEADERBOARD_VALUE = {
-  most_matches: { label: "Match", render: (e) => fmtInt(e.matches) },
+  most_matches: { label: "Matches", render: (e) => fmtInt(e.matches) },
   highest_win_rate: { label: "Win %", render: (e) => fmtPct(e.win_rate) },
-  most_kills: { label: "Kill", render: (e) => fmtInt(e.kills) },
+  most_kills: { label: "Kills", render: (e) => fmtInt(e.kills) },
   best_kda: { label: "KDA", render: (e) => fmtNum(e.kda) },
-  most_assists: { label: "Assist", render: (e) => fmtInt(e.assists) },
-  most_picked_hero: { label: "Pick", render: (e) => `${fmtInt(e.picks)} · ${fmtPct(e.win_rate)}` },
-  best_hero_win_rate: { label: "Win %", render: (e) => `${fmtPct(e.win_rate)} · ${fmtInt(e.matches)} match` },
-  best_duo_win_rate: { label: "Win %", render: (e) => `${fmtPct(e.win_rate)} · ${fmtInt(e.matches)} match` },
-  most_played_duo: { label: "Match", render: (e) => `${fmtInt(e.matches)} · ${fmtPct(e.win_rate)}` },
-  most_played_rivalry: { label: "Match", render: (e) => fmtInt(e.matches) },
+  most_assists: { label: "Assists", render: (e) => fmtInt(e.assists) },
+  most_picked_hero: { label: "Picks", render: (e) => `${fmtInt(e.picks)} · ${fmtPct(e.win_rate)}` },
+  best_hero_win_rate: { label: "Win %", render: (e) => `${fmtPct(e.win_rate)} · ${fmtInt(e.matches)} matches` },
+  best_duo_win_rate: { label: "Win %", render: (e) => `${fmtPct(e.win_rate)} · ${fmtInt(e.matches)} matches` },
+  most_played_duo: { label: "Matches", render: (e) => `${fmtInt(e.matches)} · ${fmtPct(e.win_rate)}` },
+  most_played_rivalry: { label: "Matches", render: (e) => fmtInt(e.matches) },
 };
 
 function leaderboardEntryLabel(category, entry) {
@@ -189,21 +189,25 @@ function renderLeaderboards() {
     if (!entries || entries.length === 0) {
       const p = document.createElement("p");
       p.className = "empty";
-      p.textContent = "Belum ada cukup data.";
+      p.textContent = "No data yet.";
       card.appendChild(p);
     } else {
-      const valueCol = LEADERBOARD_VALUE[category] || { label: "Nilai", render: (e) => fmtNum(e.value) };
+      const valueCol = LEADERBOARD_VALUE[category] || { label: "Value", render: (e) => fmtNum(e.value) };
+      // Render into a dedicated host: renderTable() calls replaceChildren on its
+      // container, and the card must keep its <h3> title.
+      const tableHost = document.createElement("div");
       renderTable(
-        card,
+        tableHost,
         [
-          { label: "#", render: (e) => "", num: true, _rank: true },
-          { label: "Peserta", render: (e) => leaderboardEntryLabel(category, e) },
+          { label: "#", render: () => "", num: true },
+          { label: "Entry", render: (e) => leaderboardEntryLabel(category, e) },
           { label: valueCol.label, render: valueCol.render, num: true },
         ],
         entries.slice(0, 5),
       );
+      card.appendChild(tableHost);
       // Fill the rank column after render (keeps renderTable generic).
-      card.querySelectorAll("tbody tr").forEach((tr, i) => {
+      tableHost.querySelectorAll("tbody tr").forEach((tr, i) => {
         const td = tr.cells[0];
         if (td) td.textContent = String(i + 1);
       });
@@ -221,14 +225,14 @@ function renderPlayers() {
   renderTable(
     $("players"),
     [
-      { label: "Pemain", render: (r) => playerLabel(r.id) },
-      { label: "Match", key: "matches", num: true },
+      { label: "Player", render: (r) => playerLabel(r.id) },
+      { label: "Matches", key: "matches", num: true },
       { label: "W", key: "wins", num: true },
       { label: "L", key: "losses", num: true },
       { label: "Win %", render: (r) => fmtPct(r.win_rate), num: true },
-      { label: "Kill", key: "kills", num: true },
-      { label: "Death", key: "deaths", num: true },
-      { label: "Assist", key: "assists", num: true },
+      { label: "Kills", key: "kills", num: true },
+      { label: "Deaths", key: "deaths", num: true },
+      { label: "Assists", key: "assists", num: true },
       { label: "KDA", render: (r) => fmtNum(r.kda), num: true },
     ],
     rows,
@@ -243,7 +247,7 @@ function renderHeroes() {
     $("heroes"),
     [
       { label: "Hero", render: (r) => r.hero_name || `Hero ${r.hero_id}` },
-      { label: "Pick", key: "picks", num: true },
+      { label: "Picks", key: "picks", num: true },
       { label: "W", key: "wins", num: true },
       { label: "L", key: "losses", num: true },
       { label: "Win %", render: (r) => fmtPct(r.win_rate), num: true },
@@ -259,13 +263,13 @@ function renderTeammates() {
   renderTable(
     $("teammates"),
     [
-      { label: "Pasangan", render: (r) => {
+      { label: "Pair", render: (r) => {
         const span = document.createElement("span");
         span.append(playerLabel(r.player_a), document.createTextNode(" + "));
         span.appendChild(playerLabel(r.player_b));
         return span;
       } },
-      { label: "Match", key: "matches", num: true },
+      { label: "Matches", key: "matches", num: true },
       { label: "W", key: "wins", num: true },
       { label: "L", key: "losses", num: true },
       { label: "Win %", render: (r) => fmtPct(r.win_rate), num: true },
@@ -287,9 +291,9 @@ function renderHeadToHead() {
         span.appendChild(playerLabel(r.player_b));
         return span;
       } },
-      { label: "Match", key: "matches", num: true },
-      { label: "A menang", key: "player_a_wins", num: true },
-      { label: "B menang", key: "player_b_wins", num: true },
+      { label: "Matches", key: "matches", num: true },
+      { label: "A wins", key: "player_a_wins", num: true },
+      { label: "B wins", key: "player_b_wins", num: true },
       { label: "A win %", render: (r) => fmtPct(r.player_a_win_rate), num: true },
       { label: "B win %", render: (r) => fmtPct(r.player_b_win_rate), num: true },
     ],
@@ -306,9 +310,9 @@ function renderAll() {
   );
   const meta = STATS.metadata || {};
   $("meta").textContent =
-    `${fmtInt(meta.source_match_count)} match · terakhir dihitung ${fmtDate(meta.generated_at)}`;
+    `${fmtInt(meta.source_match_count)} matches · last built ${fmtDate(meta.generated_at)}`;
   $("footer").textContent =
-    "Dota 2 private-lobby statistics · dibangun dari replay yang di-parse dan diagregasi di AWS.";
+    "Dota 2 private-lobby statistics · built from replays parsed and aggregated on AWS.";
   renderSummary();
   renderLeaderboards();
   renderPlayers();
@@ -326,7 +330,7 @@ async function boot() {
     renderAll();
   } catch (error) {
     $("status").textContent =
-      `Belum bisa memuat stats.json (${error.message}). Pastikan agregator sudah menulis datanya.`;
+      `Could not load stats.json (${error.message}). Make sure the aggregator has published it.`;
   }
 }
 
