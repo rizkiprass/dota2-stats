@@ -71,10 +71,11 @@ html, body {
 /* Leaderboard grid */
 .grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr));
   gap: 14px;
 }
 .lb {
+  min-width: 0;
   background: var(--panel);
   border: 1px solid var(--border);
   border-radius: 8px;
@@ -93,6 +94,7 @@ html, body {
 /* Tables */
 table { width: 100%; border-collapse: collapse; font-size: 14px; }
 .table-scroll {
+  max-width: 100%;
   overflow-x: auto;
   border: 1px solid var(--border);
   border-radius: 8px;

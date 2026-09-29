@@ -196,6 +196,7 @@ function renderLeaderboards() {
       // Render into a dedicated host: renderTable() calls replaceChildren on its
       // container, and the card must keep its <h3> title.
       const tableHost = document.createElement("div");
+      tableHost.className = "table-scroll";
       renderTable(
         tableHost,
         [
