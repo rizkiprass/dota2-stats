@@ -2,6 +2,13 @@ import type { PlayerRecord, Stats } from "../types/stats";
 
 export type PlayerMetric = "win_rate" | "kda" | "kills" | "assists" | "matches";
 
+// One axis of the player-vs-lobby radar, normalized to 0..1.
+export interface RadarAxis {
+  label: string;
+  norm: number;
+  avgNorm: number;
+}
+
 export interface DuoRef {
   other: string;
   matches: number;

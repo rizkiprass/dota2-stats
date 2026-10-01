@@ -1,4 +1,5 @@
 import { useState, type CSSProperties, type ReactNode } from "react";
+import { Link } from "@tanstack/react-router";
 import { heroCropUrl, tintFor } from "../lib/heroes";
 import { initials } from "../lib/format";
 import { playerName, playerTopHero } from "../lib/derived";
@@ -103,23 +104,23 @@ export function Avatar({
 }
 
 export function PlayerAvatar({ id, size = "" }: { id: string; size?: "sm" | "lg" | "" }) {
-  const { stats, openPlayer } = useDashboard();
+  const { stats } = useDashboard();
   const name = playerName(stats, id);
   const { url, isInitial, fail } = useHeroImage(playerTopHero(stats, id));
   return (
-    <button
-      type="button"
+    <Link
+      to="/player/$playerId"
+      params={{ playerId: id }}
       className={avatarClass("avatar player-link", size, isInitial)}
       style={initialStyle(name, isInitial)}
       title={`View ${name}'s details`}
-      onClick={() => openPlayer(id)}
     >
       {url && !isInitial ? (
         <img src={url} alt={name} loading="lazy" decoding="async" onError={fail} />
       ) : (
         initials(name)
       )}
-    </button>
+    </Link>
   );
 }
 
@@ -143,17 +144,17 @@ export function PlayerName({
   className?: string;
   children?: ReactNode;
 }) {
-  const { stats, openPlayer } = useDashboard();
+  const { stats } = useDashboard();
   const name = playerName(stats, id);
   return (
-    <button
-      type="button"
+    <Link
+      to="/player/$playerId"
+      params={{ playerId: id }}
       className={`${className} player-link`.trim()}
       title={`View ${name}'s details`}
-      onClick={() => openPlayer(id)}
     >
       {children ?? name}
-    </button>
+    </Link>
   );
 }
 

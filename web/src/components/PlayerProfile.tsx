@@ -1,6 +1,6 @@
-import { useEffect, useRef } from "react";
-import { Avatar, Badge, Bar, Icon, PlayerAvatar } from "./ui";
-import { Radar, type RadarAxis } from "./Radar";
+import { Link, useParams } from "@tanstack/react-router";
+import { Avatar, Badge, Bar, PlayerAvatar } from "./ui";
+import { ActivityRadar } from "./ActivityRadar";
 import { fmtInt, fmtNum, fmtPct } from "../lib/format";
 import {
   average,
@@ -16,38 +16,26 @@ import {
   rivalriesFor,
   type DuoRef,
   type PlayerMetric,
+  type RadarAxis,
 } from "../lib/derived";
 import { useDashboard } from "../lib/dashboard-context";
 
-export function PlayerDrawer({ playerId, onClose }: { playerId: string | null; onClose: () => void }) {
+export function PlayerProfile() {
   const { stats } = useDashboard();
-  const closeRef = useRef<HTMLButtonElement>(null);
-  const open = playerId !== null && Boolean(stats.players[playerId]);
-
-  useEffect(() => {
-    if (!open) return;
-    closeRef.current?.focus();
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onClose();
-    };
-    document.addEventListener("keydown", onKey);
-    document.body.classList.add("drawer-open");
-    return () => {
-      document.removeEventListener("keydown", onKey);
-      document.body.classList.remove("drawer-open");
-    };
-  }, [open, onClose]);
-
+  const { playerId: id } = useParams({ from: "/player/$playerId" });
   return (
-    <>
-      <div className={`drawer-backdrop${open ? " open" : ""}`} onClick={onClose} />
-      <aside className={`drawer${open ? " open" : ""}`} role="dialog" aria-modal="true" aria-labelledby="drawer-name">
-        <button className="drawer-close" ref={closeRef} type="button" aria-label="Close player details" onClick={onClose}>
-          <Icon name="close" />
-        </button>
-        <div className="drawer-body">{open && playerId ? <DrawerContent id={playerId} /> : null}</div>
-      </aside>
-    </>
+    <main className="wrap">
+      <div className="player-page">
+        <Link to="/" className="back-link">
+          ← Back to dashboard
+        </Link>
+        {stats.players[id] ? (
+          <PlayerProfileContent id={id} />
+        ) : (
+          <p className="dp-empty">Player {id} not found.</p>
+        )}
+      </div>
+    </main>
   );
 }
 
@@ -55,7 +43,7 @@ function clamp01(value: number): number {
   return Math.max(0, Math.min(1, value));
 }
 
-function DrawerContent({ id }: { id: string }) {
+function PlayerProfileContent({ id }: { id: string }) {
   const { stats } = useDashboard();
   const player = stats.players[id];
   const badges = computeBadges(stats, id);
@@ -122,9 +110,7 @@ function DrawerContent({ id }: { id: string }) {
       <div className="dp-head">
         <Avatar heroId={playerTopHero(stats, id)} name={playerName(stats, id)} size="lg" />
         <div>
-          <h3 className="dp-name" id="drawer-name">
-            {playerName(stats, id)}
-          </h3>
+          <h1 className="dp-name">{playerName(stats, id)}</h1>
           <div className="dp-id">Account {id}</div>
         </div>
       </div>
@@ -145,7 +131,7 @@ function DrawerContent({ id }: { id: string }) {
       </div>
 
       <section className="dp-section">
-        <h4 className="dp-title">Performance</h4>
+        <h2 className="dp-title">Performance</h2>
         <div className="dp-kpis">
           {kpiData.map(([label, value]) => (
             <div className="dp-kpi" key={label}>
@@ -157,7 +143,7 @@ function DrawerContent({ id }: { id: string }) {
       </section>
 
       <section className="dp-section">
-        <h4 className="dp-title">Lobby ranking</h4>
+        <h2 className="dp-title">Lobby ranking</h2>
         {rankSpecs.map(([label, key, fmt]) => {
           const value = Number(player[key]) || 0;
           const { rank, total } = rankOf(stats, key, value);
@@ -168,7 +154,9 @@ function DrawerContent({ id }: { id: string }) {
               <Bar pct={(value / max) * 100} />
               <div className="dp-rank-pos">
                 <span className="v">{fmt(value)}</span>
-                <span className="r">#{rank} of {total}</span>
+                <span className="r">
+                  #{rank} of {total}
+                </span>
               </div>
             </div>
           );
@@ -176,10 +164,8 @@ function DrawerContent({ id }: { id: string }) {
       </section>
 
       <section className="dp-section">
-        <h4 className="dp-title">Versus lobby average</h4>
-        <div className="dp-radar">
-          <Radar axes={axes} />
-        </div>
+        <h2 className="dp-title">Versus lobby average</h2>
+        <ActivityRadar axes={axes} playerLabel={playerName(stats, id)} />
         <div className="dp-legend">
           <span>
             <span className="sw me" />
@@ -193,7 +179,7 @@ function DrawerContent({ id }: { id: string }) {
       </section>
 
       <section className="dp-section">
-        <h4 className="dp-title">Hero pool</h4>
+        <h2 className="dp-title">Hero pool</h2>
         <p className="dp-empty">
           {heroRecs.length} hero{heroRecs.length === 1 ? "" : "es"} played
         </p>
@@ -225,7 +211,7 @@ function DrawerContent({ id }: { id: string }) {
       </section>
 
       <section className="dp-section">
-        <h4 className="dp-title">Teammates &amp; rivals</h4>
+        <h2 className="dp-title">Teammates &amp; rivals</h2>
         {socialRows.length === 0 ? (
           <p className="dp-empty">No teammate or rival data yet.</p>
         ) : (

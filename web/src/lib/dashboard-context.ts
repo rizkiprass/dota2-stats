@@ -3,7 +3,6 @@ import type { Stats } from "../types/stats";
 
 export interface DashboardValue {
   stats: Stats;
-  openPlayer: (id: string) => void;
 }
 
 export const DashboardContext = createContext<DashboardValue | null>(null);

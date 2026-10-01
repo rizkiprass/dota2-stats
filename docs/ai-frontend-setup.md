@@ -82,7 +82,8 @@ The agents do not duplicate design decisions. Instead each agent loads the
 - Layout rules (1240px `.wrap`, sections, bento/board/split grids)
 - Color tokens as Tailwind `@theme` variables (dark canvas, blue + gold accents)
 - Spacing scale, radii, shadows
-- Component conventions (`web/src/components`: `ui.tsx`, `Summary`, `Leaderboards`, `Tables`, `Heroes`, `Radar`, `PlayerDrawer`)
+- Component conventions (`web/src/components`: `ui.tsx`, `Summary`, `Leaderboards`, `Tables`, `Heroes`, `ActivityRadar`, `PlayerProfile`, plus `Dashboard`/`RootLayout`/`router`)
+- Routing (TanStack Router: `/` and `/player/$playerId`, SPA fallback on CloudFront)
 - Data helpers (`web/src/lib/derived.ts`) and hero artwork (`web/src/lib/heroes.ts`)
 - The rule that UI copy is English
 

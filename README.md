@@ -36,8 +36,9 @@ dota-lobby-stats2/
 |   +-- vite.config.ts
 |   +-- index.html
 |   +-- src/
-|       +-- components/    Header, Summary, Leaderboards, Tables, Heroes, Radar, PlayerDrawer, ui
-|       +-- lib/           api (stats.json), derived metrics, heroes (CDN art), format
+|       +-- components/    Header, Dashboard, Summary, Leaderboards, Tables, Heroes, ActivityRadar, PlayerProfile, ui
+|       +-- lib/           api (stats.json), derived metrics, heroes (CDN art), theme, format
+|       +-- router.tsx     TanStack Router routes (/ and /player/$playerId)
 |       +-- types/         stats.ts (schema mirror)
 |       +-- styles.css     Tailwind entry + design tokens
 |
@@ -116,9 +117,9 @@ Check CloudWatch Logs (`/aws/lambda/dota-replay-parser`) for parse duration, rep
 
 ## Dashboard
 
-A React + TypeScript single-page app (Vite + Tailwind v4) reads `stats.json` and
-renders the summary, leaderboards, player/hero/teammate/head-to-head views, and a
-player detail drawer.
+A React + TypeScript single-page app (Vite + Tailwind v4, TanStack Router) reads
+`stats.json` and renders the summary, leaderboards, player/hero/teammate/head-to-head
+views, and a shareable player profile page at `/player/<id>`.
 
 > Working on the dashboard with AI assistance? See [`docs/ai-frontend-setup.md`](./docs/ai-frontend-setup.md) for the OpenCode agents (`frontend`, `visual-reviewer`, `quick-edit`), the `design-system` skill, and the screenshot-review workflow.
 
@@ -178,6 +179,6 @@ Implemented and deployed:
 
 - **MVP 1** — S3 raw storage, Lambda container replay parsing, normalized `parsed/<match_id>.json` output.
 - **MVP 2** — full-rebuild aggregator producing dashboard-ready `stats/stats.json` (summary, players, heroes, player-heroes, teammates, head-to-head, leaderboards).
-- **Dashboard** — React + TypeScript SPA (Vite + Tailwind v4) served from a private S3 bucket via CloudFront (HTTPS, OAC), with a player detail drawer.
+- **Dashboard** — React + TypeScript SPA (Vite + Tailwind v4, TanStack Router) served from a private S3 bucket via CloudFront (HTTPS, OAC), with a shareable player profile page at `/player/<id>`.
 
 Not implemented yet: advanced analytics (timelines, positions, combat logs), a custom domain (ACM + Cloudflare CNAME), and authentication.

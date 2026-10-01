@@ -48,18 +48,26 @@ visuals. Sentence-case headings (never uppercase).
 - `Leaderboards.tsx` — `.lb` cards with `.lb-row` / `.lb-rank` / `.lb-main` / `.lb-val` / `.pill-value`.
 - `Tables.tsx` — `Players`, `Teammates`, `HeadToHead` using `.card.table-card` + `.num`.
 - `Heroes.tsx` — `.hero-grid > .hero-tile`.
-- `Radar.tsx` — SVG radar (player vs lobby average).
-- `PlayerDrawer.tsx` — right-side panel / bottom sheet under 640px.
+- `ActivityRadar.tsx` — Recharts radar (player vs lobby average).
+- `PlayerProfile.tsx` — the `/player/$playerId` page.
+- `Dashboard.tsx`, `RootLayout.tsx`, `router.tsx` — routes and shared layout.
 - Avatars, icons and bars are shared from `ui.tsx`; do not re-implement them.
+
+## Routing
+
+- TanStack Router with the history API: `/` (dashboard) and `/player/$playerId` (profile).
+- Player links are `<Link to="/player/$playerId">` nodes created in `ui.tsx`.
+- The player route is lazy-loaded so Recharts stays out of the main bundle.
+- CloudFront serves `index.html` for unknown paths (SPA fallback).
 
 ## Data & helpers
 
 - `web/src/types/stats.ts` mirrors the aggregator schema.
 - `web/src/lib/api.ts` fetches `stats.json` via TanStack Query.
-- `web/src/lib/derived.ts` holds rankings, badges, duo/rival helpers.
+- `web/src/lib/derived.ts` holds rankings, badges, duo/rival helpers and radar axes.
 - `web/src/lib/heroes.ts` maps hero_id -> Dota CDN slug (`heroCropUrl` / `heroPortraitUrl`).
+- `web/src/lib/theme.ts` reads CSS tokens at runtime for Recharts (which needs concrete colors).
 - Always fall back to an initials avatar when the slug is unknown or the image fails.
-- Player links set `data-player` semantics via `openPlayer(id)` from the dashboard context.
 
 ## Language
 
