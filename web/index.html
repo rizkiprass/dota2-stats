@@ -8,9 +8,19 @@
 </head>
 <body>
   <header class="site-header">
-    <div class="wrap">
-      <h1>Dota&nbsp;2 Lobby Stats</h1>
-      <p class="subtitle" id="meta">Loading data…</p>
+    <div class="wrap header-inner">
+      <div class="brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M6 3v6a6 6 0 0 0 12 0V3" />
+          <path d="M12 15v6" />
+          <path d="M8 21h8" />
+          <path d="M6 3H3m15 0h3" />
+        </svg>
+      </div>
+      <div>
+        <h1>Dota&nbsp;2 Lobby Stats</h1>
+        <p class="subtitle" id="meta">Loading data…</p>
+      </div>
     </div>
   </header>
 
@@ -18,40 +28,52 @@
     <p class="status" id="status">Loading statistics…</p>
 
     <section class="section" id="summary-section" hidden>
-      <h2>Summary</h2>
-      <div class="cards" id="summary"></div>
+      <div class="bento" id="summary"></div>
     </section>
 
     <section class="section" id="leaderboards-section" hidden>
-      <h2>Leaderboards</h2>
-      <div class="grid" id="leaderboards"></div>
+      <h2 class="section-title">Leaderboards</h2>
+      <div class="board-grid" id="leaderboards"></div>
     </section>
 
     <section class="section" id="players-section" hidden>
-      <h2>Players</h2>
-      <div class="table-scroll" id="players"></div>
+      <h2 class="section-title">Players</h2>
+      <div class="card table-card" id="players"></div>
     </section>
 
     <section class="section" id="heroes-section" hidden>
-      <h2>Heroes</h2>
-      <div class="table-scroll" id="heroes"></div>
+      <h2 class="section-title">Heroes</h2>
+      <div class="card hero-card" id="heroes"></div>
     </section>
 
-    <section class="section" id="teammates-section" hidden>
-      <h2>Teammate Pairs</h2>
-      <div class="table-scroll" id="teammates"></div>
-    </section>
+    <div class="split-grid">
+      <section class="section" id="teammates-section" hidden>
+        <h2 class="section-title">Teammate Pairs</h2>
+        <div class="card table-card" id="teammates"></div>
+      </section>
 
-    <section class="section" id="h2h-section" hidden>
-      <h2>Head-to-Head</h2>
-      <div class="table-scroll" id="h2h"></div>
-    </section>
+      <section class="section" id="h2h-section" hidden>
+        <h2 class="section-title">Head-to-Head</h2>
+        <div class="card table-card" id="h2h"></div>
+      </section>
+    </div>
   </main>
 
   <footer class="site-footer">
     <div class="wrap" id="footer"></div>
   </footer>
 
+  <div class="drawer-backdrop" id="drawer-backdrop"></div>
+  <aside class="drawer" id="player-drawer" role="dialog" aria-modal="true" aria-labelledby="drawer-name">
+    <button class="drawer-close" id="drawer-close" type="button" aria-label="Close player details">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+        <path d="M6 6 18 18M18 6 6 18" />
+      </svg>
+    </button>
+    <div class="drawer-body" id="drawer-body"></div>
+  </aside>
+
+  <script src="heroes.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

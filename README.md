@@ -34,7 +34,8 @@ dota-lobby-stats2/
 +-- web/                  Vanilla static dashboard (HTML/CSS/JS)
 |   +-- index.html
 |   +-- styles.css
-|   +-- app.js            Fetches stats.json and renders summaries/tables
+|   +-- app.js            Fetches stats.json and renders summaries/leaderboards/tables
+|   +-- heroes.js         hero_id -> Dota CDN slug, for hero artwork
 |
 +-- scripts/
 |   +-- upload-replays.sh Batch-upload .dem replays to s3://<bucket>/raw/

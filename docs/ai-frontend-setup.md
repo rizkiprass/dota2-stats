@@ -78,10 +78,11 @@ multiple files.
 The agents do not duplicate design decisions. Instead each agent loads the
 `design-system` skill, which holds:
 
-- Layout rules (1100px `.wrap`, `.section` structure)
-- Color tokens as CSS variables
+- Layout rules (1240px `.wrap`, `.section`, bento/board/split grids)
+- Color tokens as CSS variables (dark canvas, blue + gold accents)
 - Spacing scale, radii, shadows
-- Component patterns (`.card`, `.lb`, `.table-scroll`, `.num`, `.name`, `.tag`)
+- Component patterns (`.card`, `.kpi`, `.lb`, `.bar`, `.avatar`, `.hero-tile`, `.table-card`)
+- Hero artwork helpers (`web/heroes.js`: `heroCropUrl` / `heroPortraitUrl`)
 - The rule that UI copy is English
 
 **How skill loading works:** OpenCode only advertises a skill's ID, name, and
