@@ -1,54 +1,77 @@
-/* Dota 2 Lobby Stats – design system.
-   Visual language: dark rounded-panel "companion" dashboard.
-   Every color/shape value is a token here; components reference the tokens. */
+@import "tailwindcss";
 
+/* ------------------------------------------------------------------ */
+/* Design tokens (Tailwind v4 theme). Exposed as utilities, e.g.      */
+/* bg-panel, text-muted, border-line, rounded-card, shadow-card.      */
+/* ------------------------------------------------------------------ */
+@theme {
+  --color-bg: #0d0d0f;
+  --color-bg-2: #131316;
+  --color-panel: #1b1b20;
+  --color-panel-2: #242429;
+  --color-panel-3: #2c2c33;
+  --color-line: rgba(255, 255, 255, 0.06);
+  --color-line-strong: rgba(255, 255, 255, 0.12);
+
+  --color-text: #ffffff;
+  --color-text-2: #c9c9d1;
+  --color-muted: #9b9ba3;
+
+  --color-accent: #2f80ed;
+  --color-accent-2: #f2c94c;
+  --color-positive: #43d17a;
+  --color-negative: #eb5757;
+  --color-radiant: #2f80ed;
+  --color-dire: #f2c94c;
+  --color-track: #2c2c33;
+
+  --radius-sm: 12px;
+  --radius-card: 18px;
+  --radius-lg: 22px;
+
+  --shadow-card: 0 12px 32px rgba(0, 0, 0, 0.38);
+}
+
+/* Short-name aliases used by the component styles below. */
 :root {
-  /* surfaces */
-  --bg: #0d0d0f;
-  --bg-2: #131316;
-  --panel: #1b1b20;
-  --panel-2: #242429;
-  --panel-3: #2c2c33;
-  --border: rgba(255, 255, 255, 0.06);
-  --border-strong: rgba(255, 255, 255, 0.12);
+  --bg: var(--color-bg);
+  --bg-2: var(--color-bg-2);
+  --panel: var(--color-panel);
+  --panel-2: var(--color-panel-2);
+  --panel-3: var(--color-panel-3);
+  --border: var(--color-line);
+  --border-strong: var(--color-line-strong);
+  --text: var(--color-text);
+  --text-2: var(--color-text-2);
+  --muted: var(--color-muted);
+  --accent: var(--color-accent);
+  --accent-2: var(--color-accent-2);
+  --positive: var(--color-positive);
+  --negative: var(--color-negative);
+  --radiant: var(--color-radiant);
+  --dire: var(--color-dire);
+  --track: var(--color-track);
+  --radius: var(--radius-card);
+  --pill: 999px;
 
-  /* text */
-  --text: #ffffff;
-  --text-2: #c9c9d1;
-  --muted: #9b9ba3;
-
-  /* brand + data accents */
-  --accent: #2f80ed;
   --accent-soft: rgba(47, 128, 237, 0.16);
-  --accent-2: #f2c94c;
   --accent-2-soft: rgba(242, 201, 76, 0.16);
-  --positive: #43d17a;
   --positive-soft: rgba(67, 209, 122, 0.14);
-  --negative: #eb5757;
-  --radiant: var(--accent);
-  --dire: var(--accent-2);
-  --track: #2c2c33;
 
-  /* generated avatar tints */
   --av1: #2f80ed;
   --av2: #c99b3a;
   --av3: #43d17a;
   --av4: #8b5cf6;
   --av5: #e0619b;
   --av6: #2bb6b0;
-
-  /* shape */
-  --radius-sm: 12px;
-  --radius: 18px;
-  --radius-lg: 22px;
-  --pill: 999px;
-  --shadow: 0 12px 32px rgba(0, 0, 0, 0.38);
-  --shadow-sm: 0 4px 14px rgba(0, 0, 0, 0.3);
 }
 
-* { box-sizing: border-box; }
+/* ------------------------------------------------------------------ */
+/* Base                                                               */
+/* ------------------------------------------------------------------ */
 
-html, body {
+html,
+body {
   margin: 0;
   padding: 0;
   background: var(--bg);
@@ -61,14 +84,18 @@ html, body {
 body {
   min-height: 100vh;
   background:
-    radial-gradient(1200px 600px at 15% -10%, rgba(47, 128, 237, 0.10), transparent 60%),
+    radial-gradient(1200px 600px at 15% -10%, rgba(47, 128, 237, 0.1), transparent 60%),
     radial-gradient(900px 500px at 100% 0%, rgba(242, 201, 76, 0.06), transparent 55%),
     var(--bg);
 }
 
+body.drawer-open { overflow: hidden; }
+
 .wrap { max-width: 1240px; margin: 0 auto; padding: 0 24px; }
 
-/* ---------------- header ---------------- */
+/* ------------------------------------------------------------------ */
+/* Header                                                             */
+/* ------------------------------------------------------------------ */
 
 .site-header { padding: 30px 0 8px; }
 .header-inner { display: flex; align-items: center; gap: 14px; }
@@ -84,7 +111,9 @@ body {
 
 .status { margin: 60px 0; color: var(--muted); text-align: center; }
 
-/* ---------------- layout ---------------- */
+/* ------------------------------------------------------------------ */
+/* Layout                                                             */
+/* ------------------------------------------------------------------ */
 
 .section { margin: 26px 0; }
 .section-title {
@@ -93,24 +122,26 @@ body {
 }
 .split-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
 .split-grid .section { margin: 0; min-width: 0; }
-
-/* bento summary grid */
 .bento { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; align-items: start; }
 
-/* ---------------- card ---------------- */
+/* ------------------------------------------------------------------ */
+/* Card                                                               */
+/* ------------------------------------------------------------------ */
 
 .card {
   background: var(--panel);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 22px;
-  box-shadow: var(--shadow);
+  box-shadow: var(--shadow-card);
 }
 .card-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; }
 .card-title { font-size: 16px; font-weight: 800; margin: 0; letter-spacing: -0.1px; }
 .card-sub { color: var(--muted); font-size: 13px; margin: 4px 0 0; }
 
-/* ---------------- icon tile ---------------- */
+/* ------------------------------------------------------------------ */
+/* Icon tile                                                         */
+/* ------------------------------------------------------------------ */
 
 .tile {
   width: 46px; height: 46px; border-radius: 14px; flex: 0 0 auto;
@@ -125,7 +156,9 @@ body {
 .tile.gold { color: var(--accent-2); }
 .tile.green { color: var(--positive); }
 
-/* ---------------- KPI ---------------- */
+/* ------------------------------------------------------------------ */
+/* KPI                                                                */
+/* ------------------------------------------------------------------ */
 
 .kpi-label { color: var(--muted); font-size: 13px; font-weight: 600; }
 .kpi-value {
@@ -134,14 +167,12 @@ body {
 }
 .kpi-sub { color: var(--muted); font-size: 13px; }
 
-/* mini stat rows (At a glance) */
 .stat-rows { display: flex; flex-direction: column; gap: 6px; margin-top: 14px; }
 .stat-row { display: flex; align-items: center; gap: 12px; padding: 9px 0; }
 .stat-row + .stat-row { border-top: 1px solid var(--border); }
 .stat-row .sr-label { flex: 1; color: var(--muted); font-size: 13px; }
 .stat-row .sr-value { font-size: 17px; font-weight: 800; font-variant-numeric: tabular-nums; }
 
-/* hero tiles row (mirrors the reference's stat-tile strip) */
 .tiles-row { display: flex; gap: 10px; margin-top: 20px; }
 .stat-tile { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; gap: 7px; }
 .stat-tile .st-val { font-size: 13px; font-weight: 800; text-align: center; }
@@ -154,13 +185,12 @@ body {
 }
 .stat-tile .st-img img { width: 100%; height: 100%; object-fit: cover; display: block; }
 
-/* ---------------- split bar (Radiant vs Dire) ---------------- */
+/* ------------------------------------------------------------------ */
+/* Split bar (Radiant vs Dire)                                        */
+/* ------------------------------------------------------------------ */
 
 .split-card .kpi-value { margin-bottom: 14px; }
-.splitbar {
-  display: flex; gap: 3px; height: 8px; border-radius: var(--pill);
-  background: var(--track); overflow: hidden;
-}
+.splitbar { display: flex; gap: 3px; height: 8px; border-radius: var(--pill); background: var(--track); overflow: hidden; }
 .splitbar i { display: block; height: 100%; border-radius: var(--pill); }
 .splitbar i.r { background: var(--radiant); box-shadow: 0 0 12px var(--accent-soft); }
 .splitbar i.d { background: var(--dire); box-shadow: 0 0 12px var(--accent-2-soft); }
@@ -182,13 +212,17 @@ body {
 .delta.neutral { color: var(--muted); }
 .delta.neutral .delta-icon { background: var(--panel-2); color: var(--muted); }
 
-/* ---------------- progress bar ---------------- */
+/* ------------------------------------------------------------------ */
+/* Progress bar                                                       */
+/* ------------------------------------------------------------------ */
 
 .bar { height: 6px; border-radius: var(--pill); background: var(--track); overflow: hidden; }
 .bar i { display: block; height: 100%; border-radius: var(--pill); background: var(--accent); }
 .bar.gold i { background: var(--accent-2); }
 
-/* ---------------- avatar ---------------- */
+/* ------------------------------------------------------------------ */
+/* Avatar                                                             */
+/* ------------------------------------------------------------------ */
 
 .avatar {
   width: 38px; height: 38px; border-radius: 50%; flex: 0 0 auto; overflow: hidden;
@@ -196,13 +230,13 @@ body {
   font-weight: 800; font-size: 14px; color: #fff; position: relative;
 }
 .avatar.sm { width: 30px; height: 30px; font-size: 12px; }
+.avatar.lg { width: 58px; height: 58px; font-size: 20px; }
 .avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
-.avatar.initial { background: linear-gradient(150deg, var(--av, var(--accent)), rgba(0,0,0,0.35)); }
+.avatar.initial { background: linear-gradient(150deg, var(--av, var(--accent)), rgba(0, 0, 0, 0.35)); }
 
 .avatar-pair { display: flex; flex: 0 0 auto; }
 .avatar-pair .avatar:last-child { margin-left: -12px; box-shadow: 0 0 0 2px var(--panel); }
 
-/* person cell: avatar + name + sub */
 .pcell { display: flex; align-items: center; gap: 11px; min-width: 0; }
 .pcell .pinfo { display: block; flex: 1 1 auto; min-width: 0; }
 .pcell .pname {
@@ -212,10 +246,12 @@ body {
 }
 .pcell .psub { display: block; font-size: 12px; color: var(--muted); line-height: 1.3; }
 
-/* ---------------- leaderboards ---------------- */
+/* ------------------------------------------------------------------ */
+/* Leaderboards                                                       */
+/* ------------------------------------------------------------------ */
 
 .board-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px; align-items: start; }
-.lb { background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 18px 12px; box-shadow: var(--shadow); min-width: 0; }
+.lb { background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 18px 12px; box-shadow: var(--shadow-card); min-width: 0; }
 .lb h3 { font-size: 14px; font-weight: 800; margin: 0 0 10px; }
 .lb .empty { color: var(--muted); font-size: 13px; padding: 8px 0 12px; }
 .lb-row { display: flex; align-items: center; gap: 11px; padding: 9px 0; border-top: 1px solid var(--border); }
@@ -232,17 +268,18 @@ body {
   background: var(--accent-2-soft); color: var(--accent-2); font-weight: 800; font-size: 13px;
 }
 
-/* ---------------- tables ---------------- */
+/* ------------------------------------------------------------------ */
+/* Tables                                                             */
+/* ------------------------------------------------------------------ */
 
 .table-card { padding: 4px 0; overflow-x: auto; }
-table { width: 100%; border-collapse: collapse; font-size: 14px; }
-th {
+.table-card table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.table-card th {
   color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: 0.6px;
   font-weight: 700; text-align: left; padding: 14px 18px; white-space: nowrap;
 }
-.tsub { display: block; font-size: 11px; color: var(--muted); margin-top: 2px; letter-spacing: 0; text-transform: none; }
-td { padding: 12px 18px; border-top: 1px solid var(--border); white-space: nowrap; vertical-align: middle; }
-tbody tr:hover td { background: rgba(255, 255, 255, 0.025); }
+.table-card td { padding: 12px 18px; border-top: 1px solid var(--border); white-space: nowrap; vertical-align: middle; }
+.table-card tbody tr:hover td { background: rgba(255, 255, 255, 0.025); }
 .num { text-align: right; font-variant-numeric: tabular-nums; }
 .name { font-weight: 700; }
 .muted { color: var(--muted); }
@@ -253,7 +290,9 @@ tbody tr:hover td { background: rgba(255, 255, 255, 0.025); }
 .win { color: var(--positive); font-weight: 700; }
 .loss { color: var(--negative); font-weight: 700; }
 
-/* ---------------- hero tiles ---------------- */
+/* ------------------------------------------------------------------ */
+/* Hero tiles                                                         */
+/* ------------------------------------------------------------------ */
 
 .hero-card { padding: 16px; }
 .hero-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 12px; }
@@ -269,11 +308,15 @@ tbody tr:hover td { background: rgba(255, 255, 255, 0.025); }
 .ht-stats { display: flex; justify-content: space-between; gap: 6px; font-size: 11px; color: var(--muted); margin-top: 4px; }
 .hero-tile .bar { margin-top: 8px; height: 5px; }
 
-/* ---------------- footer ---------------- */
+/* ------------------------------------------------------------------ */
+/* Footer                                                             */
+/* ------------------------------------------------------------------ */
 
 .site-footer { margin-top: 40px; padding: 26px 0 40px; color: var(--muted); font-size: 12.5px; text-align: center; }
 
-/* ---------------- clickable players ---------------- */
+/* ------------------------------------------------------------------ */
+/* Clickable players                                                  */
+/* ------------------------------------------------------------------ */
 
 .player-link {
   background: none; border: 0; padding: 0; margin: 0; font: inherit; color: inherit;
@@ -282,7 +325,9 @@ tbody tr:hover td { background: rgba(255, 255, 255, 0.025); }
 .player-link:hover { color: var(--accent); }
 .avatar.player-link:hover { filter: brightness(1.15); }
 
-/* ---------------- player detail drawer ---------------- */
+/* ------------------------------------------------------------------ */
+/* Player detail drawer                                               */
+/* ------------------------------------------------------------------ */
 
 .drawer-backdrop {
   position: fixed; inset: 0; z-index: 40;
@@ -318,7 +363,6 @@ tbody tr:hover td { background: rgba(255, 255, 255, 0.025); }
 .drawer-body { overflow-y: auto; padding: 26px 22px 40px; }
 
 .dp-head { display: flex; align-items: center; gap: 14px; padding-right: 40px; }
-.avatar.lg { width: 58px; height: 58px; font-size: 20px; }
 .dp-name { font-size: 21px; font-weight: 800; letter-spacing: -0.3px; margin: 0; }
 .dp-id { color: var(--muted); font-size: 12.5px; margin-top: 2px; }
 .dp-badges { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 14px; }
@@ -373,9 +417,9 @@ tbody tr:hover td { background: rgba(255, 255, 255, 0.025); }
 .dp-social-label .s-name { display: block; font-size: 13.5px; font-weight: 700; }
 .dp-social-label .s-sub { display: block; font-size: 11.5px; color: var(--muted); }
 
-body.drawer-open { overflow: hidden; }
-
-/* ---------------- responsive ---------------- */
+/* ------------------------------------------------------------------ */
+/* Responsive                                                         */
+/* ------------------------------------------------------------------ */
 
 @media (max-width: 900px) {
   .bento { grid-template-columns: 1fr; }

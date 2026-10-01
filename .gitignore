@@ -24,3 +24,8 @@ terraform/aggregator.zip
 # Locally generated replay parsing output
 *.events.jsonl
 /parsed-*.json
+
+# Frontend build tooling
+node_modules/
+web/dist/
+web/stats.json

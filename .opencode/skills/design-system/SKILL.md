@@ -1,9 +1,15 @@
 ---
 name: Design System
-description: Design tokens, layout, and component conventions for the static Dota 2 dashboard
+description: Design tokens, layout, and component conventions for the React Dota 2 dashboard
 ---
 
-<!-- Source of truth: web/styles.css and web/app.js -->
+<!-- Source of truth: web/src/styles.css (tokens) and web/src/components -->
+
+## Stack
+
+- React 19 + TypeScript + Vite, styled with Tailwind v4 (tokens + a small
+  component stylesheet). No UI framework beyond that; charts are hand-rolled SVG.
+- Build output lives in `web/dist/` and is served by S3 + CloudFront.
 
 ## Style
 
@@ -14,64 +20,54 @@ visuals. Sentence-case headings (never uppercase).
 ## Layout
 
 - Content max width 1240px via `.wrap`; 24px page padding (16px under 560px).
-- Structure: `.site-header` -> `main.wrap#app` -> `.site-footer`.
-- `.section` blocks hold a `.section-title` plus a card or grid.
-- Summary is a bento: `.bento` = 3 equal columns (1 column under 900px).
-- Leaderboards use `.board-grid`; the bottom two sections use `.split-grid`
-  (2 columns, collapsed under 900px).
+- Structure: `<Header>` -> `<main class="wrap">` -> `<footer>`.
+- Sections are React components in `web/src/components/`.
+- `.bento` = 3 equal columns (1 under 900px); `.board-grid` for leaderboards;
+  `.split-grid` for the bottom two sections.
 
-## Color tokens (CSS variables)
+## Color tokens (Tailwind v4 `@theme` in web/src/styles.css)
 
-- Surfaces: `--bg` #0d0d0f, `--bg-2`, `--panel` #1b1b20, `--panel-2` #242429, `--panel-3`
-- Lines: `--border` rgba(255,255,255,.06), `--border-strong`
-- Text: `--text` #fff, `--text-2`, `--muted` #9b9ba3
-- Accents: `--accent` #2f80ed (blue, primary), `--accent-2` #f2c94c (gold, secondary),
-  `--positive` #43d17a, `--negative` #eb5757
-- Data: `--radiant` = accent, `--dire` = accent-2, `--track` #2c2c33
-- Avatar tints: `--av1`..`--av6`
-- Always reference a variable; never hardcode a color.
+- Surfaces: `--color-bg`, `--color-bg-2`, `--color-panel`, `--color-panel-2`, `--color-panel-3`
+- Lines: `--color-line`, `--color-line-strong`
+- Text: `--color-text`, `--color-text-2`, `--color-muted`
+- Accents: `--color-accent` #2f80ed, `--color-accent-2` #f2c94c, `--color-positive`, `--color-negative`
+- Data: `--color-radiant`, `--color-dire`, `--color-track`
+- These produce utilities such as `bg-panel`, `text-muted`, `border-line`, `rounded-card`, `shadow-card`.
+- Short aliases (`--panel`, `--accent`, …) exist for the component stylesheet.
+- Always reference a token; never hardcode a color.
 
 ## Shape & type
 
-- Radii: `--radius-sm` 12px, `--radius` 18px, `--radius-lg` 22px, `--pill` 999px.
-- `--shadow` / `--shadow-sm` for elevation. 1px `--border`. Base font 15px.
+- Radii: `--radius-sm` 12px, `--radius-card` 18px, `--radius-lg` 22px. Base font 15px.
 
-## Components
+## Components (web/src/components)
 
-- `.card` + `.card-head` / `.card-title` / `.card-sub` / `.tile` (`.tile.sm`, `.gold`, `.green`).
-- KPI: `.kpi-label` / `.kpi-value` / `.kpi-sub`.
-- Stat strip: `.tiles-row > .stat-tile` (`.st-val`, `.st-bar`, `.st-img` with `--tile-accent`).
-- Split bar: `.splitbar > i.r` / `i.d` + `.legend` + `.delta`.
-- Bars: `.bar > i` (`.bar.gold`).
-- Avatars: `.avatar` (`.sm`, `.initial`, `.avatar-pair`); use `avatarElement`,
-  `playerAvatar`, `playerCell`, `avatarPair` in `web/app.js`.
-- Leaderboards: `.lb` card with `.lb-row` / `.lb-rank` / `.lb-main` / `.lb-val` / `.pill-value`.
-- Tables: wrap in a `.card.table-card` (horizontal scroll); right-align numbers with `.num`.
-- Hero art: `.hero-grid > .hero-tile` for the Heroes section.
-- Player drawer: `.drawer` + `.drawer-backdrop` + `.drawer-body`; sections use `.dp-head`,
-  `.dp-kpis/.dp-kpi`, `.dp-rank-row`, `.dp-radar`, `.dp-hero-row`, `.dp-social-row`;
-  badges are `.badge` with `.b1` (blue) / `.b2` (gold) / `.b3` (green).
-  Opens as a right-side panel on desktop and a bottom sheet under 640px.
+- `ui.tsx` — `Icon`, `Tile`, `Bar`, `Badge`, `SectionTitle`, `Avatar`,
+  `PlayerAvatar`, `AvatarPair`, `PlayerName`, `PlayerCell`.
+- `Summary.tsx` — bento: matches KPI + hero tile strip, Radiant/Dire split, at-a-glance.
+- `Leaderboards.tsx` — `.lb` cards with `.lb-row` / `.lb-rank` / `.lb-main` / `.lb-val` / `.pill-value`.
+- `Tables.tsx` — `Players`, `Teammates`, `HeadToHead` using `.card.table-card` + `.num`.
+- `Heroes.tsx` — `.hero-grid > .hero-tile`.
+- `Radar.tsx` — SVG radar (player vs lobby average).
+- `PlayerDrawer.tsx` — right-side panel / bottom sheet under 640px.
+- Avatars, icons and bars are shared from `ui.tsx`; do not re-implement them.
 
-## Hero artwork
+## Data & helpers
 
-- `web/heroes.js` maps hero_id -> CDN slug and exposes `heroCropUrl` / `heroPortraitUrl`.
-- Generated from OpenDota `/api/heroes`, aligned to the ids in `aggregator/aggregator.py`.
+- `web/src/types/stats.ts` mirrors the aggregator schema.
+- `web/src/lib/api.ts` fetches `stats.json` via TanStack Query.
+- `web/src/lib/derived.ts` holds rankings, badges, duo/rival helpers.
+- `web/src/lib/heroes.ts` maps hero_id -> Dota CDN slug (`heroCropUrl` / `heroPortraitUrl`).
 - Always fall back to an initials avatar when the slug is unknown or the image fails.
-
-## Interaction
-
-- Any element with `data-player="<id>"` opens the player drawer (event delegation in `web/app.js`).
-- Use `playerButton(id, text)` / `attachPlayer(node, id)` to make a node clickable.
-- Deep link `#player=<id>` opens the drawer on load; close with the button, backdrop, or `Esc`.
-- The drawer is derived entirely from `stats.json` (no extra requests).
+- Player links set `data-player` semantics via `openPlayer(id)` from the dashboard context.
 
 ## Language
 
-- All UI copy is English (for example "Summary", "Players", "No data yet").
+- All UI copy is English.
 
 ## Rules
 
-- Vanilla only: no frameworks, no build step, no new dependencies (the CDN images are the one external request).
-- Prefer existing classes and CSS variables over new one-off styles.
-- Keep all rendering through the shared helpers in `web/app.js`.
+- Edit only `web/**`. Use TypeScript; no `any` in new code.
+- Run `npm run typecheck` (or `npm run build`) after changes; keep it green.
+- No new runtime dependencies without asking first.
+- Prefer editing existing components and tokens over new one-off styles.

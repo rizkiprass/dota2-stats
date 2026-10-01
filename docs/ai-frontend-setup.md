@@ -48,11 +48,12 @@ or `kimi-k3#max` (pricier), or use `space-bunny-free` to explore for free.
 The builder. Its permissions allow:
 
 - `edit` on `web/**`
-- `shell` for `node --check*` and `python3 -m http.server*`
+- `shell` for `npm run *`, `npm install*`, `npx tsc*`, `node --check*`, `python3 -m http.server*`
 
 Everything else stays permission-controlled, so it cannot wander outside `web/`.
-Its system prompt enforces the project's frontend rules: vanilla only, no new
-dependencies, colors from CSS variables, small reviewable changes.
+Its system prompt enforces the project's frontend rules: React + TypeScript +
+Tailwind, tokens from `web/src/styles.css`, no new runtime dependencies without
+asking, run `npm run typecheck` / `npm run build`, small reviewable changes.
 
 ### `visual-reviewer` (subagent, read-only)
 
@@ -78,11 +79,11 @@ multiple files.
 The agents do not duplicate design decisions. Instead each agent loads the
 `design-system` skill, which holds:
 
-- Layout rules (1240px `.wrap`, `.section`, bento/board/split grids)
-- Color tokens as CSS variables (dark canvas, blue + gold accents)
+- Layout rules (1240px `.wrap`, sections, bento/board/split grids)
+- Color tokens as Tailwind `@theme` variables (dark canvas, blue + gold accents)
 - Spacing scale, radii, shadows
-- Component patterns (`.card`, `.kpi`, `.lb`, `.bar`, `.avatar`, `.hero-tile`, `.table-card`)
-- Hero artwork helpers (`web/heroes.js`: `heroCropUrl` / `heroPortraitUrl`)
+- Component conventions (`web/src/components`: `ui.tsx`, `Summary`, `Leaderboards`, `Tables`, `Heroes`, `Radar`, `PlayerDrawer`)
+- Data helpers (`web/src/lib/derived.ts`) and hero artwork (`web/src/lib/heroes.ts`)
 - The rule that UI copy is English
 
 **How skill loading works:** OpenCode only advertises a skill's ID, name, and
@@ -98,8 +99,8 @@ frontmatter `name`.
 1. Capture a screenshot       Chrome headless (browser not required)
 2. visual-reviewer subagent   lists issues by severity, with file + fix
 3. (you verify the findings)   reports can be wrong or stale — always check
-4. frontend agent              implements the fixes in web/
-5. deploy + re-screenshot      aws s3 sync, then capture again
+4. frontend agent              implements the fixes in web/src/
+5. build + deploy              npm run build, aws s3 sync web/dist/, invalidate
 6. visual-reviewer again       confirms FIXED, flags any new issue
 7. commit
 ```
@@ -111,9 +112,9 @@ Chrome works:
 
 ```bash
 google-chrome --headless=new --disable-gpu --no-sandbox \
-  --window-size=1440,2400 --virtual-time-budget=8000 \
+  --window-size=1440,2400 --virtual-time-budget=9000 \
   --screenshot=/tmp/opencode/shot/dashboard.png \
-  "http://dta-replay-dashboard-rizkiprass-2026.s3-website-us-east-1.amazonaws.com"
+  "https://d35ludv1nb7o7i.cloudfront.net"
 ```
 
 Use a second narrow pass (`--window-size=360,2400`) to check responsive layout.
@@ -128,15 +129,22 @@ launch a subagent:
 
 Subagents cannot be selected as the main agent — they only run as child sessions.
 
-### Step 4/5 — deploy the frontend
+### Step 4/5 — build and deploy the frontend
 
 ```bash
-aws s3 sync web/ s3://dta-replay-dashboard-rizkiprass-2026/ \
-  --profile pras-sandbox --region us-east-1 --delete \
-  --exclude "stats.json" --cache-control "no-cache"
+cd web && npm run build
+aws s3 sync web/dist/ s3://dta-replay-dashboard-rizkiprass-2026/ \
+  --exclude "stats.json" --exclude "index.html" --delete \
+  --cache-control "public, max-age=31536000, immutable" \
+  --profile pras-sandbox --region us-east-1
+aws s3 cp web/dist/index.html s3://dta-replay-dashboard-rizkiprass-2026/index.html \
+  --cache-control "no-cache" --profile pras-sandbox --region us-east-1
+aws cloudfront create-invalidation --distribution-id E25ZAA5U99KVMM \
+  --paths "/index.html" "/stats.json" "/" --profile pras-sandbox --region us-east-1
 ```
 
-`--exclude stats.json` protects the copy the aggregator publishes.
+`--exclude stats.json` protects the copy the aggregator publishes. Hashed build
+assets (`/assets/*`) are cached for a year; `index.html` and `stats.json` are not.
 
 ## Editor and permission notes
 
@@ -168,7 +176,8 @@ Variant names are model-specific; an unsupported variant is a resolution error.
 - Both vision agents read a real PNG and pointed at specific elements,
   confirming image input works.
 - The subagent honoured its read-only permissions.
-- Offline render checks use jsdom; source checks use `node --check web/app.js`.
+- Offline render checks use jsdom; the frontend type/build checks are
+  `npm run typecheck` and `npm run build` in `web/`.
 
 ## Pitfall worth remembering
 

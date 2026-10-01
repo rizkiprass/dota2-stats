@@ -31,11 +31,15 @@ dota-lobby-stats2/
 |   +-- iam.tf
 |   +-- dashboard.tf      Static website bucket for the dashboard
 |
-+-- web/                  Vanilla static dashboard (HTML/CSS/JS)
++-- web/                  React + TypeScript dashboard (Vite + Tailwind v4)
+|   +-- package.json      Build scripts (npm run build -> web/dist/)
+|   +-- vite.config.ts
 |   +-- index.html
-|   +-- styles.css
-|   +-- app.js            Fetches stats.json and renders summaries/leaderboards/tables
-|   +-- heroes.js         hero_id -> Dota CDN slug, for hero artwork
+|   +-- src/
+|       +-- components/    Header, Summary, Leaderboards, Tables, Heroes, Radar, PlayerDrawer, ui
+|       +-- lib/           api (stats.json), derived metrics, heroes (CDN art), format
+|       +-- types/         stats.ts (schema mirror)
+|       +-- styles.css     Tailwind entry + design tokens
 |
 +-- scripts/
 |   +-- upload-replays.sh Batch-upload .dem replays to s3://<bucket>/raw/
@@ -112,21 +116,29 @@ Check CloudWatch Logs (`/aws/lambda/dota-replay-parser`) for parse duration, rep
 
 ## Dashboard
 
-A vanilla static dashboard (no build step) reads `stats.json` and renders the summary, leaderboards, and player/hero/teammate/head-to-head tables.
+A React + TypeScript single-page app (Vite + Tailwind v4) reads `stats.json` and
+renders the summary, leaderboards, player/hero/teammate/head-to-head views, and a
+player detail drawer.
 
 > Working on the dashboard with AI assistance? See [`docs/ai-frontend-setup.md`](./docs/ai-frontend-setup.md) for the OpenCode agents (`frontend`, `visual-reviewer`, `quick-edit`), the `design-system` skill, and the screenshot-review workflow.
 
-- Terraform creates a dedicated, public-read S3 website bucket (`dashboard.tf`) — separate from the private data bucket.
-- The aggregator mirrors every `stats/stats.json` payload to `stats.json` in the website bucket, so the page always shows the latest rebuild with no cross-bucket CORS.
-- Deploy the frontend with:
+- Terraform (`dashboard.tf`) creates a **private** S3 bucket fronted by **CloudFront** with Origin Access Control + a security-headers policy. HTTPS, caching, and the SPA fallback are handled at the edge.
+- The aggregator mirrors every `stats/stats.json` payload to `stats.json` in the dashboard bucket, so the page always shows the latest rebuild with no cross-bucket CORS. CloudFront serves `/stats.json` with caching disabled, so it is never stale.
+- Build and deploy the frontend with:
 
   ```bash
-  aws s3 sync web/ s3://<dashboard_bucket>/ \
-    --exclude "stats.json" --delete \
+  cd web && npm run build
+  aws s3 sync web/dist/ s3://<dashboard_bucket>/ \
+    --exclude "stats.json" --exclude "index.html" --delete \
+    --cache-control "public, max-age=31536000, immutable" \
     --profile <profile> --region <region>
+  aws s3 cp web/dist/index.html s3://<dashboard_bucket>/index.html \
+    --cache-control "no-cache" --profile <profile> --region <region>
+  aws cloudfront create-invalidation --distribution-id <dist_id> \
+    --paths "/index.html" "/stats.json" "/" --profile <profile> --region <region>
   ```
 
-- The website URL is emitted by Terraform as `dashboard_website_url` (plain HTTP S3 website endpoint). `GET /stats.json` is served same-origin from the website bucket.
+- Terraform outputs `dashboard_url` (HTTPS CloudFront URL), `dashboard_cloudfront_domain` (CNAME target), and `dashboard_cloudfront_distribution_id`. `GET /stats.json` is served same-origin.
 
 ## Batch replay upload
 
@@ -166,6 +178,6 @@ Implemented and deployed:
 
 - **MVP 1** — S3 raw storage, Lambda container replay parsing, normalized `parsed/<match_id>.json` output.
 - **MVP 2** — full-rebuild aggregator producing dashboard-ready `stats/stats.json` (summary, players, heroes, player-heroes, teammates, head-to-head, leaderboards).
-- **Dashboard** — vanilla static S3 website rendering `stats.json` (summary, leaderboards, detail tables).
+- **Dashboard** — React + TypeScript SPA (Vite + Tailwind v4) served from a private S3 bucket via CloudFront (HTTPS, OAC), with a player detail drawer.
 
-Not implemented yet: advanced analytics (timelines, positions, combat logs), custom domain/HTTPS via CloudFront, and authentication.
+Not implemented yet: advanced analytics (timelines, positions, combat logs), a custom domain (ACM + Cloudflare CNAME), and authentication.

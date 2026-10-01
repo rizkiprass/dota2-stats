@@ -39,11 +39,21 @@ output "aggregator_cloudwatch_log_group" {
 }
 
 output "dashboard_bucket_name" {
-  description = "S3 bucket serving the static statistics dashboard."
+  description = "S3 bucket holding the static statistics dashboard build."
   value       = aws_s3_bucket.dashboard.bucket
 }
 
-output "dashboard_website_url" {
-  description = "S3 static website endpoint for the statistics dashboard."
-  value       = "http://${aws_s3_bucket_website_configuration.dashboard.website_endpoint}"
+output "dashboard_url" {
+  description = "HTTPS URL of the statistics dashboard (CloudFront)."
+  value       = "https://${aws_cloudfront_distribution.dashboard.domain_name}"
+}
+
+output "dashboard_cloudfront_domain" {
+  description = "CloudFront distribution domain name (use as a CNAME target for a custom domain)."
+  value       = aws_cloudfront_distribution.dashboard.domain_name
+}
+
+output "dashboard_cloudfront_distribution_id" {
+  description = "CloudFront distribution ID (for cache invalidations after deploy)."
+  value       = aws_cloudfront_distribution.dashboard.id
 }
