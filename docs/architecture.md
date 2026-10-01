@@ -231,3 +231,7 @@ Useful CloudWatch log groups:
 ## Out of Scope
 
 The current system intentionally has no database, API Gateway, DynamoDB, Athena, Glue, SQS, Step Functions, or ECS. The dashboard is served from a public-read S3 website bucket only — no CloudFront, custom domain, HTTPS, or authentication yet. Advanced analytics (timelines, positions, combat logs) remain out of scope.
+
+## AI-assisted frontend development
+
+The dashboard is maintained with OpenCode agents and a shared skill defined under `.opencode/`. See [`ai-frontend-setup.md`](./ai-frontend-setup.md) for how the `frontend`, `visual-reviewer`, and `quick-edit` agents work, why their models were chosen, and the screenshot-review workflow.

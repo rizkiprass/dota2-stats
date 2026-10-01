@@ -44,6 +44,8 @@ dota-lobby-stats2/
 |
 +-- docs/
 |   +-- architecture.md
+|   +-- ai-frontend-setup.md  OpenCode agents/skills and the frontend workflow
+|   +-- ai-frontend-setup.md  OpenCode agents/skills and the frontend workflow
 |
 +-- dota_replay_mvp_plan.md
 +-- README.md
@@ -110,6 +112,8 @@ Check CloudWatch Logs (`/aws/lambda/dota-replay-parser`) for parse duration, rep
 ## Dashboard
 
 A vanilla static dashboard (no build step) reads `stats.json` and renders the summary, leaderboards, and player/hero/teammate/head-to-head tables.
+
+> Working on the dashboard with AI assistance? See [`docs/ai-frontend-setup.md`](./docs/ai-frontend-setup.md) for the OpenCode agents (`frontend`, `visual-reviewer`, `quick-edit`), the `design-system` skill, and the screenshot-review workflow.
 
 - Terraform creates a dedicated, public-read S3 website bucket (`dashboard.tf`) — separate from the private data bucket.
 - The aggregator mirrors every `stats/stats.json` payload to `stats.json` in the website bucket, so the page always shows the latest rebuild with no cross-bucket CORS.
