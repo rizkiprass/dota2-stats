@@ -34,8 +34,8 @@ All models come from the `opencode-go` provider. Two facts drove the choices:
 
 | Agent | Model | Why |
 |---|---|---|
-| `frontend` | `opencode-go/gpt-6-luna#high` | Vision-capable and inexpensive (~0.1/0.5 USD per 1M tokens), so design passes stay affordable. |
-| `visual-reviewer` | `opencode-go/gpt-6-luna#high` | Must see screenshots. Same model keeps review and build on one visual baseline. |
+| `frontend` | `opencode-go/gpt-6-luna#medium` | Vision-capable and inexpensive (~0.1/0.5 USD per 1M tokens), so design passes stay affordable. `#medium` keeps routine build work cheap. |
+| `visual-reviewer` | `opencode-go/deepseek-v4.1-flash#low` | Must see screenshots; vision-capable and the cheapest option for a read-only critique pass. |
 | `quick-edit` | `opencode-go/deepseek-v4.1-flash#low` | Cheapest, fastest option for mechanical edits; `#low` avoids spending reasoning on trivia. |
 
 Upgrade path for a hard design pass: switch `frontend` to `qwen3.8-max#xhigh`
@@ -97,52 +97,65 @@ frontmatter `name`.
 ## End-to-end workflow (proven in practice)
 
 ```text
-1. Capture a screenshot       Chrome headless (browser not required)
-2. visual-reviewer subagent   lists issues by severity, with file + fix
-3. (you verify the findings)   reports can be wrong or stale — always check
-4. frontend agent              implements the fixes in web/src/
-5. build + deploy              npm run build, aws s3 sync web/dist/, invalidate
-6. visual-reviewer again       confirms FIXED, flags any new issue
+1. Build + deploy               scripts/deploy-web.sh --wait
+2. Capture screenshots          scripts/screenshot-web.sh (live site)
+3. visual-reviewer subagent     lists issues by severity, with file + fix
+4. (you verify the findings)    reports can be wrong or stale — always check
+5. frontend agent               implements the fixes in web/src/
+6. deploy + screenshot again    repeat until a fresh capture is clean
 7. commit
 ```
 
-### Step 1 — screenshot without a desktop browser
+Verification happens against the **live site**, so every iteration is publicly
+visible until the next deploy. The `frontend` agent runs this loop as its
+definition of done before reporting a UI change complete.
 
-The browser integration needs the desktop app. When it is unavailable, headless
-Chrome works:
+### Step 1–2 — deploy, then screenshot the live site
 
 ```bash
-google-chrome --headless=new --disable-gpu --no-sandbox \
-  --window-size=1440,2400 --virtual-time-budget=9000 \
-  --screenshot=/tmp/opencode/shot/dashboard.png \
-  "https://dls.rpras.my.id"
+bash scripts/deploy-web.sh --wait   # build + publish + wait for invalidation
+bash scripts/screenshot-web.sh      # live desktop / mobile / player-profile PNGs
 ```
 
-Use a second narrow pass (`--window-size=360,2400`) to check responsive layout.
+`deploy-web.sh` reads the bucket and CloudFront distribution from
+`terraform output`, preserves `stats.json`, and waits for the invalidation to
+finish — so the screenshots captured immediately after show the new build.
 
-### Step 2 — how to invoke the agents
+`screenshot-web.sh` writes to `/tmp/opencode/shots/`:
+
+```text
+dashboard-desktop.png   1440px, "/"
+dashboard-mobile.png     360px, "/"
+player-desktop.png      1440px, "/player/<id>"
+```
+
+It uses headless Chrome with `--force-prefers-reduced-motion`, so count-up and
+entrance animations are captured at their final values and screenshots are
+deterministic. It does not build or deploy anything and never touches `web/dist`.
+
+### Step 3 — how to invoke the agents
 
 In the OpenCode TUI, select the agent from the picker, or ask the main agent to
 launch a subagent:
 
-- "Use the visual-reviewer subagent to review this screenshot: `<path>`"
+- "Use the visual-reviewer subagent to review these screenshots: `/tmp/opencode/shots/*.png`"
 - "Use the frontend agent to fix the leaderboard overflow"
 
 Subagents cannot be selected as the main agent — they only run as child sessions.
 
 ### Step 4/5 — build and deploy the frontend
 
+Use the helper (`--dry-run` to preview). It reads the bucket and distribution
+from `terraform output`, so no IDs are hardcoded:
+
 ```bash
-cd web && npm run build
-aws s3 sync web/dist/ s3://dta-replay-dashboard-rizkiprass-2026/ \
-  --exclude "stats.json" --exclude "index.html" --delete \
-  --cache-control "public, max-age=31536000, immutable" \
-  --profile pras-sandbox --region us-east-1
-aws s3 cp web/dist/index.html s3://dta-replay-dashboard-rizkiprass-2026/index.html \
-  --cache-control "no-cache" --profile pras-sandbox --region us-east-1
-aws cloudfront create-invalidation --distribution-id E25ZAA5U99KVMM \
-  --paths "/index.html" "/stats.json" "/" --profile pras-sandbox --region us-east-1
+scripts/deploy-web.sh --dry-run    # show the plan
+scripts/deploy-web.sh --wait       # build + publish + wait for invalidation
 ```
+
+Under the hood it runs `npm run build`, `aws s3 sync` (excluding `stats.json`
+and `index.html`), an `aws s3 cp` of `index.html` with `no-cache`, and a
+CloudFront invalidation for `/index.html`, `/`, and `/assets/*`.
 
 `--exclude stats.json` protects the copy the aggregator publishes. Hashed build
 assets (`/assets/*`) are cached for a year; `index.html` and `stats.json` are not.
