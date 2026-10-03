@@ -125,7 +125,23 @@ views, and a shareable player profile page at `/player/<id>`.
 
 - Terraform (`dashboard.tf`) creates a **private** S3 bucket fronted by **CloudFront** with Origin Access Control + a security-headers policy. HTTPS, caching, and the SPA fallback are handled at the edge.
 - The aggregator mirrors every `stats/stats.json` payload to `stats.json` in the dashboard bucket, so the page always shows the latest rebuild with no cross-bucket CORS. CloudFront serves `/stats.json` with caching disabled, so it is never stale.
-- Build and deploy the frontend with:
+- Build and deploy the frontend with `scripts/deploy-web.sh` (bucket and
+  distribution ID are read from `terraform output`; `stats.json` is never
+  touched):
+
+  ```bash
+  scripts/deploy-web.sh --dry-run    # show the plan, change nothing
+  scripts/deploy-web.sh              # build + deploy + invalidate
+  scripts/deploy-web.sh --skip-build # deploy the existing web/dist/
+  scripts/deploy-web.sh --wait       # wait for the invalidation to finish
+  ```
+
+  `--bucket`, `--distribution-id`, `--profile`, and `--region` override the
+  defaults; the same values can be set through the `DASHBOARD_BUCKET`,
+  `CLOUDFRONT_DISTRIBUTION_ID`, `AWS_PROFILE_NAME`, and `AWS_REGION_NAME`
+  environment variables.
+
+  Under the hood it runs the equivalent of:
 
   ```bash
   cd web && npm run build
@@ -136,7 +152,7 @@ views, and a shareable player profile page at `/player/<id>`.
   aws s3 cp web/dist/index.html s3://<dashboard_bucket>/index.html \
     --cache-control "no-cache" --profile <profile> --region <region>
   aws cloudfront create-invalidation --distribution-id <dist_id> \
-    --paths "/index.html" "/stats.json" "/" --profile <profile> --region <region>
+    --paths "/index.html" "/" "/assets/*" --profile <profile> --region <region>
   ```
 
 - Terraform outputs `dashboard_url` (HTTPS CloudFront URL), `dashboard_cloudfront_domain` (CNAME target), and `dashboard_cloudfront_distribution_id`. `GET /stats.json` is served same-origin.
