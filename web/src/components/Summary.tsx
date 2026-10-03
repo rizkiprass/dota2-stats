@@ -1,7 +1,7 @@
 import type { CSSProperties } from "react";
-import { Tile, Icon, useCountUp } from "./ui";
+import { Tile, Icon, PlayerAvatar, PlayerName, useCountUp } from "./ui";
 import { fmtDuration, fmtInt, fmtNum, fmtPct } from "../lib/format";
-import { heroCropUrl } from "../lib/heroes";
+import { heroCropUrl, heroPortraitUrl } from "../lib/heroes";
 import type { Stats } from "../types/stats";
 
 const TINTS = ["--av1", "--av2", "--av3", "--av4", "--av1", "--av3"];
@@ -132,9 +132,82 @@ function GlanceCard({ stats }: { stats: Stats }) {
   );
 }
 
+function SpotLightHero({ stats }: { stats: Stats }) {
+  const heroes = Object.values(stats.heroes || {});
+  const hero = heroes.length ? [...heroes].sort((a, b) => b.picks - a.picks || b.win_rate - a.win_rate)[0] : null;
+  const art = hero ? heroPortraitUrl(hero.hero_id) ?? heroCropUrl(hero.hero_id) : null;
+  const picks = useCountUp(hero?.picks ?? 0);
+  const winRate = useCountUp(hero ? Number(hero.win_rate) || 0 : 0);
+  if (!hero) return null;
+  return (
+    <div className="card spotlight-card">
+      {art ? <div className="spotlight-art" style={{ backgroundImage: `url(${art})` }} aria-hidden="true" /> : null}
+      <div className="spotlight-body">
+        <p className="spotlight-eyebrow">Most picked hero</p>
+        <h3 className="spotlight-name">{hero.hero_name ?? `Hero ${hero.hero_id}`}</h3>
+        <div className="spotlight-stats">
+          <div className="spotlight-stat">
+            <span className="sv">{fmtInt(Math.round(picks))}</span>
+            <span className="sl">picks</span>
+          </div>
+          <div className="spotlight-stat">
+            <span className="sv">{fmtPct(winRate)}</span>
+            <span className="sl">win rate</span>
+          </div>
+          <div className="spotlight-stat">
+            <span className="sv">{fmtInt(hero.wins)}–{fmtInt(hero.losses)}</span>
+            <span className="sl">W–L</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function PlayerOfTheLobby({ stats }: { stats: Stats }) {
+  const players = Object.entries(stats.players).map(([id, record]) => ({ id, ...record }));
+  const eligible = players.filter((player) => player.matches >= 2);
+  const pool = eligible.length ? eligible : players;
+  const mvp = pool.length ? [...pool].sort((a, b) => b.kda - a.kda || b.win_rate - a.win_rate)[0] : null;
+  const kda = useCountUp(mvp ? Number(mvp.kda) || 0 : 0);
+  const winRate = useCountUp(mvp ? Number(mvp.win_rate) || 0 : 0);
+  const matches = useCountUp(mvp?.matches ?? 0);
+  if (!mvp) return null;
+  return (
+    <div className="card mvp-card">
+      <p className="spotlight-eyebrow">Player of the lobby</p>
+      <div className="mvp-head">
+        <PlayerAvatar id={mvp.id} size="lg" />
+        <div className="mvp-who">
+          <PlayerName id={mvp.id} className="mvp-name" />
+          <span className="mvp-sub">{fmtInt(mvp.matches)} matches · {fmtInt(mvp.kills)} K / {fmtInt(mvp.deaths)} D / {fmtInt(mvp.assists)} A</span>
+        </div>
+      </div>
+      <div className="mvp-body">
+        <div className="mvp-stat">
+          <div className="mv">{fmtNum(kda)}</div>
+          <div className="ml">KDA</div>
+        </div>
+        <div className="mvp-stat">
+          <div className="mv">{fmtPct(winRate)}</div>
+          <div className="ml">win rate</div>
+        </div>
+        <div className="mvp-stat">
+          <div className="mv">{fmtInt(Math.round(matches))}</div>
+          <div className="ml">matches</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function Summary({ stats }: { stats: Stats }) {
   return (
-    <section className="section">
+    <section className="section" id="summary">
+      <div className="spotlight">
+        <SpotLightHero stats={stats} />
+        <PlayerOfTheLobby stats={stats} />
+      </div>
       <div className="bento">
         <MatchesCard stats={stats} />
         <SplitCard stats={stats} />

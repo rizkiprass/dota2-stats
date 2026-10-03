@@ -82,7 +82,7 @@ function Row({
 
   return (
     <div className="lb-row">
-      <div className={`lb-rank${rank === 1 ? " top" : ""}`}>{rank}</div>
+      <div className={`lb-rank${rank <= 3 ? ` medal medal-${rank}` : ""}`}>{rank}</div>
       {avatarNode}
       <div className="lb-main">
         <div className="lb-name">
@@ -101,7 +101,7 @@ function Row({
 export function Leaderboards({ stats }: { stats: Stats }) {
   const boards = stats.leaderboards || {};
   return (
-    <section className="section">
+    <section className="section" id="leaderboards">
       <h2 className="section-title">Leaderboards</h2>
       <div className="board-grid">
         {Object.entries(boards).map(([category, entries]) => {

@@ -10,7 +10,7 @@ export function Heroes({ stats }: { stats: Stats }) {
   const heroes = [...Object.values(stats.heroes)];
   heroes.sort((a, b) => b.picks - a.picks || b.win_rate - a.win_rate);
   return (
-    <section className="section">
+    <section className="section" id="heroes">
       <h2 className="section-title">Heroes</h2>
       <div className="card hero-card">
         {heroes.length === 0 ? (

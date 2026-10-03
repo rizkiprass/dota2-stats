@@ -12,7 +12,7 @@ export function Dashboard() {
       <Leaderboards stats={stats} />
       <Players stats={stats} />
       <Heroes stats={stats} />
-      <div className="split-grid">
+      <div className="split-grid" id="matchups">
         <Teammates stats={stats} />
         <HeadToHead stats={stats} />
       </div>

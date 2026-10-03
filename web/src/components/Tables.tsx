@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { PlayerCell } from "./ui";
 import { fmtInt, fmtNum, fmtPct } from "../lib/format";
 import { playerName } from "../lib/derived";
@@ -49,11 +49,60 @@ function Table<T>({ columns, rows }: { columns: Array<Column<T>>; rows: T[] }) {
 type PlayerRow = { id: string } & PlayerRecord;
 
 export function Players({ stats }: { stats: Stats }) {
-  const rows: PlayerRow[] = Object.entries(stats.players).map(([id, rec]) => ({ id, ...rec }));
-  rows.sort((a, b) => b.matches - a.matches || b.win_rate - a.win_rate || b.kills - a.kills);
+  const [query, setQuery] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null;
+      const typing = target?.tagName === "INPUT" || target?.tagName === "TEXTAREA";
+      if (event.key === "/" && !typing) {
+        event.preventDefault();
+        inputRef.current?.focus();
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, []);
+
+  const all = useMemo<PlayerRow[]>(
+    () => Object.entries(stats.players).map(([id, rec]) => ({ id, ...rec })),
+    [stats.players],
+  );
+
+  const trimmed = query.trim().toLowerCase();
+  const rows = useMemo(() => {
+    const filtered = trimmed
+      ? all.filter(
+          (row) =>
+            (row.player_name ?? "").toLowerCase().includes(trimmed) ||
+            row.id.toLowerCase().includes(trimmed),
+        )
+      : all;
+    return [...filtered].sort((a, b) => b.matches - a.matches || b.win_rate - a.win_rate || b.kills - a.kills);
+  }, [all, trimmed]);
+
   return (
-    <section className="section">
-      <h2 className="section-title">Players</h2>
+    <section className="section" id="players">
+      <div className="section-head">
+        <h2 className="section-title">Players</h2>
+        <div className="table-search">
+          <input
+            ref={inputRef}
+            type="search"
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Search players"
+            aria-label="Search players by name or account id"
+          />
+          <kbd aria-hidden="true">/</kbd>
+        </div>
+      </div>
+      {trimmed ? (
+        <p className="search-count">
+          {fmtInt(rows.length)} of {fmtInt(all.length)} players
+        </p>
+      ) : null}
       <Table
         rows={rows}
         columns={[
