@@ -24,7 +24,14 @@ function Table<T>({ columns, rows }: { columns: Array<Column<T>>; rows: T[] }) {
           </tr>
         </thead>
         <tbody>
-          {rows.map((row, i) => (
+          {rows.length === 0 ? (
+            <tr>
+              <td className="table-empty" colSpan={columns.length}>
+                <strong>No records yet</strong>
+                <span>There’s no data to show in this section yet.</span>
+              </td>
+            </tr>
+          ) : rows.map((row, i) => (
             <tr key={i}>
               {columns.map((col) => (
                 <td key={col.label} className={col.num ? "num" : undefined}>

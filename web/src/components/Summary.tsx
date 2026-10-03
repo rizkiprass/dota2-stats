@@ -1,5 +1,5 @@
 import type { CSSProperties } from "react";
-import { Tile, Icon } from "./ui";
+import { Tile, Icon, useCountUp } from "./ui";
 import { fmtDuration, fmtInt, fmtNum, fmtPct } from "../lib/format";
 import { heroCropUrl } from "../lib/heroes";
 import type { Stats } from "../types/stats";
@@ -38,12 +38,13 @@ function HeroTiles({ stats }: { stats: Stats }) {
 
 function MatchesCard({ stats }: { stats: Stats }) {
   const s = stats.summary;
+  const totalMatches = useCountUp(s.total_matches);
   return (
     <div className="card kpi">
       <div className="card-head">
         <div>
           <div className="kpi-label">Matches Parsed</div>
-          <div className="kpi-value">{fmtInt(s.total_matches)}</div>
+          <div className="kpi-value">{fmtInt(Math.round(totalMatches))}</div>
           <div className="kpi-sub">
             across {fmtInt(s.total_players)} players · {fmtInt(s.total_hero_picks)} hero picks
           </div>
@@ -59,6 +60,10 @@ function SplitCard({ stats }: { stats: Stats }) {
   const s = stats.summary;
   const radiant = Number(s.radiant_win_rate) || 0;
   const dire = Number(s.dire_win_rate) || 0;
+  const animatedRadiant = useCountUp(radiant);
+  const animatedDire = useCountUp(dire);
+  const radiantWins = useCountUp(s.radiant_wins);
+  const direWins = useCountUp(s.dire_wins);
   const lead = radiant >= dire ? "Radiant" : "Dire";
   const gap = Math.abs(radiant - dire);
   return (
@@ -66,9 +71,9 @@ function SplitCard({ stats }: { stats: Stats }) {
       <div className="card-head">
         <div>
           <div className="kpi-label">Radiant vs Dire</div>
-          <div className="kpi-value">{fmtPct(radiant)}</div>
+          <div className="kpi-value">{fmtPct(animatedRadiant)}</div>
           <div className="kpi-sub">
-            {fmtInt(s.radiant_wins)} Radiant wins · {fmtInt(s.dire_wins)} Dire wins
+            {fmtInt(Math.round(radiantWins))} Radiant wins · {fmtInt(Math.round(direWins))} Dire wins
           </div>
         </div>
         <Tile icon="scale" variant="gold" />
@@ -80,12 +85,12 @@ function SplitCard({ stats }: { stats: Stats }) {
       <div className="legend">
         <div className="lg">
           <span className="dot r" />
-          <b>{fmtPct(radiant)}</b>
-          <span>Radiant · {fmtInt(s.radiant_wins)}</span>
+          <b>{fmtPct(animatedRadiant)}</b>
+          <span>Radiant · {fmtInt(Math.round(radiantWins))}</span>
         </div>
         <div className="lg right">
-          <span>Dire · {fmtInt(s.dire_wins)}</span>
-          <b>{fmtPct(dire)}</b>
+          <span>Dire · {fmtInt(Math.round(direWins))}</span>
+          <b>{fmtPct(animatedDire)}</b>
           <span className="dot d" />
         </div>
       </div>
@@ -101,9 +106,11 @@ function SplitCard({ stats }: { stats: Stats }) {
 
 function GlanceCard({ stats }: { stats: Stats }) {
   const s = stats.summary;
+  const totalPlayers = useCountUp(s.total_players);
+  const totalHeroPicks = useCountUp(s.total_hero_picks);
   const rows: Array<["users" | "sparkles" | "clock", string, string]> = [
-    ["users", "Total Players", fmtInt(s.total_players)],
-    ["sparkles", "Total Hero Picks", fmtInt(s.total_hero_picks)],
+    ["users", "Total Players", fmtInt(Math.round(totalPlayers))],
+    ["sparkles", "Total Hero Picks", fmtInt(Math.round(totalHeroPicks))],
     ["clock", "Average Duration", fmtDuration(s.average_duration_seconds)],
   ];
   return (

@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { Avatar, AvatarPair, Bar, PlayerAvatar, PlayerName } from "./ui";
+import { Avatar, AvatarPair, Bar, PlayerAvatar, PlayerName, useCountUp } from "./ui";
 import { fmtInt, fmtNum, fmtPct } from "../lib/format";
 import { heroName, playerName } from "../lib/derived";
 import { useDashboard } from "../lib/dashboard-context";
@@ -19,22 +19,22 @@ const TITLES: Record<string, string> = {
 };
 
 interface Spec {
-  value: (entry: LeaderboardEntry) => string;
+  format: (value: number) => string;
   metric: (entry: LeaderboardEntry) => number;
   pill?: boolean;
 }
 
 const SPECS: Record<string, Spec> = {
-  most_matches: { value: (e) => fmtInt(e.matches), metric: (e) => e.matches ?? 0 },
-  highest_win_rate: { value: (e) => fmtPct(e.win_rate), metric: (e) => e.win_rate ?? 0, pill: true },
-  most_kills: { value: (e) => fmtInt(e.kills), metric: (e) => e.kills ?? 0 },
-  best_kda: { value: (e) => fmtNum(e.kda), metric: (e) => e.kda ?? 0 },
-  most_assists: { value: (e) => fmtInt(e.assists), metric: (e) => e.assists ?? 0 },
-  most_picked_hero: { value: (e) => fmtInt(e.picks), metric: (e) => e.picks ?? 0 },
-  best_hero_win_rate: { value: (e) => fmtPct(e.win_rate), metric: (e) => e.win_rate ?? 0, pill: true },
-  best_duo_win_rate: { value: (e) => fmtPct(e.win_rate), metric: (e) => e.win_rate ?? 0, pill: true },
-  most_played_duo: { value: (e) => fmtInt(e.matches), metric: (e) => e.matches ?? 0 },
-  most_played_rivalry: { value: (e) => fmtInt(e.matches), metric: (e) => e.matches ?? 0 },
+  most_matches: { format: (value) => fmtInt(Math.round(value)), metric: (e) => e.matches ?? 0 },
+  highest_win_rate: { format: fmtPct, metric: (e) => e.win_rate ?? 0, pill: true },
+  most_kills: { format: (value) => fmtInt(Math.round(value)), metric: (e) => e.kills ?? 0 },
+  best_kda: { format: fmtNum, metric: (e) => e.kda ?? 0 },
+  most_assists: { format: (value) => fmtInt(Math.round(value)), metric: (e) => e.assists ?? 0 },
+  most_picked_hero: { format: (value) => fmtInt(Math.round(value)), metric: (e) => e.picks ?? 0 },
+  best_hero_win_rate: { format: fmtPct, metric: (e) => e.win_rate ?? 0, pill: true },
+  best_duo_win_rate: { format: fmtPct, metric: (e) => e.win_rate ?? 0, pill: true },
+  most_played_duo: { format: (value) => fmtInt(Math.round(value)), metric: (e) => e.matches ?? 0 },
+  most_played_rivalry: { format: (value) => fmtInt(Math.round(value)), metric: (e) => e.matches ?? 0 },
 };
 
 function Row({
@@ -76,6 +76,7 @@ function Row({
 
   const spec = SPECS[category];
   const metric = spec ? Number(spec.metric(entry)) : 0;
+  const animatedMetric = useCountUp(metric);
   const scale = category.includes("win_rate") ? 100 : maxMetric;
   const width = Math.max(2, Math.min(100, (metric / (scale || 1)) * 100));
 
@@ -91,7 +92,7 @@ function Row({
         <Bar pct={width} gold={gold} />
       </div>
       <div className="lb-val">
-        {spec?.pill ? <span className="pill-value">{spec.value(entry)}</span> : spec?.value(entry)}
+        {spec?.pill ? <span className="pill-value">{spec.format(animatedMetric)}</span> : spec?.format(animatedMetric)}
       </div>
     </div>
   );
@@ -111,7 +112,10 @@ export function Leaderboards({ stats }: { stats: Stats }) {
             <div className="lb" key={category}>
               <h3>{TITLES[category] ?? category}</h3>
               {shown.length === 0 ? (
-                <p className="empty">No data yet.</p>
+                <div className="empty-state">
+                  <strong>No qualifying entries yet</strong>
+                  <span>More match data will fill this leaderboard.</span>
+                </div>
               ) : (
                 shown.map((entry, i) => (
                   <Row

@@ -1,4 +1,4 @@
-import { useState, type CSSProperties, type ReactNode } from "react";
+import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
 import { heroCropUrl, tintFor } from "../lib/heroes";
 import { initials } from "../lib/format";
@@ -55,6 +55,39 @@ export function Bar({ pct, gold = false }: { pct: number; gold?: boolean }) {
       <i style={{ width: `${width}%` }} />
     </div>
   );
+}
+
+export function useCountUp(target: number, duration = 900): number {
+  const [value, setValue] = useState(0);
+
+  useEffect(() => {
+    const end = Number.isFinite(target) ? target : 0;
+    const reduceMotion =
+      typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    if (reduceMotion || duration <= 0 || end === 0) {
+      setValue(end);
+      return;
+    }
+
+    let frameId = 0;
+    let startTime: number | null = null;
+    setValue(0);
+
+    const tick = (time: number) => {
+      if (startTime === null) startTime = time;
+      const progress = Math.min((time - startTime) / duration, 1);
+      const eased = 1 - (1 - progress) ** 3;
+      setValue(end * eased);
+
+      if (progress < 1) frameId = window.requestAnimationFrame(tick);
+    };
+
+    frameId = window.requestAnimationFrame(tick);
+    return () => window.cancelAnimationFrame(frameId);
+  }, [target, duration]);
+
+  return value;
 }
 
 export function Badge({ label, tone }: { label: string; tone?: "b1" | "b2" | "b3" }) {
