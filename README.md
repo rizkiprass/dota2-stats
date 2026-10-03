@@ -141,6 +141,20 @@ views, and a shareable player profile page at `/player/<id>`.
 
 - Terraform outputs `dashboard_url` (HTTPS CloudFront URL), `dashboard_cloudfront_domain` (CNAME target), and `dashboard_cloudfront_distribution_id`. `GET /stats.json` is served same-origin.
 
+### Custom domain
+
+Set `dashboard_domain` (e.g. `dls.rpras.my.id`) in `terraform.tfvars`. Terraform then:
+
+- creates an **ACM certificate in us-east-1** (CloudFront requirement) and exposes `dashboard_certificate_validation_records`;
+- adds the domain as a CloudFront **alias** with `TLSv1.2_2021` once the certificate is issued.
+
+Because DNS is managed outside AWS, add two **DNS-only** CNAME records in the DNS provider (Cloudflare in this deployment):
+
+1. the ACM validation record from `dashboard_certificate_validation_records`;
+2. `dls` → `dashboard_cloudfront_domain` (e.g. `d35ludv1nb7o7i.cloudfront.net`).
+
+The dashboard is served at `https://dls.rpras.my.id`; CloudFront redirects HTTP to HTTPS.
+
 ## Batch replay upload
 
 `scripts/upload-replays.sh` uploads every `<match_id>.dem` in a replay folder to `raw/`, skipping replays already present in S3 (unless `--force`). Each upload triggers the parser → aggregator chain automatically.
@@ -181,4 +195,4 @@ Implemented and deployed:
 - **MVP 2** — full-rebuild aggregator producing dashboard-ready `stats/stats.json` (summary, players, heroes, player-heroes, teammates, head-to-head, leaderboards).
 - **Dashboard** — React + TypeScript SPA (Vite + Tailwind v4, TanStack Router) served from a private S3 bucket via CloudFront (HTTPS, OAC), with a shareable player profile page at `/player/<id>`.
 
-Not implemented yet: advanced analytics (timelines, positions, combat logs), a custom domain (ACM + Cloudflare CNAME), and authentication.
+Not implemented yet: advanced analytics (timelines, positions, combat logs) and authentication.

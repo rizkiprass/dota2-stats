@@ -115,7 +115,7 @@ Chrome works:
 google-chrome --headless=new --disable-gpu --no-sandbox \
   --window-size=1440,2400 --virtual-time-budget=9000 \
   --screenshot=/tmp/opencode/shot/dashboard.png \
-  "https://d35ludv1nb7o7i.cloudfront.net"
+  "https://dls.rpras.my.id"
 ```
 
 Use a second narrow pass (`--window-size=360,2400`) to check responsive layout.

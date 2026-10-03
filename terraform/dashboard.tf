@@ -85,6 +85,7 @@ resource "aws_cloudfront_distribution" "dashboard" {
   comment             = "Dota 2 lobby stats dashboard"
   default_root_object = "index.html"
   price_class         = "PriceClass_100"
+  aliases             = var.dashboard_domain == "" ? [] : [var.dashboard_domain]
 
   origin {
     domain_name              = aws_s3_bucket.dashboard.bucket_regional_domain_name
@@ -146,7 +147,10 @@ resource "aws_cloudfront_distribution" "dashboard" {
   }
 
   viewer_certificate {
-    cloudfront_default_certificate = true
+    cloudfront_default_certificate = var.dashboard_domain == "" ? true : false
+    acm_certificate_arn            = var.dashboard_domain == "" ? null : aws_acm_certificate.dashboard[0].arn
+    ssl_support_method             = var.dashboard_domain == "" ? null : "sni-only"
+    minimum_protocol_version       = var.dashboard_domain == "" ? null : "TLSv1.2_2021"
   }
 }
 
@@ -171,4 +175,17 @@ resource "aws_s3_bucket_policy" "dashboard" {
       }
     ]
   })
+}
+
+# Custom-domain TLS certificate (us-east-1, required by CloudFront).
+# Validation is DNS-based; the CNAME records are added in Cloudflare manually.
+resource "aws_acm_certificate" "dashboard" {
+  count             = var.dashboard_domain == "" ? 0 : 1
+  provider          = aws.us_east_1
+  domain_name       = var.dashboard_domain
+  validation_method = "DNS"
+
+  lifecycle {
+    create_before_destroy = true
+  }
 }

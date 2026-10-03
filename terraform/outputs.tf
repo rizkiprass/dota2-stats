@@ -53,7 +53,28 @@ output "dashboard_cloudfront_domain" {
   value       = aws_cloudfront_distribution.dashboard.domain_name
 }
 
+output "dashboard_custom_url" {
+  description = "Custom-domain HTTPS URL of the dashboard (null when no domain is configured)."
+  value       = var.dashboard_domain == "" ? null : "https://${var.dashboard_domain}"
+}
+
 output "dashboard_cloudfront_distribution_id" {
   description = "CloudFront distribution ID (for cache invalidations after deploy)."
   value       = aws_cloudfront_distribution.dashboard.id
+}
+
+output "dashboard_certificate_arn" {
+  description = "ACM certificate ARN for the dashboard custom domain (us-east-1)."
+  value       = var.dashboard_domain == "" ? null : aws_acm_certificate.dashboard[0].arn
+}
+
+output "dashboard_certificate_validation_records" {
+  description = "CNAME records to add in Cloudflare (DNS-only) to validate the ACM certificate."
+  value = var.dashboard_domain == "" ? [] : [
+    for option in aws_acm_certificate.dashboard[0].domain_validation_options : {
+      name  = option.resource_record_name
+      type  = option.resource_record_type
+      value = option.resource_record_value
+    }
+  ]
 }

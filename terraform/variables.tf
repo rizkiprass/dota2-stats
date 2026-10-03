@@ -33,6 +33,12 @@ variable "dashboard_bucket_name" {
   default     = "dota-replay-dashboard"
 }
 
+variable "dashboard_domain" {
+  description = "Custom domain for the dashboard (CloudFront alias). Empty string disables the custom domain."
+  type        = string
+  default     = ""
+}
+
 variable "ecr_repository_name" {
   description = "Name of the ECR repository holding the Lambda container image."
   type        = string
