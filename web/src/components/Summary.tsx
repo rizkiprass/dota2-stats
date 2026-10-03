@@ -116,7 +116,7 @@ function GlanceCard({ stats }: { stats: Stats }) {
   return (
     <div className="card kpi">
       <div className="card-head">
-        <div className="card-title">At a glance</div>
+        <div className="kpi-label">At a glance</div>
         <Tile icon="users" />
       </div>
       <div className="stat-rows">

@@ -62,7 +62,8 @@ export function Header({ stats }: { stats: Stats }) {
           <span className="header-titles">
             <h1>Dota&nbsp;2 Lobby Stats</h1>
             <p className="subtitle">
-              {fmtInt(meta.source_match_count)} matches · last built {fmtDate(meta.generated_at)}
+              {fmtInt(meta.source_match_count)} matches
+              <span className="subtitle-built"> · last built {fmtDate(meta.generated_at)}</span>
             </p>
           </span>
         </a>

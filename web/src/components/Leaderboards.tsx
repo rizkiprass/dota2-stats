@@ -87,7 +87,7 @@ function Row({
       <div className="lb-main">
         <div className="lb-name">
           {nameNode}
-          {sub ? <span className="sub"> · {sub}</span> : null}
+          {sub ? <span className="sub">{sub}</span> : null}
         </div>
         <Bar pct={width} gold={gold} />
       </div>
