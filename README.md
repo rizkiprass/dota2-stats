@@ -146,7 +146,7 @@ views, and a shareable player profile page at `/player/<id>`.
   ```bash
   cd web && npm run build
   aws s3 sync web/dist/ s3://<dashboard_bucket>/ \
-    --exclude "stats.json" --exclude "index.html" --delete \
+    --exclude "stats.json" --exclude "matches.json" --exclude "index.html" --delete \
     --cache-control "public, max-age=31536000, immutable" \
     --profile <profile> --region <region>
   aws s3 cp web/dist/index.html s3://<dashboard_bucket>/index.html \

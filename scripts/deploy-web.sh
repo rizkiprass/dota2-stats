@@ -37,7 +37,7 @@ usage() {
 Build and deploy the Dota 2 lobby stats dashboard (web/) to S3 + CloudFront.
 
 Steps: npm run build -> s3 sync (assets) -> s3 cp index.html -> CloudFront
-invalidation. stats.json is left untouched.
+invalidation. stats.json and matches.json are left untouched.
 
 Options:
   -b, --bucket NAME            Dashboard S3 bucket (default: terraform output)
@@ -118,10 +118,11 @@ if [[ "$SKIP_BUILD" == false ]]; then
 fi
 [[ -f "$DIST/index.html" ]] || die "build output missing: $DIST/index.html (run without --skip-build)"
 
-echo "==> syncing assets (stats.json and index.html are preserved)"
+echo "==> syncing assets (stats.json, matches.json and index.html are preserved)"
 SYNC_ARGS=(
   s3 sync "$DIST/" "s3://$BUCKET/"
   --exclude "stats.json"
+  --exclude "matches.json"
   --exclude "index.html"
   --delete
   --cache-control "public, max-age=31536000, immutable"

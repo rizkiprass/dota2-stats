@@ -1,4 +1,4 @@
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect, type Locator, type Page } from "@playwright/test";
 import { mkdirSync } from "node:fs";
 
 // Screenshots land here by default so `visual-reviewer` can pick them up by path.
@@ -95,6 +95,13 @@ test("minimum filter, search and sort narrow the ranking", async ({ page }) => {
   await expect(toggle).toHaveAttribute("aria-pressed", "true");
 });
 
+/** The lazy payload may still be in flight: settle on rows, or the explicit note. */
+async function historyState(history: Locator): Promise<"rows" | "note" | "pending"> {
+  if ((await history.locator(".match-row").count()) > 0) return "rows";
+  if ((await history.getByText(/Per-match history isn.t published/).count()) > 0) return "note";
+  return "pending";
+}
+
 test("detail pages surface per-match history when it is published", async ({ page }) => {
   await page.setViewportSize(DESKTOP);
   await gotoDetail(page, "best_duo_win_rate");
@@ -105,8 +112,8 @@ test("detail pages surface per-match history when it is published", async ({ pag
 
   // matches.json is optional per deployment: either rows render, or the block
   // says so instead of looking broken.
-  const rows = await history.locator(".match-row").count();
-  if (rows === 0) {
+  await expect.poll(() => historyState(history), { timeout: 15_000 }).not.toBe("pending");
+  if ((await historyState(history)) === "note") {
     await expect(history).toContainText(/Per-match history isn.t published/);
   } else {
     await expect(history.locator(".board-badges .badge").first()).toBeVisible();
@@ -117,6 +124,7 @@ test("detail pages surface per-match history when it is published", async ({ pag
   for (const category of ["highest_win_rate", "most_played_rivalry", "most_picked_hero"]) {
     await gotoDetail(page, category);
     await expect(page.locator(".board-history .board-focus-title").first()).toBeVisible();
+    await expect.poll(() => historyState(page.locator(".board-history")), { timeout: 15_000 }).not.toBe("pending");
   }
 });
 
