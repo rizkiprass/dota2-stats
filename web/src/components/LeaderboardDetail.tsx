@@ -1,9 +1,19 @@
 import { useMemo, useState, type ReactNode } from "react";
 import { Link, useParams } from "@tanstack/react-router";
 import { Avatar, AvatarPair, Bar, Badge, PlayerAvatar, PlayerName } from "./ui";
-import { fmtCount, fmtInt, fmtNum, fmtPct } from "../lib/format";
+import { useMatches } from "../lib/api";
+import { fmtCount, fmtDuration, fmtEpochDate, fmtInt, fmtNum, fmtPct } from "../lib/format";
 import { heroName, playerName } from "../lib/derived";
 import { useDashboard } from "../lib/dashboard-context";
+import {
+  duoHeroCombos,
+  duoMatchRows,
+  heroMatchRows,
+  playerMatchRows,
+  rivalryMatchRows,
+  summarize,
+  type MatchRow,
+} from "../lib/matches";
 import {
   CATEGORIES,
   buildRanked,
@@ -17,9 +27,25 @@ import {
   sampleOf,
   type CategorySpec,
 } from "../lib/leaderboard";
-import type { LeaderboardEntry, Stats } from "../types/stats";
+import type { LeaderboardEntry, MatchesPayload, Stats } from "../types/stats";
 
 const MIN_SAMPLE_PRESETS = [1, 2, 3, 5, 10];
+
+/** The aggregator's leaderboard minimum for the family behind this category. */
+function defaultMinimum(stats: Stats, spec: CategorySpec): number {
+  const thresholds = stats.metadata?.thresholds;
+  if (!thresholds) return 1;
+  switch (spec.family) {
+    case "hero":
+      return thresholds.heroes;
+    case "duo":
+      return thresholds.teammates;
+    case "rivalry":
+      return thresholds.head_to_head;
+    default:
+      return thresholds.players;
+  }
+}
 
 export function LeaderboardDetail() {
   const { category } = useParams({ from: "/leaderboard/$category" });
@@ -61,11 +87,25 @@ export function LeaderboardDetail() {
 
 function BoardContent({ category, spec }: { category: string; spec: CategorySpec }) {
   const { stats } = useDashboard();
-  const [minSample, setMinSample] = useState(1);
+  const matchesQuery = useMatches();
+
+  const all = useMemo(() => buildRanked(stats, category), [stats, category]);
+  const sampleMax = Math.max(1, ...all.map((entry) => sampleOf(entry, spec)));
+
+  // The aggregator publishes the leaderboard minimums; honour them so the
+  // detail page agrees with the card the visitor came from, clamped to the
+  // data actually present.
+  const [minSample, setMinSample] = useState(() =>
+    Math.min(Math.max(1, defaultMinimum(stats, spec)), sampleMax),
+  );
   const [query, setQuery] = useState("");
   const [sortBySample, setSortBySample] = useState(false);
 
-  const all = useMemo(() => buildRanked(stats, category), [stats, category]);
+  const matches: MatchesState = {
+    data: matchesQuery.data,
+    pending: matchesQuery.isPending,
+    failed: matchesQuery.isError,
+  };
 
   const rows = useMemo(() => {
     const needle = query.trim().toLowerCase();
@@ -81,7 +121,6 @@ function BoardContent({ category, spec }: { category: string; spec: CategorySpec
       : filtered;
   }, [all, spec, stats, minSample, query, sortBySample]);
 
-  const sampleMax = Math.max(1, ...all.map((entry) => sampleOf(entry, spec)));
   const sampleOptions = MIN_SAMPLE_PRESETS.filter((value) => value <= sampleMax);
   const sampleLabel = spec.sample === "picks" ? "pick" : "match";
 
@@ -201,7 +240,7 @@ function BoardContent({ category, spec }: { category: string; spec: CategorySpec
         </section>
       )}
 
-      {leader ? <FocusPanel category={category} spec={spec} entry={leader} rows={rows} /> : null}
+      {leader ? <FocusPanel spec={spec} entry={leader} rows={rows} matches={matches} /> : null}
     </>
   );
 }
@@ -356,19 +395,21 @@ function insightValue(entry: LeaderboardEntry, spec: CategorySpec, stats: Stats)
 /* ------------------------------------------------------------------ */
 
 function FocusPanel({
-  category,
   spec,
   entry,
   rows,
+  matches,
 }: {
-  category: string;
   spec: CategorySpec;
   entry: LeaderboardEntry;
   rows: LeaderboardEntry[];
+  matches: MatchesState;
 }) {
   const { stats } = useDashboard();
   const [focusId, setFocusId] = useState(entry.id);
   const focused = rows.find((row) => row.id === focusId) ?? entry;
+  const heroId = Number(focused.hero_id ?? focused.id);
+  const pair = pairPlayers(focused);
 
   return (
     <section className="dp-section">
@@ -391,18 +432,54 @@ function FocusPanel({
       </div>
 
       {spec.family === "player" ? <PlayerFocus playerId={focused.id} /> : null}
-      {spec.family === "hero" ? <HeroFocus heroId={Number(focused.hero_id ?? focused.id)} /> : null}
+      {spec.family === "hero" ? <HeroFocus heroId={heroId} /> : null}
       {spec.family === "duo" ? <DuoFocus entry={focused} /> : null}
       {spec.family === "rivalry" ? <RivalryFocus entry={focused} /> : null}
 
-      {spec.family === "duo" ? <PartnershipsBlock /> : null}
-
-      {spec.family === "rivalry" || spec.family === "duo" ? (
-        <p className="dp-empty">
-          Full per-match detail (recent games, streaks, hero combos) needs the aggregator to ship
-          per-match data. This page reads the aggregate for <code>{category}</code>.
-        </p>
+      {spec.family === "player" ? (
+        <MatchHistoryBlock
+          state={matches}
+          title="Recent matches"
+          hint={`Every published match ${playerName(stats, focused.id)} played.`}
+          joiner="+"
+          build={(payload) => playerMatchRows(payload, focused.id)}
+        />
       ) : null}
+
+      {spec.family === "hero" ? (
+        <MatchHistoryBlock
+          state={matches}
+          title="Recent appearances"
+          hint={`Recent matches where ${heroName(stats, heroId)} was picked, newest first.`}
+          joiner="+"
+          showPicker
+          withSummary={false}
+          build={(payload) => heroMatchRows(payload, heroId)}
+        />
+      ) : null}
+
+      {spec.family === "duo" && pair ? (
+        <MatchHistoryBlock
+          state={matches}
+          title="Played together"
+          hint="Matches the two shared a side, newest first."
+          joiner="+"
+          withCombos
+          build={(payload) => duoMatchRows(payload, pair[0], pair[1])}
+        />
+      ) : null}
+
+      {spec.family === "rivalry" && pair ? (
+        <MatchHistoryBlock
+          state={matches}
+          title="Recent meetings"
+          hint="Matches the two faced each other, newest first."
+          joiner="vs"
+          build={(payload) => rivalryMatchRows(payload, pair[0], pair[1])}
+        />
+      ) : null}
+
+      {spec.family === "duo" ? <PartnershipsBlock /> : null}
     </section>
   );
 }
@@ -644,6 +721,170 @@ function PartnershipsBlock() {
       <div className="dp-badges">
         <Badge label={`${partners.length} partner${partners.length === 1 ? "" : "s"}`} />
       </div>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Per-match history — lazily fetched from matches.json                */
+/* ------------------------------------------------------------------ */
+
+interface MatchesState {
+  data: MatchesPayload | undefined;
+  pending: boolean;
+  failed: boolean;
+}
+
+const VISIBLE_MATCHES = 10;
+
+function MatchHistoryBlock({
+  state,
+  title,
+  hint,
+  joiner,
+  build,
+  showPicker = false,
+  withSummary = true,
+  withCombos = false,
+}: {
+  state: MatchesState;
+  title: string;
+  hint: string;
+  joiner: string;
+  build: (payload: MatchesPayload) => MatchRow[];
+  showPicker?: boolean;
+  withSummary?: boolean;
+  withCombos?: boolean;
+}) {
+  const { stats } = useDashboard();
+  const rows = useMemo(() => (state.data ? build(state.data) : []), [state.data, build]);
+  const history = useMemo(() => summarize(rows), [rows]);
+  const combos = useMemo(() => (withCombos ? duoHeroCombos(rows) : []), [withCombos, rows]);
+  const visible = rows.slice(0, VISIBLE_MATCHES);
+  const unavailable = state.failed || !state.data;
+
+  return (
+    <div className="board-history">
+      <h3 className="board-focus-title">{title}</h3>
+
+      {state.pending ? <p className="dp-empty">Loading match history…</p> : null}
+
+      {!state.pending && rows.length === 0 ? (
+        <p className="dp-empty">
+          {unavailable
+            ? "Per-match history isn’t published for this deployment yet. This page still reflects the aggregate."
+            : "No published match for this selection yet."}
+        </p>
+      ) : null}
+
+      {rows.length > 0 ? (
+        <>
+          <p className="dp-empty">{hint}</p>
+
+          {withSummary ? (
+            <div className="board-badges">
+              <Badge label={fmtCount(history.total, "published match")} />
+              <Badge label={`${fmtInt(history.wins)}W–${fmtInt(history.losses)}L`} />
+              {history.streak && history.streak.length > 1 ? (
+                <Badge
+                  tone={history.streak.win ? "b3" : undefined}
+                  label={`${history.streak.length} straight ${history.streak.win ? "wins" : "losses"}`}
+                />
+              ) : null}
+              {history.lastPlayed !== null ? (
+                <Badge label={`Last ${fmtEpochDate(history.lastPlayed)}`} />
+              ) : null}
+              {history.firstPlayed !== null && history.firstPlayed !== history.lastPlayed ? (
+                <Badge label={`First ${fmtEpochDate(history.firstPlayed)}`} />
+              ) : null}
+            </div>
+          ) : null}
+
+          <div className="match-list">
+            {visible.map((entry, index) => (
+              <MatchHistoryRow
+                key={`${entry.match.match_id}-${entry.players[0]?.account_id ?? "anon"}-${index}`}
+                entry={entry}
+                joiner={joiner}
+                showPicker={showPicker}
+                stats={stats}
+              />
+            ))}
+          </div>
+
+          {rows.length > visible.length ? (
+            <p className="dp-empty">
+              Showing the {visible.length} most recent of {fmtCount(rows.length, "published match")}.
+            </p>
+          ) : null}
+
+          {combos.length > 0 ? (
+            <>
+              <h4 className="board-focus-subtitle">Hero combos</h4>
+              <div className="match-combos">
+                {combos.map((combo) => (
+                  <span className="match-combo" key={combo.heroIds.join("+")}>
+                    {combo.heroIds.map((heroId, index) => (
+                      <Avatar
+                        key={`${heroId}-${index}`}
+                        heroId={Number(heroId) || null}
+                        name={combo.labels[index]}
+                        size="sm"
+                      />
+                    ))}
+                    <span className="match-combo-meta">
+                      {combo.matches}× · {fmtPct((combo.wins / combo.matches) * 100)}
+                    </span>
+                  </span>
+                ))}
+              </div>
+            </>
+          ) : null}
+        </>
+      ) : null}
+    </div>
+  );
+}
+
+function MatchHistoryRow({
+  entry,
+  joiner,
+  showPicker,
+  stats,
+}: {
+  entry: MatchRow;
+  joiner: string;
+  showPicker: boolean;
+  stats: Stats;
+}) {
+  const heroLabels = entry.players.map((player) => player.hero_name ?? heroName(stats, player.hero_id));
+  const primary = entry.players[0];
+  const picker = primary?.account_id ? playerName(stats, primary.account_id) : null;
+  const sub = [fmtDuration(entry.match.duration), showPicker && picker ? picker : null, `#${entry.match.match_id}`]
+    .filter(Boolean)
+    .join(" · ");
+
+  return (
+    <div className="match-row">
+      <span className="match-date">{fmtEpochDate(entry.match.start_time)}</span>
+      <span className="match-heroes">
+        {entry.players.map((player, index) => (
+          <Avatar
+            key={`${player.account_id ?? "anon"}-${index}`}
+            heroId={Number(player.hero_id) || null}
+            name={heroLabels[index]}
+            size="sm"
+          />
+        ))}
+      </span>
+      <span className="match-main">
+        <span className="match-title">{heroLabels.join(` ${joiner} `)}</span>
+        <span className="match-sub">{sub}</span>
+      </span>
+      <span className="match-kda">
+        {fmtInt(primary?.kills)}/{fmtInt(primary?.deaths)}/{fmtInt(primary?.assists)}
+      </span>
+      <span className={`match-result ${entry.win ? "win" : "loss"}`}>{entry.win ? "W" : "L"}</span>
     </div>
   );
 }

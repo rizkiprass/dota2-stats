@@ -98,6 +98,47 @@ export interface Metadata {
   generated_at: string;
   schema_version: string;
   source_match_count: number;
+  /** Leaderboard minimums, published by the aggregator so clients never duplicate them. */
+  thresholds?: {
+    players: number;
+    heroes: number;
+    teammates: number;
+    head_to_head: number;
+    leaderboard_limit: number;
+  };
+}
+
+/* ------------------------------------------------------------------ */
+/* matches.json — the lazy per-match payload (newest first, capped)    */
+/* ------------------------------------------------------------------ */
+
+export interface MatchPlayerRecord {
+  account_id: string | null;
+  player_name: string | null;
+  hero_id: number | string;
+  hero_name: string | null;
+  team: "radiant" | "dire";
+  win: boolean;
+  kills: number;
+  deaths: number;
+  assists: number;
+}
+
+export interface MatchRecord {
+  match_id: string;
+  /** Unix epoch seconds, or null when the parser had no start time. */
+  start_time: number | null;
+  duration: number;
+  radiant_win: boolean;
+  players: MatchPlayerRecord[];
+}
+
+export interface MatchesPayload {
+  generated_at: string;
+  schema_version: string;
+  /** Total matches in history; `matches` holds at most the published cap. */
+  match_count: number;
+  matches: MatchRecord[];
 }
 
 // Aggregated, privacy-conscious replay activity metrics. Raw chat text is never

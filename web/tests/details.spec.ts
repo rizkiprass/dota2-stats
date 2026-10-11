@@ -44,7 +44,7 @@ test("duo detail page ranks the full population beyond the card's top 5", async 
   const rows = page.locator(".board-table tbody tr");
   expect(await rows.count(), "detail must expose more than the card's five").toBeGreaterThan(5);
 
-  await expect(page.locator(".board-count")).toContainText(/Showing \d+ of \d+ · minimum 1 match/);
+  await expect(page.locator(".board-count")).toContainText(/Showing \d+ of \d+ · minimum \d+ match/);
   await expect(page.locator(".board-table thead th")).toContainText(["#", "Duo", "Win rate", "Matches", "W–L"]);
 
   // Extra blocks: togetherness coverage + partnerships per player.
@@ -93,6 +93,31 @@ test("minimum filter, search and sort narrow the ranking", async ({ page }) => {
   await expect(toggle).toHaveAttribute("aria-pressed", "false");
   await toggle.click();
   await expect(toggle).toHaveAttribute("aria-pressed", "true");
+});
+
+test("detail pages surface per-match history when it is published", async ({ page }) => {
+  await page.setViewportSize(DESKTOP);
+  await gotoDetail(page, "best_duo_win_rate");
+
+  const history = page.locator(".board-history");
+  await expect(history).toBeVisible();
+  await expect(history.locator(".board-focus-title").first()).toHaveText("Played together");
+
+  // matches.json is optional per deployment: either rows render, or the block
+  // says so instead of looking broken.
+  const rows = await history.locator(".match-row").count();
+  if (rows === 0) {
+    await expect(history).toContainText(/Per-match history isn.t published/);
+  } else {
+    await expect(history.locator(".board-badges .badge").first()).toBeVisible();
+    await expect(history.locator(".match-result").first()).toHaveText(/^[WL]$/);
+  }
+
+  // Every family wires its own history view.
+  for (const category of ["highest_win_rate", "most_played_rivalry", "most_picked_hero"]) {
+    await gotoDetail(page, category);
+    await expect(page.locator(".board-history .board-focus-title").first()).toBeVisible();
+  }
 });
 
 test("unknown category falls back to an error card", async ({ page }) => {

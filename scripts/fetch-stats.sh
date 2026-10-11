@@ -7,6 +7,9 @@
 # fallback returns index.html for /stats.json and the app shows a connection
 # error. Run this after `npm run build` and before the Playwright UI tests.
 #
+# The lazy per-match payload (matches.json) is fetched alongside it and is
+# optional: a deployment that has not published it is reported, not fatal.
+#
 # Examples:
 #   scripts/fetch-stats.sh
 #   scripts/fetch-stats.sh --url https://dls.rpras.my.id
@@ -22,17 +25,19 @@ TF_DIR="${TF_DIR:-$REPO_ROOT/terraform}"
 SRC_URL="${STATS_URL:-}"
 OUT="${STATS_OUT:-$REPO_ROOT/web/dist/stats.json}"
 DRY_RUN=false
+SKIP_MATCHES=false
 
 usage() {
   cat <<'EOF'
 Fetch the live stats.json into web/dist/ for local UI verification.
 
 Options:
-  -u, --url URL   Base URL to fetch from (default: terraform dashboard_custom_url,
-                  then dashboard_url)
-  -o, --out PATH  Output file (default: <repo>/web/dist/stats.json)
-  -n, --dry-run   Print the plan without downloading
-  -h, --help      Show this help
+  -u, --url URL    Base URL to fetch from (default: terraform dashboard_custom_url,
+                   then dashboard_url)
+  -o, --out PATH   Output file (default: <repo>/web/dist/stats.json)
+      --skip-matches  Do not also fetch matches.json (the lazy per-match payload)
+  -n, --dry-run    Print the plan without downloading
+  -h, --help       Show this help
 
 Environment overrides: STATS_URL, STATS_OUT, TF_DIR
 EOF
@@ -42,11 +47,12 @@ die() { echo "error: $*" >&2; exit 1; }
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    -u|--url)     SRC_URL="${2:?--url needs a value}"; shift 2 ;;
-    -o|--out)     OUT="${2:?--out needs a value}"; shift 2 ;;
-    -n|--dry-run) DRY_RUN=true; shift ;;
-    -h|--help)    usage; exit 0 ;;
-    *)            die "unknown option: $1 (try --help)" ;;
+    -u|--url)       SRC_URL="${2:?--url needs a value}"; shift 2 ;;
+    -o|--out)       OUT="${2:?--out needs a value}"; shift 2 ;;
+    --skip-matches) SKIP_MATCHES=true; shift ;;
+    -n|--dry-run)   DRY_RUN=true; shift ;;
+    -h|--help)      usage; exit 0 ;;
+    *)              die "unknown option: $1 (try --help)" ;;
   esac
 done
 
@@ -68,6 +74,7 @@ SRC_URL="${SRC_URL%/}"
 
 echo "source : $SRC_URL/stats.json"
 echo "out    : $OUT"
+[[ "$SKIP_MATCHES" == false ]] && echo "matches: $(dirname "$OUT")/matches.json (skipped if not published)"
 [[ "$DRY_RUN" == true ]] && echo "mode   : DRY RUN"
 echo
 
@@ -85,3 +92,25 @@ node -e 'JSON.parse(require("node:fs").readFileSync(process.argv[1], "utf8"))' "
   || die "downloaded file is not valid JSON: $OUT"
 
 echo "wrote $(wc -c <"$OUT" | tr -d ' ') bytes to $OUT"
+
+# The lazy per-match payload is published alongside stats.json, but a deployment
+# may not have it yet: a missing or invalid matches.json is reported, not fatal.
+if [[ "$SKIP_MATCHES" == false ]]; then
+  MATCHES_OUT="$(dirname "$OUT")/matches.json"
+  if curl -fsSL "$SRC_URL/matches.json" -o "$MATCHES_OUT" 2>/dev/null; then
+    if node -e 'JSON.parse(require("node:fs").readFileSync(process.argv[1], "utf8"))' "$MATCHES_OUT" 2>/dev/null; then
+      echo "wrote $(wc -c <"$MATCHES_OUT" | tr -d ' ') bytes to $MATCHES_OUT"
+    else
+      # An unpublished path is answered by the SPA fallback with index.html.
+      if [[ "$(head -c 1 "$MATCHES_OUT" 2>/dev/null)" == "<" ]]; then
+        echo "note   : $SRC_URL/matches.json is not published yet; detail pages will show the aggregate only"
+      else
+        echo "note   : $SRC_URL/matches.json is not valid JSON; skipped (stats.json is unaffected)"
+      fi
+      rm -f "$MATCHES_OUT"
+    fi
+  else
+    rm -f "$MATCHES_OUT"
+    echo "note   : $SRC_URL/matches.json could not be downloaded; detail pages will show the aggregate only"
+  fi
+fi

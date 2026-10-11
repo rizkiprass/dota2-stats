@@ -107,7 +107,7 @@ frontmatter `name`.
 
 ```text
 1. Build locally                npm run build
-2. Refresh stats fixture        scripts/fetch-stats.sh  (live stats.json -> web/dist/)
+2. Refresh stats fixture        scripts/fetch-stats.sh  (live stats.json + matches.json -> web/dist/)
 3. Run the UI suite             npm run test:ui  (Playwright: preview + asserts + screenshots)
 4. visual-reviewer subagent     lists issues by severity, with file + fix
 5. (you verify the findings)    reports can be wrong or stale — always check
@@ -125,7 +125,7 @@ definition of done, and only deploys after a run is clean.
 
 ```bash
 npm run build                       # from web/
-bash scripts/fetch-stats.sh         # live stats.json -> web/dist/stats.json
+bash scripts/fetch-stats.sh         # live stats.json (and matches.json) -> web/dist/
 npm run test:ui                     # from web/; starts vite preview itself
 ```
 
@@ -133,6 +133,10 @@ npm run test:ui                     # from web/; starts vite preview itself
 aggregator writes it to S3 at deploy time). Without the fixture the SPA fallback
 returns `index.html` and the app shows a connection error, so
 `scripts/fetch-stats.sh` copies the live file into `web/dist/` after each build.
+
+The lazy `matches.json` is copied alongside it and is optional: a deployment that
+has not published it yet is reported by the script, and the detail pages fall back
+to the aggregate with an explanatory line. Pass `--skip-matches` to skip it.
 
 Playwright uses the system Google Chrome (`channel: "chrome"`), so no browser
 download is needed. `web/tests/dashboard.spec.ts` drives `/` and `/player/<id>`

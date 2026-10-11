@@ -35,6 +35,15 @@ export function fmtDate(iso: string | null | undefined): string {
   return Number.isNaN(d.getTime()) ? iso : d.toLocaleString();
 }
 
+/** A match `start_time` is Unix epoch seconds, not the ISO strings fmtDate reads. */
+export function fmtEpochDate(seconds: number | null | undefined): string {
+  if (seconds === null || seconds === undefined) return "—";
+  const d = new Date(Number(seconds) * 1000);
+  return Number.isNaN(d.getTime())
+    ? "—"
+    : d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+}
+
 export function initials(name: string | null | undefined): string {
   const text = String(name ?? "").trim();
   if (!text) return "?";
