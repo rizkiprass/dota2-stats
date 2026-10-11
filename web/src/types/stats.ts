@@ -33,6 +33,11 @@ export interface HeroRecord {
   wins: number;
   losses: number;
   win_rate: number;
+  /** Picks by side; present from schema 1.2 onward. */
+  radiant_picks?: number;
+  dire_picks?: number;
+  /** Matches in which both sides picked this hero. */
+  contested?: number;
 }
 
 export interface PlayerHeroRecord {
