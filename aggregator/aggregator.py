@@ -37,7 +37,7 @@ s3 = boto3.client("s3")
 PARSED_PREFIX = "parsed/"
 STATS_KEY = "stats/stats.json"
 MATCHES_KEY = "stats/matches.json"
-SCHEMA_VERSION = "1.3"
+SCHEMA_VERSION = "1.4"
 
 # Optional static-website mirror. When set, the same dashboard payload is also
 # written here so the browser can fetch it same-origin (no CORS, no public data
@@ -353,6 +353,15 @@ def _team_kills(item: dict[str, Any], team: str) -> Any:
     return sum(player["kills"] for player in item["players"] if player["team"] == team)
 
 
+def _team_heroes(item: dict[str, Any], team: str) -> list[Any]:
+    """Hero ids for one side, in the order the parser listed them.
+
+    The dashboard strip and the /matches lineup both read this order, so the two
+    views can never disagree about who played what.
+    """
+    return [player["hero_id"] for player in item["players"] if player["team"] == team]
+
+
 def _recent_matches(summaries: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """Bounded newest-match teaser carried by stats.json.
 
@@ -368,6 +377,10 @@ def _recent_matches(summaries: list[dict[str, Any]]) -> list[dict[str, Any]]:
             "radiant_win": item["radiant_win"],
             "radiant_kills": _team_kills(item, "radiant"),
             "dire_kills": _team_kills(item, "dire"),
+            # Hero ids only: names resolve from stats.heroes, and this keeps the
+            # teaser around 190 bytes per match.
+            "radiant_heroes": _team_heroes(item, "radiant"),
+            "dire_heroes": _team_heroes(item, "dire"),
         }
         for item in ordered
     ]
