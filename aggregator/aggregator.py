@@ -7,8 +7,9 @@ not prevent a new ``stats/stats.json`` from being published.
 
 Two objects are published from one rebuild:
 
-* ``stats/stats.json`` — the aggregate dashboard payload (unchanged contract,
-  plus ``metadata.thresholds``).
+* ``stats/stats.json`` — the aggregate dashboard payload. It carries
+  ``metadata.thresholds`` and a bounded ``recent_matches`` teaser so the
+  dashboard never needs the per-match payload.
 * ``stats/matches.json`` — a capped, newest-first per-match list that detail
   pages fetch lazily, so the dashboard payload does not grow with history.
 """
@@ -36,7 +37,7 @@ s3 = boto3.client("s3")
 PARSED_PREFIX = "parsed/"
 STATS_KEY = "stats/stats.json"
 MATCHES_KEY = "stats/matches.json"
-SCHEMA_VERSION = "1.2"
+SCHEMA_VERSION = "1.3"
 
 # Optional static-website mirror. When set, the same dashboard payload is also
 # written here so the browser can fetch it same-origin (no CORS, no public data
@@ -52,6 +53,9 @@ LEADERBOARD_LIMIT = int(os.environ.get("LEADERBOARD_LIMIT", "10"))
 # Newest matches kept in the lazy per-match payload. The dashboard never reads
 # history itself, so only detail pages feel this cap.
 MATCHES_LIMIT = int(os.environ.get("MATCHES_LIMIT", "500"))
+# Newest matches summarised into stats.json so the dashboard can show a recent
+# teaser without fetching the per-match payload at all.
+RECENT_MATCHES_LIMIT = int(os.environ.get("RECENT_MATCHES_LIMIT", "5"))
 
 # Static hero_id -> display-name table (source: OpenDota /api/heroes).
 # Display-only: it never affects identity or aggregation math.
@@ -335,14 +339,43 @@ def _match_summary(match: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _match_order_key(item: dict[str, Any]) -> tuple[float, str]:
+    """Newest first: by start time, then match id.
+
+    Every newest-first consumer shares this one definition, so the dashboard
+    teaser and the per-match payload can never disagree about what is newest.
+    """
+    start = item.get("start_time")
+    return (float(start) if _is_number(start) else 0.0, item["match_id"])
+
+
+def _team_kills(item: dict[str, Any], team: str) -> Any:
+    return sum(player["kills"] for player in item["players"] if player["team"] == team)
+
+
+def _recent_matches(summaries: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Bounded newest-match teaser carried by stats.json.
+
+    The dashboard fetches only stats.json, so it must never grow with history:
+    this is capped, while the full list lives in the per-match payload.
+    """
+    ordered = sorted(summaries, key=_match_order_key, reverse=True)[:RECENT_MATCHES_LIMIT]
+    return [
+        {
+            "match_id": item["match_id"],
+            "start_time": item.get("start_time"),
+            "duration": item["duration"],
+            "radiant_win": item["radiant_win"],
+            "radiant_kills": _team_kills(item, "radiant"),
+            "dire_kills": _team_kills(item, "dire"),
+        }
+        for item in ordered
+    ]
+
+
 def _matches_payload(summaries: list[dict[str, Any]], generated_at: str) -> dict[str, Any]:
     """Newest-first, capped per-match payload published next to stats.json."""
-
-    def order(item: dict[str, Any]) -> tuple[float, str]:
-        start = item.get("start_time")
-        return (float(start) if _is_number(start) else 0.0, item["match_id"])
-
-    ordered = sorted(summaries, key=order, reverse=True)[:MATCHES_LIMIT]
+    ordered = sorted(summaries, key=_match_order_key, reverse=True)[:MATCHES_LIMIT]
     return {
         "generated_at": generated_at,
         "schema_version": SCHEMA_VERSION,
@@ -569,6 +602,7 @@ def aggregate_matches(
         "teammates": finalized_teammates,
         "head_to_head": finalized_h2h,
         "leaderboards": _generate_leaderboards(finalized_players, finalized_heroes, finalized_player_heroes, finalized_teammates, finalized_h2h),
+        "recent_matches": _recent_matches(match_summaries),
     }
     return stats, {
         "valid_matches": valid_count,

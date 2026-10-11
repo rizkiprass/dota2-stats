@@ -82,6 +82,8 @@ resource "aws_lambda_function" "statistics_aggregator" {
       LEADERBOARD_LIMIT    = "10"
       # Newest matches kept in the lazy per-match payload (stats/matches.json).
       MATCHES_LIMIT = "500"
+      # Newest matches summarised into stats.json for the dashboard teaser.
+      RECENT_MATCHES_LIMIT = "5"
       # Mirror the dashboard payload into the static website bucket.
       DASHBOARD_BUCKET      = aws_s3_bucket.dashboard.bucket
       DASHBOARD_MATCHES_KEY = "matches.json"
