@@ -36,6 +36,16 @@ async function horizontalOverflow(page: Page): Promise<number> {
   return page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
 }
 
+/**
+ * Responsive charts re-measure after a viewport change, so poll instead of
+ * sampling once: a late resize must not read as a permanent layout bug.
+ */
+async function expectNoOverflow(page: Page, message: string): Promise<void> {
+  await expect
+    .poll(() => horizontalOverflow(page), { timeout: 5_000, message })
+    .toBe(0);
+}
+
 test.beforeAll(() => {
   mkdirSync(OUT_DIR, { recursive: true });
 });
@@ -106,7 +116,7 @@ test("activity stats render when behavior data is present", async ({ page }) => 
 
   expect(playerId, "mocked behavior data should include a player").toBeTruthy();
   await page.setViewportSize(MOBILE);
-  expect(await horizontalOverflow(page), "activity dashboard should not overflow on mobile").toBe(0);
+  await expectNoOverflow(page, "activity dashboard should not overflow on mobile");
   await page.screenshot({ path: `${OUT_DIR}/activity-dashboard-mobile.png`, fullPage: true });
   await page.setViewportSize(DESKTOP);
   await page.goto(`/player/${playerId}`);
@@ -115,7 +125,7 @@ test("activity stats render when behavior data is present", async ({ page }) => 
   await expect(page.getByText("Chat text is not displayed; only replay activity counts are included.")).toBeVisible();
   await page.screenshot({ path: `${OUT_DIR}/activity-player-desktop.png`, fullPage: true });
   await page.setViewportSize(MOBILE);
-  expect(await horizontalOverflow(page), "activity player profile should not overflow on mobile").toBe(0);
+  await expectNoOverflow(page, "activity player profile should not overflow on mobile");
   await page.screenshot({ path: `${OUT_DIR}/activity-player-mobile.png`, fullPage: true });
   expect(errors.pageErrors, "no uncaught page errors").toEqual([]);
   expect(errors.consoleErrors, "no console errors").toEqual([]);
