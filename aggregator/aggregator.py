@@ -36,7 +36,7 @@ s3 = boto3.client("s3")
 PARSED_PREFIX = "parsed/"
 STATS_KEY = "stats/stats.json"
 MATCHES_KEY = "stats/matches.json"
-SCHEMA_VERSION = "1.1"
+SCHEMA_VERSION = "1.2"
 
 # Optional static-website mirror. When set, the same dashboard payload is also
 # written here so the browser can fetch it same-origin (no CORS, no public data
@@ -436,7 +436,9 @@ def aggregate_matches(
     processed_match_ids: set[str] = set()
     players: defaultdict[str, dict[str, int]] = defaultdict(_new_record)
     player_names: dict[str, str] = {}
-    heroes: defaultdict[str, dict[str, int]] = defaultdict(lambda: {"picks": 0, "wins": 0})
+    heroes: defaultdict[str, dict[str, int]] = defaultdict(
+        lambda: {"picks": 0, "wins": 0, "radiant_picks": 0, "dire_picks": 0, "contested": 0}
+    )
     player_heroes: defaultdict[str, defaultdict[str, dict[str, int]]] = defaultdict(lambda: defaultdict(_new_record))
     teammates: defaultdict[str, dict[str, int]] = defaultdict(_new_pair_record)
     head_to_head: defaultdict[str, dict[str, int]] = defaultdict(_new_h2h_record)
@@ -460,10 +462,18 @@ def aggregate_matches(
 
         radiant: list[tuple[str, dict[str, Any]]] = []
         dire: list[tuple[str, dict[str, Any]]] = []
+        # Tracked separately from the account-holder split below: a hero counts
+        # toward a side even when the player has no account_id.
+        radiant_heroes: set[str] = set()
+        dire_heroes: set[str] = set()
         for player in match["players"]:
             hero_id = str(player["hero_id"])
-            heroes[hero_id]["picks"] += 1
-            heroes[hero_id]["wins"] += int(player["win"])
+            hero_record = heroes[hero_id]
+            hero_record["picks"] += 1
+            hero_record["wins"] += int(player["win"])
+            on_radiant = player["team"] == "radiant"
+            hero_record["radiant_picks" if on_radiant else "dire_picks"] += 1
+            (radiant_heroes if on_radiant else dire_heroes).add(hero_id)
             player_id = _player_id(player)
             if player_id is None:
                 continue
@@ -473,7 +483,12 @@ def aggregate_matches(
                 player_names[player_id] = name.strip()
             _add_player_observation(players[player_id], player)
             _add_player_observation(player_heroes[player_id][hero_id], player)
-            (radiant if player["team"] == "radiant" else dire).append((player_id, player))
+            (radiant if on_radiant else dire).append((player_id, player))
+
+        # A contested hero is one BOTH sides picked in the same match. The count
+        # is per match, not per pick.
+        for hero_id in radiant_heroes & dire_heroes:
+            heroes[hero_id]["contested"] += 1
 
         for team in (radiant, dire):
             for (first_id, first), (second_id, _) in itertools.combinations(team, 2):
@@ -506,6 +521,9 @@ def aggregate_matches(
             "wins": record["wins"],
             "losses": record["picks"] - record["wins"],
             "win_rate": _rate(record["wins"], record["picks"]),
+            "radiant_picks": record["radiant_picks"],
+            "dire_picks": record["dire_picks"],
+            "contested": record["contested"],
         }
         for hero_id, record in sorted(heroes.items(), key=lambda item: item[0])
     }
