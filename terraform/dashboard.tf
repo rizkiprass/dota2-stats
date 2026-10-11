@@ -128,6 +128,18 @@ resource "aws_cloudfront_distribution" "dashboard" {
     response_headers_policy_id = aws_cloudfront_response_headers_policy.dashboard.id
   }
 
+  # The lazy per-match payload is live data too.
+  ordered_cache_behavior {
+    path_pattern               = "/matches.json"
+    target_origin_id           = "s3-dashboard"
+    viewer_protocol_policy     = "redirect-to-https"
+    allowed_methods            = ["GET", "HEAD", "OPTIONS"]
+    cached_methods             = ["GET", "HEAD"]
+    compress                   = true
+    cache_policy_id            = data.aws_cloudfront_cache_policy.caching_disabled.id
+    response_headers_policy_id = aws_cloudfront_response_headers_policy.dashboard.id
+  }
+
   # SPA fallback: serve the app shell for client-side routes (history API).
   custom_error_response {
     error_code         = 403

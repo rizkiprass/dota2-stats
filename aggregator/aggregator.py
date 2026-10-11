@@ -4,6 +4,13 @@ The function is invoked for a new ``parsed/*.json`` S3 object, but always
 rebuilds the complete historical dashboard payload from every object under the
 ``parsed/`` prefix. Invalid objects and duplicate match IDs are logged and do
 not prevent a new ``stats/stats.json`` from being published.
+
+Two objects are published from one rebuild:
+
+* ``stats/stats.json`` — the aggregate dashboard payload (unchanged contract,
+  plus ``metadata.thresholds``).
+* ``stats/matches.json`` — a capped, newest-first per-match list that detail
+  pages fetch lazily, so the dashboard payload does not grow with history.
 """
 
 from __future__ import annotations
@@ -28,18 +35,23 @@ s3 = boto3.client("s3")
 
 PARSED_PREFIX = "parsed/"
 STATS_KEY = "stats/stats.json"
-SCHEMA_VERSION = "1.0"
+MATCHES_KEY = "stats/matches.json"
+SCHEMA_VERSION = "1.1"
 
 # Optional static-website mirror. When set, the same dashboard payload is also
 # written here so the browser can fetch it same-origin (no CORS, no public data
 # bucket). Failures are logged and never break the primary aggregation.
 DASHBOARD_BUCKET = os.environ.get("DASHBOARD_BUCKET")
 DASHBOARD_STATS_KEY = os.environ.get("DASHBOARD_STATS_KEY", "stats.json")
+DASHBOARD_MATCHES_KEY = os.environ.get("DASHBOARD_MATCHES_KEY", "matches.json")
 MIN_PLAYER_MATCHES = int(os.environ.get("MIN_PLAYER_MATCHES", "5"))
 MIN_HERO_PICKS = int(os.environ.get("MIN_HERO_PICKS", "5"))
 MIN_TEAMMATE_MATCHES = int(os.environ.get("MIN_TEAMMATE_MATCHES", "3"))
 MIN_H2H_MATCHES = int(os.environ.get("MIN_H2H_MATCHES", "3"))
 LEADERBOARD_LIMIT = int(os.environ.get("LEADERBOARD_LIMIT", "10"))
+# Newest matches kept in the lazy per-match payload. The dashboard never reads
+# history itself, so only detail pages feel this cap.
+MATCHES_LIMIT = int(os.environ.get("MATCHES_LIMIT", "500"))
 
 # Static hero_id -> display-name table (source: OpenDota /api/heroes).
 # Display-only: it never affects identity or aggregation math.
@@ -286,6 +298,59 @@ def _finalize_player_hero_record(record: dict[str, int]) -> dict[str, Any]:
     return result
 
 
+def _normalize_hero_id(hero_id: Any) -> Any:
+    """Hero ids are numeric in the payload; unknown shapes pass through."""
+    text = str(hero_id)
+    return int(text) if text.lstrip("-").isdigit() else hero_id
+
+
+def _match_summary(match: dict[str, Any]) -> dict[str, Any]:
+    """Counts-only per-match record for the lazy ``matches.json`` payload.
+
+    Carries per-player figures only. It never includes chat text or raw log
+    lines, matching the dashboard contract of counts without content.
+    """
+    players: list[dict[str, Any]] = []
+    for player in match["players"]:
+        hero_id = _normalize_hero_id(player["hero_id"])
+        name = player.get("player_name")
+        players.append({
+            "account_id": _player_id(player),
+            "player_name": name.strip() if isinstance(name, str) and name.strip() else None,
+            "hero_id": hero_id,
+            "hero_name": HERO_NAMES.get(hero_id) if isinstance(hero_id, int) else None,
+            "team": player["team"],
+            "win": player["win"],
+            "kills": player["kills"],
+            "deaths": player["deaths"],
+            "assists": player["assists"],
+        })
+    start_time = match.get("start_time")
+    return {
+        "match_id": str(match["match_id"]),
+        "start_time": start_time if _is_number(start_time) else None,
+        "duration": match["duration"],
+        "radiant_win": match["radiant_win"],
+        "players": players,
+    }
+
+
+def _matches_payload(summaries: list[dict[str, Any]], generated_at: str) -> dict[str, Any]:
+    """Newest-first, capped per-match payload published next to stats.json."""
+
+    def order(item: dict[str, Any]) -> tuple[float, str]:
+        start = item.get("start_time")
+        return (float(start) if _is_number(start) else 0.0, item["match_id"])
+
+    ordered = sorted(summaries, key=order, reverse=True)[:MATCHES_LIMIT]
+    return {
+        "generated_at": generated_at,
+        "schema_version": SCHEMA_VERSION,
+        "match_count": len(summaries),
+        "matches": ordered,
+    }
+
+
 def _load_matches(bucket: str) -> tuple[list[tuple[str, dict[str, Any]]], int]:
     """Read all parsed JSON objects, returning valid matches and file count."""
     paginator = s3.get_paginator("list_objects_v2")
@@ -360,8 +425,14 @@ def _generate_leaderboards(
     }
 
 
-def aggregate_matches(matches: Iterable[tuple[str, dict[str, Any]]]) -> tuple[dict[str, Any], dict[str, int]]:
-    """Aggregate validated objects into the dashboard schema without S3 I/O."""
+def aggregate_matches(
+    matches: Iterable[tuple[str, dict[str, Any]]],
+) -> tuple[dict[str, Any], dict[str, int], list[dict[str, Any]]]:
+    """Aggregate validated objects into the dashboard schema without S3 I/O.
+
+    Returns the dashboard stats, a counts summary for logging, and the
+    per-match summaries that feed the lazy ``matches.json`` payload.
+    """
     processed_match_ids: set[str] = set()
     players: defaultdict[str, dict[str, int]] = defaultdict(_new_record)
     player_names: dict[str, str] = {}
@@ -373,6 +444,7 @@ def aggregate_matches(matches: Iterable[tuple[str, dict[str, Any]]]) -> tuple[di
     total_duration = 0.0
     duplicate_count = 0
     valid_count = 0
+    match_summaries: list[dict[str, Any]] = []
 
     for _, match in matches:
         match_id = str(match["match_id"])
@@ -382,6 +454,7 @@ def aggregate_matches(matches: Iterable[tuple[str, dict[str, Any]]]) -> tuple[di
             continue
         processed_match_ids.add(match_id)
         valid_count += 1
+        match_summaries.append(_match_summary(match))
         total_duration += match["duration"]
         radiant_wins += int(match["radiant_win"])
 
@@ -486,27 +559,62 @@ def aggregate_matches(matches: Iterable[tuple[str, dict[str, Any]]]) -> tuple[di
         "unique_heroes": len(finalized_heroes),
         "teammate_pairs": len(finalized_teammates),
         "head_to_head_pairs": len(finalized_h2h),
-    }
+        "match_summaries": len(match_summaries),
+    }, match_summaries
+
+
+def _encode(payload: dict[str, Any]) -> bytes:
+    return json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
+
+
+def _mirror_dashboard(key: str, body: bytes) -> None:
+    """Copy an object into the static website bucket; never raise on failure."""
+    if not DASHBOARD_BUCKET:
+        return
+    try:
+        s3.put_object(Bucket=DASHBOARD_BUCKET, Key=key, Body=body, ContentType="application/json")
+    except Exception:  # noqa: BLE001 - the data bucket remains the source of truth
+        logger.exception("Failed to publish %s to %s", key, DASHBOARD_BUCKET)
 
 
 def rebuild_statistics(bucket: str) -> dict[str, Any]:
-    """Load history from S3, publish one stats JSON object, and return it."""
+    """Load history from S3, publish the stats and matches JSON, and return stats."""
     started_at = time.monotonic()
     _log_event(message="Aggregation started", bucket=bucket)
     matches, parsed_file_count = _load_matches(bucket)
-    stats, counts = aggregate_matches(matches)
+    stats, counts, match_summaries = aggregate_matches(matches)
+    generated_at = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
     stats["metadata"] = {
-        "generated_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+        "generated_at": generated_at,
         "schema_version": SCHEMA_VERSION,
         "source_match_count": counts["valid_matches"],
+        # Single source of truth for the leaderboard minimums, so clients do
+        # not duplicate the environment-configured numbers.
+        "thresholds": {
+            "players": MIN_PLAYER_MATCHES,
+            "heroes": MIN_HERO_PICKS,
+            "teammates": MIN_TEAMMATE_MATCHES,
+            "head_to_head": MIN_H2H_MATCHES,
+            "leaderboard_limit": LEADERBOARD_LIMIT,
+        },
     }
-    payload = json.dumps(stats, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    payload = _encode(stats)
     s3.put_object(Bucket=bucket, Key=STATS_KEY, Body=payload, ContentType="application/json")
-    if DASHBOARD_BUCKET:
-        try:
-            s3.put_object(Bucket=DASHBOARD_BUCKET, Key=DASHBOARD_STATS_KEY, Body=payload, ContentType="application/json")
-        except Exception:  # noqa: BLE001 - the data bucket remains the source of truth
-            logger.exception("Failed to publish dashboard copy to %s", DASHBOARD_BUCKET)
+    _mirror_dashboard(DASHBOARD_STATS_KEY, payload)
+
+    # The per-match payload is secondary: losing it must never cost the
+    # aggregate, so its own failures are logged rather than raised.
+    matches_bytes = b""
+    matches_published = 0
+    try:
+        matches_payload = _matches_payload(match_summaries, generated_at)
+        matches_bytes = _encode(matches_payload)
+        matches_published = len(matches_payload["matches"])
+        s3.put_object(Bucket=bucket, Key=MATCHES_KEY, Body=matches_bytes, ContentType="application/json")
+        _mirror_dashboard(DASHBOARD_MATCHES_KEY, matches_bytes)
+    except Exception:  # noqa: BLE001 - stats.json stays the source of truth
+        logger.exception("Failed to publish the per-match payload")
+
     _log_event(
         message="Aggregation completed",
         parsed_files_found=parsed_file_count,
@@ -517,6 +625,9 @@ def rebuild_statistics(bucket: str) -> dict[str, Any]:
         teammate_pairs=counts["teammate_pairs"],
         head_to_head_pairs=counts["head_to_head_pairs"],
         stats_json_bytes=len(payload),
+        matches_published=matches_published,
+        matches_json_bytes=len(matches_bytes),
+        matches_limit=MATCHES_LIMIT,
         aggregation_duration_seconds=_round(time.monotonic() - started_at),
     )
     return stats

@@ -18,7 +18,7 @@ dota-lobby-stats2/
 |   +-- requirements.txt
 |
 +-- aggregator/            ZIP Lambda for deterministic historical statistics rebuilds
-|   +-- aggregator.py      Lists parsed JSON, validates/deduplicates, then writes stats/stats.json
+|   +-- aggregator.py      Lists parsed JSON, validates/deduplicates, rebuilds stats/stats.json (+ stats/matches.json)
 |   +-- requirements.txt
 |
 +-- terraform/            Infrastructure as code (S3, ECR, Lambda, IAM, dashboard)
@@ -124,7 +124,7 @@ views, and a shareable player profile page at `/player/<id>`.
 > Working on the dashboard with AI assistance? See [`docs/ai-frontend-setup.md`](./docs/ai-frontend-setup.md) for the OpenCode agents (`frontend`, `visual-reviewer`, `quick-edit`), the `design-system` skill, and the screenshot-review workflow.
 
 - Terraform (`dashboard.tf`) creates a **private** S3 bucket fronted by **CloudFront** with Origin Access Control + a security-headers policy. HTTPS, caching, and the SPA fallback are handled at the edge.
-- The aggregator mirrors every `stats/stats.json` payload to `stats.json` in the dashboard bucket, so the page always shows the latest rebuild with no cross-bucket CORS. CloudFront serves `/stats.json` with caching disabled, so it is never stale.
+- The aggregator mirrors both payloads into the dashboard bucket — `stats.json` and `matches.json` — so the page always shows the latest rebuild with no cross-bucket CORS. CloudFront serves both paths with caching disabled, so neither is ever stale. The dashboard fetches `stats.json` on every load; leaderboard detail pages fetch `matches.json` lazily.
 - Build and deploy the frontend with `scripts/deploy-web.sh` (bucket and
   distribution ID are read from `terraform output`; `stats.json` is never
   touched):
@@ -155,7 +155,7 @@ views, and a shareable player profile page at `/player/<id>`.
     --paths "/index.html" "/" "/assets/*" --profile <profile> --region <region>
   ```
 
-- Terraform outputs `dashboard_url` (HTTPS CloudFront URL), `dashboard_cloudfront_domain` (CNAME target), and `dashboard_cloudfront_distribution_id`. `GET /stats.json` is served same-origin.
+- Terraform outputs `dashboard_url` (HTTPS CloudFront URL), `dashboard_cloudfront_domain` (CNAME target), and `dashboard_cloudfront_distribution_id`. `GET /stats.json` and `GET /matches.json` are served same-origin.
 
 ### Custom domain
 

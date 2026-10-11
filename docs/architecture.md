@@ -57,6 +57,12 @@ Developer / Dota 2 Replay Folder
 
 `stats/stats.json` is under the `stats/` prefix, so it matches neither S3 notification filter and cannot retrigger the parser or aggregator.
 
+One rebuild publishes two objects. `stats.json` carries the aggregate dashboard payload plus
+`metadata.thresholds`, so clients read the leaderboard minimums instead of duplicating them.
+`matches.json` carries the newest `MATCHES_LIMIT` matches (default 500) so history can grow without
+inflating the payload the dashboard always fetches. A failure to publish `matches.json` is logged and
+never loses the aggregate; only the leaderboard detail pages are affected.
+
 ## S3 Data Layout
 
 ```text
@@ -70,11 +76,14 @@ dta-replay-data-rizkiprass-2026/          # private data bucket
 |
 +-- stats/
     +-- stats.json                   # Rebuilt dashboard payload
+    +-- matches.json                 # Capped, newest-first per-match list
 
 dta-replay-dashboard-rizkiprass-2026/     # public-read website bucket
 |
 +-- index.html, styles.css, app.js   # Static dashboard frontend
 +-- stats.json                       # Mirror of stats/stats.json, fetched same-origin
++-- matches.json                     # Mirror of stats/matches.json, fetched lazily by
+                                     # leaderboard detail pages
 ```
 
 ## Components
@@ -84,7 +93,7 @@ dta-replay-dashboard-rizkiprass-2026/     # public-read website bucket
 | Amazon S3 | Stores replay sources, normalized matches, and the one dashboard payload. |
 | `dota-replay-parser` Lambda | Parses one new `.dem` replay and writes its normalized JSON. |
 | `dota-replay-aggregator` Lambda | Rebuilds all statistics from every valid parsed match when a parsed JSON object is created, and mirrors the payload to the dashboard bucket. |
-| Dashboard website bucket | Serves the static HTML/CSS/JS and a same-origin `stats.json` copy over the S3 website endpoint. |
+| Dashboard website bucket | Serves the static HTML/CSS/JS plus same-origin `stats.json` and `matches.json` copies over the S3 website endpoint. |
 | Amazon ECR | Stores the parser Lambda container image. |
 | Amazon CloudWatch Logs | Stores parser/aggregator execution logs and Lambda metrics. |
 | IAM | Applies separate least-privilege roles to the parser and aggregator. |
