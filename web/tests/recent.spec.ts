@@ -78,6 +78,76 @@ test("the dashboard shows a bounded recent-match teaser", async ({ page }) => {
   await expect(page).toHaveURL(/\/matches$/);
 });
 
+test("each recent match lists five heroes a side", async ({ page }) => {
+  await page.setViewportSize(DESKTOP);
+  await gotoDashboard(page);
+
+  const payload = (await (await page.request.get("/stats.json")).json()) as {
+    recent_matches?: RecentMatch[];
+    heroes: Record<string, { hero_name: string | null }>;
+  };
+  const withHeroes = (payload.recent_matches ?? []).filter(
+    (match) => (match.radiant_heroes ?? []).length > 0 && (match.dire_heroes ?? []).length > 0,
+  );
+
+  const strips = page.locator(".recent-heroes");
+  if (withHeroes.length === 0) {
+    // A payload predating the field renders the row without a strip.
+    await expect(strips).toHaveCount(0);
+    return;
+  }
+
+  const nameOf = (id: number | string) => payload.heroes[String(id)]?.hero_name ?? `Hero ${id}`;
+  const rows = page.locator(".recent-row");
+  for (let index = 0; index < withHeroes.length; index += 1) {
+    const entry = withHeroes[index];
+    const strip = rows.nth(index).locator(".recent-heroes");
+    const expected = [...(entry.radiant_heroes ?? []), ...(entry.dire_heroes ?? [])].map(nameOf);
+
+    const titles = await strip
+      .locator(".avatar")
+      .evaluateAll((els) => els.map((el) => el.parentElement?.getAttribute("title") ?? ""));
+    expect(titles, "heroes in payload order, Radiant first").toEqual(expected);
+
+    const sides = strip.locator(".recent-side");
+    expect(await sides.count()).toBe(2);
+    expect(await sides.first().locator(".avatar").count(), "five a side").toBe(5);
+    expect(await sides.nth(1).locator(".avatar").count(), "five a side").toBe(5);
+    await expect(strip.locator(".recent-vs")).toHaveText("vs");
+
+    // One image to a screen reader, with both sides named.
+    await expect(strip).toHaveAttribute("role", "img");
+    const label = (await strip.getAttribute("aria-label")) ?? "";
+    expect(label).toContain(`Radiant: ${(entry.radiant_heroes ?? []).map(nameOf).join(", ")}`);
+    expect(label).toContain(`Dire: ${(entry.dire_heroes ?? []).map(nameOf).join(", ")}`);
+  }
+});
+
+test("the hero strip is omitted when the payload has no hero ids", async ({ page }) => {
+  await page.setViewportSize(DESKTOP);
+  await page.route("**/stats.json", async (route) => {
+    const response = await route.fetch();
+    const stats = (await response.json()) as { recent_matches?: RecentMatch[] };
+    for (const match of stats.recent_matches ?? []) {
+      delete match.radiant_heroes;
+      delete match.dire_heroes;
+    }
+    await route.fulfill({ response, json: stats });
+  });
+
+  await gotoDashboard(page);
+
+  const card = page.locator(".recent-card");
+  if ((await card.count()) === 0) return; // the payload has no teaser at all
+
+  await expect(card.locator(".recent-heroes")).toHaveCount(0);
+  // The row itself still reads: date, winner and score.
+  const row = card.locator(".recent-row").first();
+  await expect(row.locator(".recent-date")).toBeVisible();
+  await expect(row.locator(".badge")).toBeVisible();
+  await expect(row.locator(".recent-score")).toContainText("kills");
+});
+
 test("the teaser is omitted when the payload has none", async ({ page }) => {
   await page.setViewportSize(DESKTOP);
   await page.route("**/stats.json", async (route) => {

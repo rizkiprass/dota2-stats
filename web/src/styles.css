@@ -488,14 +488,20 @@ html { scroll-behavior: smooth; }
 
 .recent-list { list-style: none; margin: 0; padding: 0; }
 .recent-row {
-  display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 12px;
+  display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; gap: 12px;
   padding: 11px 0; border-top: 1px solid var(--border);
 }
 .recent-row:first-child { border-top: none; }
-.recent-when { min-width: 0; }
+/* Columns are pinned so the row still reads correctly when a payload carries
+   no hero ids and the middle is empty. */
+.recent-when { grid-column: 1; min-width: 0; }
 .recent-date { display: block; font-weight: 700; font-size: 13.5px; color: var(--text); }
 .recent-meta { display: block; margin-top: 2px; color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
-.recent-verdict { display: flex; align-items: center; gap: 12px; }
+.recent-heroes { grid-column: 2; display: inline-flex; align-items: center; gap: 10px; justify-self: center; }
+.recent-side { display: inline-flex; align-items: center; gap: 3px; }
+.recent-vs { color: var(--muted); font-size: 11.5px; font-weight: 700; }
+.recent-heroes .avatar.sm { width: 24px; height: 24px; font-size: 10px; }
+.recent-verdict { grid-column: 3; display: flex; align-items: center; justify-content: flex-end; gap: 12px; justify-self: end; }
 .recent-verdict .splitbar { width: 64px; flex: 0 0 auto; }
 .recent-score { font-weight: 800; font-size: 13px; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .recent-score-label { font-weight: 600; font-size: 11.5px; color: var(--muted); }
@@ -884,6 +890,11 @@ html { scroll-behavior: smooth; }
   .activity-board-grid { grid-template-columns: 1fr; }
   .hero-dist { grid-template-columns: 1fr; gap: 18px; }
   .mh-grid { grid-template-columns: minmax(0, 1fr); gap: 22px; }
+  /* Narrow: the hero strip takes its own row so the date and verdict keep theirs. */
+  .recent-row { grid-template-columns: minmax(0, 1fr) auto; row-gap: 8px; }
+  .recent-when { grid-column: 1; grid-row: 1; }
+  .recent-verdict { grid-column: 2; grid-row: 1; }
+  .recent-heroes { grid-column: 1 / -1; grid-row: 2; justify-self: start; }
 }
 
 @media (max-width: 560px) {
@@ -901,6 +912,9 @@ html { scroll-behavior: smooth; }
   .cal { border-spacing: 3px; }
   .recent-head { flex-wrap: wrap; }
   .recent-verdict .splitbar { display: none; }
+  .recent-heroes { gap: 7px; }
+  .recent-side { gap: 2px; }
+  .recent-heroes .avatar.sm { width: 20px; height: 20px; font-size: 9px; }
   .board-grid { grid-template-columns: 1fr; }
   .dp-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .board-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }

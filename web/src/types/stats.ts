@@ -183,6 +183,9 @@ export interface RecentMatch {
   radiant_win: boolean;
   radiant_kills: number;
   dire_kills: number;
+  /** Hero ids per side, in the parser's order. Present from schema 1.4 onward. */
+  radiant_heroes?: Array<number | string>;
+  dire_heroes?: Array<number | string>;
 }
 
 export interface Stats {

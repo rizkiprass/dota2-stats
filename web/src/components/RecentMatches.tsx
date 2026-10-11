@@ -1,5 +1,7 @@
 import { Link } from "@tanstack/react-router";
+import { Avatar } from "./ui";
 import { fmtDuration, fmtInt } from "../lib/format";
+import { heroName } from "../lib/derived";
 import { formatDayLabel, formatTime } from "../lib/match-calendar";
 import { useDashboard } from "../lib/dashboard-context";
 
@@ -33,6 +35,13 @@ export function RecentMatches() {
             const direKills = Number(match.dire_kills) || 0;
             const totalKills = radiantKills + direKills;
             const radiantShare = totalKills > 0 ? (radiantKills / totalKills) * 100 : 50;
+            const radiantHeroes = match.radiant_heroes ?? [];
+            const direHeroes = match.dire_heroes ?? [];
+            const showHeroes = radiantHeroes.length > 0 && direHeroes.length > 0;
+            const sidesLabel = `Radiant: ${radiantHeroes
+              .map((heroId) => heroName(stats, heroId))
+              .join(", ")}. Dire: ${direHeroes.map((heroId) => heroName(stats, heroId)).join(", ")}.`;
+
             return (
               <li className="recent-row" key={match.match_id}>
                 <span className="recent-when">
@@ -41,6 +50,29 @@ export function RecentMatches() {
                     {formatTime(match.start_time)} · {fmtDuration(match.duration)}
                   </span>
                 </span>
+
+                {showHeroes ? (
+                  <span className="recent-heroes" role="img" aria-label={sidesLabel}>
+                    <span className="recent-side">
+                      {radiantHeroes.map((heroId, index) => (
+                        <span key={`r-${heroId}-${index}`} title={heroName(stats, heroId)}>
+                          <Avatar heroId={Number(heroId) || null} name={heroName(stats, heroId)} size="sm" />
+                        </span>
+                      ))}
+                    </span>
+                    <span className="recent-vs" aria-hidden="true">
+                      vs
+                    </span>
+                    <span className="recent-side">
+                      {direHeroes.map((heroId, index) => (
+                        <span key={`d-${heroId}-${index}`} title={heroName(stats, heroId)}>
+                          <Avatar heroId={Number(heroId) || null} name={heroName(stats, heroId)} size="sm" />
+                        </span>
+                      ))}
+                    </span>
+                  </span>
+                ) : null}
+
                 <span className="recent-verdict">
                   <span className={`badge${match.radiant_win ? " b1" : " b2"}`}>
                     {match.radiant_win ? "Radiant win" : "Dire win"}
