@@ -1,5 +1,6 @@
 import { useDashboard } from "../lib/dashboard-context";
 import { Summary } from "./Summary";
+import { RecentMatches } from "./RecentMatches";
 import { Leaderboards } from "./Leaderboards";
 import { Players, Teammates, HeadToHead } from "./Tables";
 import { Heroes } from "./Heroes";
@@ -10,6 +11,7 @@ export function Dashboard() {
   return (
     <main className="wrap">
       <Summary stats={stats} />
+      <RecentMatches />
       <Leaderboards stats={stats} />
       <Players stats={stats} />
       <Heroes stats={stats} />

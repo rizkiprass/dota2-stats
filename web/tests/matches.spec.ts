@@ -151,10 +151,10 @@ test("the dashboard nav reaches match history", async ({ page }) => {
   await page.waitForSelector("#leaderboards");
 
   const nav = page.getByRole("navigation", { name: "Sections" });
-  await nav.getByRole("link", { name: "Matches" }).click();
+  await nav.getByRole("link", { name: "History" }).click();
   await expect(page).toHaveURL(/\/matches$/);
   await expect(page.getByRole("heading", { level: 1, name: "Match history" })).toBeVisible();
-  await expect(nav.getByRole("link", { name: "Matches" })).toHaveClass(/active/);
+  await expect(nav.getByRole("link", { name: "History" })).toHaveClass(/active/);
 });
 
 test("match history stacks on mobile without overflow", async ({ page }) => {

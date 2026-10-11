@@ -469,6 +469,38 @@ html { scroll-behavior: smooth; }
 .pcell .psub { display: block; font-size: 12px; color: var(--muted); line-height: 1.3; }
 
 /* ------------------------------------------------------------------ */
+/* Recent matches (dashboard teaser)                                  */
+/* ------------------------------------------------------------------ */
+
+.recent-card { padding: 20px 22px; }
+.recent-head { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-bottom: 12px; }
+.recent-head .section-title { margin: 0; }
+
+.recent-link {
+  display: inline-flex; align-items: center; gap: 8px; flex: 0 0 auto;
+  color: var(--text-2); font-family: var(--font-display); font-size: 13px; font-weight: 700;
+  text-decoration: none; transition: color 160ms ease;
+}
+.recent-link svg { width: 13px; height: 13px; color: var(--muted); transition: transform 200ms ease, color 200ms ease; }
+.recent-link:hover { color: var(--accent); }
+.recent-link:hover svg { color: var(--accent); transform: translateX(3px); }
+.recent-link:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 6px; }
+
+.recent-list { list-style: none; margin: 0; padding: 0; }
+.recent-row {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 12px;
+  padding: 11px 0; border-top: 1px solid var(--border);
+}
+.recent-row:first-child { border-top: none; }
+.recent-when { min-width: 0; }
+.recent-date { display: block; font-weight: 700; font-size: 13.5px; color: var(--text); }
+.recent-meta { display: block; margin-top: 2px; color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+.recent-verdict { display: flex; align-items: center; gap: 12px; }
+.recent-verdict .splitbar { width: 64px; flex: 0 0 auto; }
+.recent-score { font-weight: 800; font-size: 13px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.recent-score-label { font-weight: 600; font-size: 11.5px; color: var(--muted); }
+
+/* ------------------------------------------------------------------ */
 /* Leaderboards                                                       */
 /* ------------------------------------------------------------------ */
 
@@ -867,6 +899,8 @@ html { scroll-behavior: smooth; }
   .mc-hint { grid-column: 1 / -1; }
   .mc-lineups { grid-template-columns: minmax(0, 1fr); gap: 8px; }
   .cal { border-spacing: 3px; }
+  .recent-head { flex-wrap: wrap; }
+  .recent-verdict .splitbar { display: none; }
   .board-grid { grid-template-columns: 1fr; }
   .dp-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .board-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -914,6 +948,7 @@ html { scroll-behavior: smooth; }
   .stat-tile:hover .st-img { transform: none; }
 
   .lb-hd-link:hover .lb-hd-arrow { transform: none; }
+  .recent-link:hover svg { transform: none; }
 
   .spotlight-card:hover .spotlight-art { transform: none; }
 }

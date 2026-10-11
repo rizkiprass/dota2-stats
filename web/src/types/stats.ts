@@ -172,6 +172,19 @@ export interface BehaviorStats {
   players: Record<string, BehaviorPlayerRecord>;
 }
 
+/**
+ * Bounded newest-match teaser carried by stats.json, so the dashboard can show
+ * recent activity without fetching the per-match payload.
+ */
+export interface RecentMatch {
+  match_id: string;
+  start_time: number | null;
+  duration: number;
+  radiant_win: boolean;
+  radiant_kills: number;
+  dire_kills: number;
+}
+
 export interface Stats {
   summary: Summary;
   players: Record<string, PlayerRecord>;
@@ -180,6 +193,8 @@ export interface Stats {
   teammates: Record<string, TeammateRecord>;
   head_to_head: Record<string, HeadToHeadRecord>;
   leaderboards: Record<string, LeaderboardEntry[]>;
+  /** Present from schema 1.3 onward; absent payloads must still render. */
+  recent_matches?: RecentMatch[];
   behavior?: BehaviorStats;
   metadata: Metadata;
 }

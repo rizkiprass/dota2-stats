@@ -81,7 +81,7 @@ export function Header({ stats }: { stats: Stats }) {
               ))
             : null}
           <Link to="/matches" activeProps={{ className: "active" }}>
-            Matches
+            History
           </Link>
         </nav>
       </div>
