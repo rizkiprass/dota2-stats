@@ -1,0 +1,215 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-11T00:00:00Z",
+  "title": "Design System: Dota 2 Private Lobby Statistics",
+  "extensions": {
+    "colorMeta": {
+      "obsidian-canvas": { "role": "neutral", "displayName": "Obsidian Canvas", "canonical": "oklch(16% 0.0042 285.9)", "tonalRamp": ["#0b0b0d", "#252527", "#424244", "#616163", "#828285", "#a5a5a8", "#c9c9cc", "#eeeef1"] },
+      "obsidian-canvas-2": { "role": "neutral", "displayName": "Obsidian Canvas 2", "canonical": "oklch(18.8% 0.006 285.8)", "tonalRamp": ["#0b0b0e", "#252528", "#414245", "#616165", "#828286", "#a4a4a9", "#c8c9cd", "#eeeef2"] },
+      "charcoal-panel": { "role": "neutral", "displayName": "Charcoal Panel", "canonical": "oklch(22.4% 0.0096 285.6)", "tonalRamp": ["#0b0b0f", "#24242a", "#414147", "#606067", "#818288", "#a4a4ab", "#c8c8cf", "#eeeef5"] },
+      "charcoal-panel-2": { "role": "neutral", "displayName": "Charcoal Panel 2", "canonical": "oklch(26.2% 0.0093 285.7)", "tonalRamp": ["#0b0b0f", "#242429", "#414147", "#606166", "#828288", "#a4a4ab", "#c8c8cf", "#eeeef5"] },
+      "charcoal-panel-3": { "role": "neutral", "displayName": "Charcoal Panel 3", "canonical": "oklch(29.6% 0.0126 285.6)", "tonalRamp": ["#0b0a10", "#24242b", "#414149", "#606068", "#81818a", "#a4a4ad", "#c8c8d1", "#ededf7"] },
+      "hairline": { "role": "neutral", "displayName": "Hairline", "canonical": "rgba(255, 255, 255, 0.06)", "tonalRamp": ["#0b0b0d", "#252527", "#424244", "#616163", "#828285", "#a5a5a8", "#c9c9cc", "#eeeef1"] },
+      "hairline-strong": { "role": "neutral", "displayName": "Hairline Strong", "canonical": "rgba(255, 255, 255, 0.12)", "tonalRamp": ["#0b0b0d", "#252527", "#424244", "#616163", "#828285", "#a5a5a8", "#c9c9cc", "#eeeef1"] },
+      "chalk-white": { "role": "neutral", "displayName": "Chalk White", "canonical": "oklch(100% 0 89.9)", "tonalRamp": ["#0b0b0b", "#252525", "#424242", "#616161", "#828282", "#a5a5a5", "#c9c9c9", "#eeeeee"] },
+      "chalk-2": { "role": "neutral", "displayName": "Chalk 2", "canonical": "oklch(83.8% 0.011 286.2)", "tonalRamp": ["#0b0b10", "#24242a", "#414148", "#606067", "#818189", "#a4a4ac", "#c8c8d0", "#eeeef6"] },
+      "ash-grey": { "role": "neutral", "displayName": "Ash Grey", "canonical": "oklch(69.2% 0.0116 286.1)", "tonalRamp": ["#0b0a10", "#24242b", "#414148", "#606068", "#818189", "#a4a4ac", "#c8c8d1", "#ededf6"] },
+      "radiant-azure": { "role": "primary", "displayName": "Radiant Azure", "canonical": "oklch(60.9% 0.1819 257.3)", "tonalRamp": ["#01004c", "#001670", "#003b94", "#175eb9", "#3d81e0", "#60a5ff", "#83cbff", "#a8f1ff"] },
+      "dire-gold": { "role": "secondary", "displayName": "Dire Gold", "canonical": "oklch(85% 0.1463 90.5)", "tonalRamp": ["#210000", "#3f1a00", "#5f3a00", "#815a00", "#a47c00", "#c8a007", "#edc447", "#ffea70"] },
+      "victory-green": { "role": "tertiary", "displayName": "Victory Green", "canonical": "oklch(76.5% 0.1731 152.4)", "tonalRamp": ["#001800", "#003700", "#005708", "#00792e", "#009c50", "#41c172", "#6ce795", "#93ffb9"] },
+      "defeat-red": { "role": "tertiary", "displayName": "Defeat Red", "canonical": "oklch(65.3% 0.1835 23.7)", "tonalRamp": ["#360000", "#5c0000", "#820011", "#a92e32", "#d15352", "#f97773", "#ff9c96", "#ffc1ba"] },
+      "medal-gold": { "role": "secondary", "displayName": "Medal Gold", "canonical": "oklch(85% 0.1463 90.5)", "tonalRamp": ["#210000", "#3f1a00", "#5f3a00", "#815a00", "#a47c00", "#c8a007", "#edc447", "#ffea70"] },
+      "medal-silver": { "role": "neutral", "displayName": "Medal Silver", "canonical": "oklch(84.4% 0.0149 264.5)", "tonalRamp": ["#080b12", "#21252d", "#3e424a", "#5d616a", "#7e828c", "#a0a5af", "#c4c9d3", "#e9eff9"] },
+      "medal-bronze": { "role": "neutral", "displayName": "Medal Bronze", "canonical": "oklch(69% 0.1059 57.1)", "tonalRamp": ["#270000", "#480e00", "#6a2f00", "#8d4f19", "#b2713e", "#d79460", "#feb884", "#ffdda8"] },
+      "meter-track": { "role": "neutral", "displayName": "Meter Track", "canonical": "oklch(29.6% 0.0126 285.6)", "tonalRamp": ["#0b0a10", "#24242b", "#414149", "#606068", "#81818a", "#a4a4ad", "#c8c8d1", "#ededf7"] },
+      "radiant-soft": { "role": "primary", "displayName": "Radiant Soft", "canonical": "rgba(47, 128, 237, 0.16)", "tonalRamp": ["#01004c", "#001670", "#003b94", "#175eb9", "#3d81e0", "#60a5ff", "#83cbff", "#a8f1ff"] },
+      "dire-soft": { "role": "secondary", "displayName": "Dire Soft", "canonical": "rgba(242, 201, 76, 0.16)", "tonalRamp": ["#210000", "#3f1a00", "#5f3a00", "#815a00", "#a47c00", "#c8a007", "#edc447", "#ffea70"] },
+      "victory-soft": { "role": "tertiary", "displayName": "Victory Soft", "canonical": "rgba(67, 209, 122, 0.14)", "tonalRamp": ["#001800", "#003700", "#005708", "#00792e", "#009c50", "#41c172", "#6ce795", "#93ffb9"] },
+      "avatar-azure": { "role": "primary", "displayName": "Avatar Azure", "canonical": "oklch(60.9% 0.1819 257.3)", "tonalRamp": ["#01004c", "#001670", "#003b94", "#175eb9", "#3d81e0", "#60a5ff", "#83cbff", "#a8f1ff"] },
+      "avatar-amber": { "role": "secondary", "displayName": "Avatar Amber", "canonical": "oklch(71.5% 0.1243 82.7)", "tonalRamp": ["#220000", "#411900", "#613800", "#835800", "#a67a03", "#cb9d3c", "#f1c163", "#ffe789"] },
+      "avatar-green": { "role": "tertiary", "displayName": "Avatar Green", "canonical": "oklch(76.5% 0.1731 152.4)", "tonalRamp": ["#001800", "#003700", "#005708", "#00792e", "#009c50", "#41c172", "#6ce795", "#93ffb9"] },
+      "avatar-violet": { "role": "tertiary", "displayName": "Avatar Violet", "canonical": "oklch(60.6% 0.2189 292.7)", "tonalRamp": ["#170046", "#2e0069", "#49258d", "#6749b2", "#876cd8", "#aa8fff", "#cdb4ff", "#f2d9ff"] },
+      "avatar-pink": { "role": "tertiary", "displayName": "Avatar Pink", "canonical": "oklch(66.7% 0.1691 354.1)", "tonalRamp": ["#31000f", "#56002a", "#7b0047", "#a12e67", "#c85289", "#f076ac", "#ff9ad0", "#ffbff6"] },
+      "avatar-teal": { "role": "tertiary", "displayName": "Avatar Teal", "canonical": "oklch(70.5% 0.1127 190.5)", "tonalRamp": ["#001616", "#003332", "#005350", "#007470", "#009792", "#33bbb5", "#62e1da", "#8affff"] }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display", "purpose": "KPI values, spotlight name, profile name; always with tabular figures." },
+      "headline": { "displayName": "Headline", "purpose": "Section titles and card titles." },
+      "title": { "displayName": "Title", "purpose": "Row and column leaders inside tables and leaderboards." },
+      "body": { "displayName": "Body", "purpose": "Prose, table cells, error copy; captions step down to 12-13px in ash grey." },
+      "label": { "displayName": "Label", "purpose": "Table headers, badges, nav items, KPI labels, tags." }
+    },
+    "shadows": [
+      { "name": "card-resting", "value": "0 12px 32px rgba(0,0,0,0.38)", "purpose": "Default flat-on-the-page shadow for cards and leaderboard tiles, plus a 1px inner top highlight." },
+      { "name": "card-hover", "value": "0 14px 34px color-mix(in srgb, #2f80ed 10%, transparent)", "purpose": "Faint azure bloom added as a card lifts 3px on hover." },
+      { "name": "brand-mark", "value": "0 8px 22px rgba(47,128,237,0.35)", "purpose": "The one colored glow; belongs to the header logo only." },
+      { "name": "medal", "value": "0 4px 12px rgba(0,0,0,0.35)", "purpose": "Separates the circular podium badge from the leaderboard row behind it." },
+      { "name": "tile-hover", "value": "0 10px 22px color-mix(in srgb, #2f80ed 20%, transparent)", "purpose": "Accent-tinted lift for hero tiles and stat tiles." }
+    ],
+    "motion": [
+      { "name": "ease-rise", "value": "cubic-bezier(0.2, 0.7, 0.2, 1)", "purpose": "Entrance rise-in for cards and leaderboard tiles, and bar fill." },
+      { "name": "state-fast", "value": "160ms ease", "purpose": "Color, background-color, and border-color changes on nav and inputs." },
+      { "name": "state-mid", "value": "220ms ease", "purpose": "Transform and box-shadow changes on card, leaderboard, and hero-tile hover." },
+      { "name": "state-slow", "value": "400ms ease", "purpose": "Spotlight artwork scale on hover." },
+      { "name": "rise-in", "value": "rise-in 520ms cubic-bezier(0.2, 0.7, 0.2, 1) both", "purpose": "Section entrance; 65ms / 130ms stagger for the 2nd and 3rd grid children." },
+      { "name": "bar-fill", "value": "bar-fill 850ms cubic-bezier(0.2, 0.7, 0.2, 1) both", "purpose": "Progress and split bars filling from the left." },
+      { "name": "ambient-drift", "value": "ambient-drift 26s ease-in-out infinite alternate", "purpose": "Slow drift of the two background radial gradients." },
+      { "name": "skeleton-shimmer", "value": "skeleton-shimmer 1.6s ease-in-out infinite", "purpose": "Loading skeleton sheen." }
+    ],
+    "breakpoints": [
+      { "name": "sm", "value": "560px" },
+      { "name": "md", "value": "900px" },
+      { "name": "lg", "value": "1100px" },
+      { "name": "wrap-max", "value": "1240px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Card",
+      "kind": "card",
+      "refersTo": "card",
+      "description": "The base panel for every section: charcoal surface, gradient border, one soft shadow, 3px hover lift.",
+      "html": "<article class=\"ds-card\"><h3 class=\"ds-card-title\">Match summary</h3><p class=\"ds-card-sub\">121 lobbies recorded</p></article>",
+      "css": ".ds-card { color: var(--color-text); font-family: var(--font-sans); font-size: 15px; line-height: 1.5; border: 1px solid transparent; border-radius: var(--radius-card); padding: 22px; background-image: linear-gradient(145deg, color-mix(in srgb, var(--color-panel-2) 18%, var(--color-panel)), var(--color-panel) 58%), linear-gradient(135deg, color-mix(in srgb, var(--color-accent) 26%, var(--color-line)), var(--color-line) 48%, color-mix(in srgb, var(--color-accent-2) 15%, var(--color-line))); background-origin: border-box; background-clip: padding-box, border-box; box-shadow: var(--shadow-card), inset 0 1px 0 color-mix(in srgb, var(--color-text) 5%, transparent); transition: transform 220ms ease, box-shadow 220ms ease; } .ds-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-card), 0 14px 34px color-mix(in srgb, var(--color-accent) 10%, transparent), inset 0 1px 0 color-mix(in srgb, var(--color-text) 7%, transparent); } .ds-card-title { margin: 0; font-family: var(--font-display); font-size: 16px; font-weight: 700; letter-spacing: -0.3px; } .ds-card-sub { margin: 4px 0 0; color: var(--color-muted); font-size: 13px; }"
+    },
+    {
+      "name": "Badge",
+      "kind": "chip",
+      "refersTo": "badge",
+      "description": "Small pill for labels and profile achievements; three toned variants map to azure, gold, and green.",
+      "html": "<span class=\"ds-badge\">Support</span> <span class=\"ds-badge ds-badge-b1\">Most plays</span> <span class=\"ds-badge ds-badge-b2\">Top duo</span> <span class=\"ds-badge ds-badge-b3\">Win streak</span>",
+      "css": ".ds-badge { display: inline-block; padding: 4px 10px; border-radius: var(--pill); font-family: var(--font-sans); font-size: 11.5px; font-weight: 700; background: var(--color-panel-2); color: var(--color-text-2); border: 1px solid var(--color-line); } .ds-badge-b1 { background: var(--accent-soft); color: var(--color-accent); border-color: transparent; } .ds-badge-b2 { background: var(--accent-2-soft); color: var(--color-accent-2); border-color: transparent; } .ds-badge-b3 { background: var(--positive-soft); color: var(--color-positive); border-color: transparent; }"
+    },
+    {
+      "name": "Pill Value",
+      "kind": "chip",
+      "refersTo": "pill-value",
+      "description": "The leader's number in a leaderboard row: gold on dire-soft, the only decorative use of gold.",
+      "html": "<span class=\"ds-pill-value\">18</span>",
+      "css": ".ds-pill-value { display: inline-block; padding: 3px 10px; border-radius: var(--pill); background: var(--accent-2-soft); color: var(--color-accent-2); font-family: var(--font-sans); font-weight: 800; font-size: 13px; font-variant-numeric: tabular-nums; }"
+    },
+    {
+      "name": "Search Input",
+      "kind": "input",
+      "refersTo": "search-input",
+      "description": "Pill search field with a focus ring and an inline keyboard-shortcut chip.",
+      "html": "<label class=\"ds-search\"><input class=\"ds-search-input\" type=\"search\" placeholder=\"Search players\" /><kbd class=\"ds-search-kbd\">/</kbd></label>",
+      "css": ".ds-search { position: relative; display: inline-flex; align-items: center; font-family: var(--font-sans); } .ds-search-input { width: 230px; padding: 8px 34px 8px 12px; border-radius: var(--pill); border: 1px solid var(--color-line-strong); background: var(--color-panel-2); color: var(--color-text); font: inherit; font-size: 13px; transition: border-color 160ms ease, box-shadow 160ms ease; } .ds-search-input::placeholder { color: var(--color-muted); } .ds-search-input:focus { outline: none; border-color: color-mix(in srgb, var(--color-accent) 52%, transparent); box-shadow: 0 0 0 3px var(--accent-soft); } .ds-search-kbd { position: absolute; right: 10px; padding: 1px 6px; border-radius: 6px; border: 1px solid var(--color-line-strong); background: var(--color-panel-3); color: var(--color-muted); font-family: inherit; font-size: 11px; font-weight: 700; pointer-events: none; }"
+    },
+    {
+      "name": "Nav Pill",
+      "kind": "nav",
+      "refersTo": "nav-link",
+      "description": "Sticky-header navigation item; the active state is a translucent azure pill chosen by scroll position.",
+      "html": "<nav class=\"ds-nav\"><a class=\"ds-nav-link\" href=\"#\">Summary</a><a class=\"ds-nav-link ds-nav-link-active\" href=\"#\">Players</a><a class=\"ds-nav-link\" href=\"#\">Heroes</a></nav>",
+      "css": ".ds-nav { display: flex; gap: 4px; font-family: var(--font-sans); } .ds-nav-link { display: inline-block; padding: 7px 12px; border-radius: var(--pill); border: 1px solid transparent; white-space: nowrap; color: var(--color-muted); font-size: 13px; font-weight: 600; text-decoration: none; transition: color 160ms ease, background-color 160ms ease, border-color 160ms ease; } .ds-nav-link:hover { color: var(--color-text); background: color-mix(in srgb, var(--color-text) 5%, transparent); } .ds-nav-link-active { color: var(--color-text); background: color-mix(in srgb, var(--color-accent) 16%, transparent); border-color: color-mix(in srgb, var(--color-accent) 34%, transparent); }"
+    },
+    {
+      "name": "Icon Tile",
+      "kind": "custom",
+      "refersTo": "icon-tile",
+      "description": "Square rounded glyph tile that opens a card; azure by default, with gold and green variants.",
+      "html": "<span class=\"ds-tile\"><svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\" width=\"22\" height=\"22\"><path d=\"m12 3 9 5-9 5-9-5 9-5Z\"/><path d=\"m3 13 9 5 9-5\"/></svg></span>",
+      "css": ".ds-tile { display: grid; place-items: center; width: 46px; height: 46px; flex: 0 0 auto; border-radius: 14px; background: var(--color-panel-2); border: 1px solid var(--color-line-strong); color: var(--color-accent); } .ds-tile svg { width: 22px; height: 22px; }"
+    },
+    {
+      "name": "Leaderboard Row",
+      "kind": "custom",
+      "refersTo": "rank-medal",
+      "description": "Signature leaderboard unit: circular medal (top 3) or numeral, name with a value bar, right-aligned value.",
+      "html": "<div class=\"ds-lb\"><div class=\"ds-lb-row\"><span class=\"ds-lb-rank ds-lb-medal\">1</span><span class=\"ds-lb-main\"><span class=\"ds-lb-name\">Rizki<span class=\"ds-lb-sub\">42 matches</span></span><span class=\"ds-lb-bar\"><i style=\"width:82%\"></i></span></span><span class=\"ds-lb-val\">61.9%</span></div><div class=\"ds-lb-row\"><span class=\"ds-lb-rank\">4</span><span class=\"ds-lb-main\"><span class=\"ds-lb-name\">Andi<span class=\"ds-lb-sub\">37 matches</span></span><span class=\"ds-lb-bar\"><i style=\"width:54%\"></i></span></span><span class=\"ds-lb-val\">54.1%</span></div></div>",
+      "css": ".ds-lb { font-family: var(--font-sans); color: var(--color-text); } .ds-lb-row { display: flex; align-items: center; gap: 11px; padding: 9px 0; border-top: 1px solid var(--color-line); transition: background-color 180ms ease; } .ds-lb-row:first-child { border-top: none; } .ds-lb-row:hover { background: color-mix(in srgb, var(--color-text) 3%, transparent); } .ds-lb-rank { width: 20px; flex: 0 0 auto; text-align: center; font-size: 12px; font-weight: 800; color: var(--color-muted); font-variant-numeric: tabular-nums; } .ds-lb-medal { width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; color: var(--color-bg); font-size: 11px; background: linear-gradient(150deg, var(--medal-gold), color-mix(in srgb, var(--medal-gold) 52%, var(--color-bg))); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35); } .ds-lb-main { flex: 1 1 auto; min-width: 0; } .ds-lb-name { display: block; font-weight: 700; font-size: 14px; line-height: 1.3; } .ds-lb-sub { display: block; color: var(--color-muted); font-weight: 500; } .ds-lb-bar { display: block; height: 6px; margin-top: 6px; max-width: 220px; border-radius: var(--pill); background: var(--color-track); overflow: hidden; } .ds-lb-bar i { display: block; height: 100%; border-radius: var(--pill); background: var(--color-accent); } .ds-lb-val { flex: 0 0 auto; font-weight: 800; font-size: 14px; font-variant-numeric: tabular-nums; white-space: nowrap; }"
+    },
+    {
+      "name": "Hero Tile",
+      "kind": "card",
+      "refersTo": "card",
+      "description": "Square hero portrait with a tinted 3px top cap; lifts 4px and scales the art on hover.",
+      "html": "<figure class=\"ds-hero-tile\"><span class=\"ds-hero-img\"></span><figcaption class=\"ds-hero-body\"><span class=\"ds-hero-name\">Invoker</span><span class=\"ds-hero-stats\"><span>12 picks</span><span>66%</span></span><span class=\"ds-hero-bar\"><i style=\"width:66%\"></i></span></figcaption></figure>",
+      "css": ".ds-hero-tile { margin: 0; width: 104px; background: var(--color-panel-2); border: 1px solid var(--color-line); border-top: 3px solid var(--tile-accent, var(--color-accent)); border-radius: var(--radius-sm); overflow: hidden; display: flex; flex-direction: column; font-family: var(--font-sans); color: var(--color-text); transition: transform 220ms ease, box-shadow 220ms ease; } .ds-hero-tile:hover { transform: translateY(-4px); box-shadow: 0 12px 26px color-mix(in srgb, var(--color-accent) 15%, transparent); } .ds-hero-img { display: block; aspect-ratio: 1 / 1; background: linear-gradient(150deg, var(--color-panel-3), var(--color-panel-2)); } .ds-hero-body { display: block; padding: 9px 10px 11px; } .ds-hero-name { display: block; font-size: 12.5px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } .ds-hero-stats { display: flex; justify-content: space-between; gap: 6px; margin-top: 4px; font-size: 11px; color: var(--color-muted); } .ds-hero-bar { display: block; height: 5px; margin-top: 8px; border-radius: var(--pill); background: var(--color-track); overflow: hidden; } .ds-hero-bar i { display: block; height: 100%; border-radius: var(--pill); background: var(--color-accent); }"
+    },
+    {
+      "name": "Avatar",
+      "kind": "custom",
+      "refersTo": "icon-tile",
+      "description": "Circular identity chip; tinted initials fallback when hero art is unavailable. Pair variant overlaps two by 12px.",
+      "html": "<span class=\"ds-avatar\" style=\"--av: #2f80ed\">RP</span> <span class=\"ds-avatar ds-avatar-sm\" style=\"--av: #8b5cf6\">AN</span>",
+      "css": ".ds-avatar { display: grid; place-items: center; width: 38px; height: 38px; border-radius: 50%; flex: 0 0 auto; overflow: hidden; background: linear-gradient(150deg, var(--av, var(--color-accent)), rgba(0, 0, 0, 0.35)); color: #fff; font-family: var(--font-sans); font-weight: 800; font-size: 14px; } .ds-avatar-sm { width: 30px; height: 30px; font-size: 12px; }"
+    },
+    {
+      "name": "KPI Value",
+      "kind": "custom",
+      "refersTo": "card",
+      "description": "The dashboard's one piece of decorative type: a gradient-painted Sora display figure.",
+      "html": "<div class=\"ds-kpi\"><span class=\"ds-kpi-label\">Matches played</span><span class=\"ds-kpi-value\">121</span><span class=\"ds-kpi-sub\">across 8 players</span></div>",
+      "css": ".ds-kpi { display: flex; flex-direction: column; font-family: var(--font-sans); } .ds-kpi-label { color: var(--color-muted); font-size: 13px; font-weight: 600; } .ds-kpi-value { background-image: linear-gradient(105deg, var(--color-text) 8%, color-mix(in srgb, var(--color-accent) 48%, var(--color-text)) 72%, var(--color-accent-2)); background-clip: text; -webkit-background-clip: text; color: transparent; -webkit-text-fill-color: transparent; font-family: var(--font-display); font-size: 36px; font-weight: 800; line-height: 1.05; letter-spacing: -1.3px; margin: 10px 0 6px; font-variant-numeric: tabular-nums; } .ds-kpi-sub { color: var(--color-muted); font-size: 13px; }"
+    },
+    {
+      "name": "Card Header Link",
+      "kind": "nav",
+      "refersTo": "card-header-link",
+      "description": "Leaderboard tile header: title plus a chevron, no chip text, navigating to the category detail page. Empty boards render a static title instead.",
+      "html": "<a class=\"ds-card-head\" href=\"#\"><span class=\"ds-card-head-title\">Most Played Duo</span><svg class=\"ds-card-head-arrow\" viewBox=\"0 0 24 24\" width=\"13\" height=\"13\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.4\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M9 5l7 7-7 7\"/></svg></a>",
+      "css": ".ds-card-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 0 0 12px; border-bottom: 1px solid var(--color-line); color: var(--color-text); font-family: var(--font-sans); text-decoration: none; } .ds-card-head-title { font-family: var(--font-display); font-size: 14px; font-weight: 700; letter-spacing: -0.2px; line-height: 1.2; } .ds-card-head-arrow { width: 13px; height: 13px; flex: 0 0 auto; color: var(--color-muted); transition: transform 200ms ease, color 200ms ease; } .ds-card-head:hover .ds-card-head-title { color: var(--color-accent); } .ds-card-head:hover .ds-card-head-arrow { color: var(--color-accent); transform: translateX(3px); } .ds-card-head:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 3px; border-radius: 6px; }"
+    },
+    {
+      "name": "Ranked Table Row",
+      "kind": "custom",
+      "refersTo": "card",
+      "description": "Detail-page ranking row: rank, entity, then the category metric first. The gold pill marks a winning value only.",
+      "html": "<div class=\"ds-rank-row\"><span class=\"ds-rank-rank ds-rank-first\">1</span><span class=\"ds-rank-name\">DankJerry <span class=\"ds-rank-join\">with</span> apom</span><span class=\"ds-rank-val\"><span class=\"ds-rank-pill\">100%</span></span><span class=\"ds-rank-num\">2</span><span class=\"ds-rank-num\">2–0</span></div><div class=\"ds-rank-row\"><span class=\"ds-rank-rank\">2</span><span class=\"ds-rank-name\">ncel <span class=\"ds-rank-join\">with</span> Verdant</span><span class=\"ds-rank-val\">0%</span><span class=\"ds-rank-num\">2</span><span class=\"ds-rank-num\">0–2</span></div>",
+      "css": ".ds-rank-row { display: grid; grid-template-columns: 22px minmax(0, 1fr) 68px 56px 52px; align-items: center; gap: 10px; padding: 11px 14px; border-top: 1px solid var(--color-line); font-family: var(--font-sans); font-size: 14px; color: var(--color-text); font-variant-numeric: tabular-nums; } .ds-rank-row:first-child { border-top: none; } .ds-rank-rank { text-align: right; color: var(--color-muted); font-weight: 800; font-size: 12px; } .ds-rank-first { color: var(--color-accent-2); } .ds-rank-name { font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } .ds-rank-join { color: var(--color-muted); font-weight: 500; } .ds-rank-val, .ds-rank-num { text-align: right; font-weight: 700; } .ds-rank-num { color: var(--color-text-2); font-weight: 600; } .ds-rank-pill { display: inline-block; padding: 3px 10px; border-radius: var(--pill); background: var(--accent-2-soft); color: var(--color-accent-2); font-weight: 800; font-size: 13px; }"
+    },
+    {
+      "name": "Head-to-Head Split",
+      "kind": "custom",
+      "refersTo": "card",
+      "description": "Two-sided meter for a rivalry: azure for the first player, Dire gold for the second, score beside it.",
+      "html": "<span class=\"ds-h2h\"><span class=\"ds-h2h-bar\"><i style=\"width: 50%\"></i><i class=\"ds-h2h-b\" style=\"width: 50%\"></i></span><span class=\"ds-h2h-score\">1–1</span></span>",
+      "css": ".ds-h2h { display: inline-flex; align-items: center; gap: 10px; } .ds-h2h-bar { display: flex; gap: 3px; width: 96px; height: 8px; border-radius: var(--pill); background: var(--color-track); overflow: hidden; } .ds-h2h-bar i { display: block; height: 100%; border-radius: var(--pill); background: var(--color-accent); } .ds-h2h-bar .ds-h2h-b { background: var(--color-accent-2); } .ds-h2h-score { font-family: var(--font-sans); font-weight: 800; font-variant-numeric: tabular-nums; white-space: nowrap; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Lobby Ledger",
+    "overview": "This is a ledger before it is a dashboard. The group's shared match history is the product, and the interface behaves like a well-kept record book that happens to be alive: a near-black page, generous rounded panels laid out in a calm grid, and every number set in tabular figures so columns line up the way a handwritten ledger would. Hero art, medals, and colored meters are the illustrations in the margins - they give the book its world without ever competing with the figures.\n\nThe density is middle-of-the-road and deliberate. Cards are large and padded, sections are separated by a consistent 26px rhythm, and the whole thing stays legible on a phone without collapsing into a list. Depth is tonal at rest: the page is obsidian-canvas, cards are charcoal-panel, inner wells step up to charcoal-panel-2 and -3. A single soft shadow and a 3px hover lift are the only structural motion the surfaces themselves perform.\n\nThe atmosphere is calm and precise, with a quiet competitive edge underneath. Radiant and Dire are always present as the two data poles, leaderboards use real medal tiers, and the eye is trained to read rank first and value second. Nothing shouts; the numbers are trusted, so the design does not need to sell them.",
+    "keyCharacteristics": [
+      "Near-black canvas with large, softly shadowed rounded panels.",
+      "Sentence-case Sora headings over Inter body and tabular-figure numbers.",
+      "Radiant azure and Dire gold as the two semantic data poles.",
+      "Gold reserved for earned achievement (rank 1, medals, leading values).",
+      "Hero art used as spotlight and tile imagery, never as background noise.",
+      "One hover lift everywhere; one soft card shadow; no elevation ladder."
+    ],
+    "rules": [
+      { "name": "The Earned Gold Rule", "body": "Dire gold is payment, not paint. It is allowed on medal tiers, pill-value leaders, the MVP marker, and the Dire side of a split - and nowhere else. If gold is decorative, it is wrong.", "section": "colors" },
+      { "name": "The Radiant/Dire Rule", "body": "Radiant is azure and Dire is gold, always, in that pairing. This deliberately does not mirror the in-game team colors; it maps the two sides onto the system's cool/warm accent pair so a split bar reads instantly in a dark UI.", "section": "colors" },
+      { "name": "The Token Rule", "body": "Never hardcode a color; reference a token. Every value above exists as a CSS custom property in web/src/styles.css.", "section": "colors" },
+      { "name": "The Sentence-Case Rule", "body": "Headings and labels are sentence case. Uppercase is never used to signal hierarchy - weight and size carry it.", "section": "typography" },
+      { "name": "The Tabular Rule", "body": "Every number that can appear in a column or a ranking is set with font-variant-numeric: tabular-nums. Figures must align vertically; the ledger depends on it.", "section": "typography" },
+      { "name": "The One Lift Rule", "body": "A surface lifts exactly once, by 3px, on hover. No static elevation hierarchy, no stacked shadows, no parallax.", "section": "elevation" },
+      { "name": "The Respectful Motion Rule", "body": "Every animation is disabled or reduced under prefers-reduced-motion: reduce, including the lift transform and the ambient background drift.", "section": "elevation" }
+    ],
+    "dos": [
+      "Do reference a token for every color, radius, and shadow; the token set lives in web/src/styles.css and the design-system skill documents it.",
+      "Do set every column, rank, and KPI figure in tabular-nums, and give numeric columns text-align: right.",
+      "Do reserve dire-gold for earned gold: medal tiers, pill-value, the MVP marker, and the Dire side of a split.",
+      "Do keep Radiant = azure and Dire = gold as a fixed pairing in every split, legend, and dot.",
+      "Do use sentence case for headings and labels, and let size and weight carry hierarchy.",
+      "Do keep one hover lift (3px on cards and leaderboard tiles, 4px on hero tiles) and reduce all motion under prefers-reduced-motion.",
+      "Do fall back to a tinted initials avatar whenever hero art is missing or fails to load.",
+      "Do treat a leaderboard card header as navigation: the title plus a chevron, with a static title when the board has no entries so the card never looks clickable and does nothing.",
+      "Do keep a category's metric as the first numeric column, in tabular figures, and keep it on screen at phone width.",
+      "Do reserve the gold pill-value for winning values (>=50%); a 0% entry is plain text."
+    ],
+    "donts": [
+      "Don't hardcode a hex in a component; if a value is missing, add it to @theme first.",
+      "Don't use victory green or defeat red for anything other than win/loss and error semantics.",
+      "Don't use uppercase, letter-spaced headings as a hierarchy device.",
+      "Don't nest cards inside cards - panels hold content, and depth is expressed by the panel ramp instead.",
+      "Don't introduce a second resting shadow or a static elevation ladder; one shadow, one hover lift.",
+      "Don't use gold or a hero tint as a general-purpose highlight; both are earned or attached to a specific entity.",
+      "Don't ship a control that looks interactive but has no action - a header affordance either navigates or is not rendered.",
+      "Don't add decorative gradients, glows, or bounce/elastic easing outside the existing ambient background drift."
+    ]
+  }
+}
