@@ -324,7 +324,7 @@ There is no generic secondary/ghost button in the incumbent system; actions else
 ### Navigation
 
 - **Style:** a horizontally scrollable pill row in the sticky header, pushed to the right with `margin-left: auto`. Each link is 13px/600 `ash-grey` on a transparent pill with a 1px transparent border.
-- **States:** hover turns text `chalk-white` on a 5% white wash; active uses a 16%-mixed azure background with a 34%-mixed azure border and white text. The active item is chosen by scroll-spy, not by route alone.
+- **States:** hover turns text `chalk-white` on a 5% white wash; active uses a 16%-mixed azure background with a 34%-mixed azure border and white text. The active item comes from scroll-spy on the dashboard; the Match history pill is the one nav destination that is a page rather than a section, so its active state follows the route instead.
 - **Mobile (≤560px):** the nav drops to its own full-width row, wraps under the brand, keeps the horizontal scroll, and fades its right edge with a mask.
 
 ### KPI Value (signature)
@@ -379,6 +379,16 @@ The donut is static — no animation, per The Respectful Motion Rule — and car
 
 **The Others Rule.** A share chart names at most five slices. Everything past that is one neutral Others slice that states how many heroes it stands for, so the chart never renders more arcs than it can label — whether the group has eighteen heroes or eight hundred.
 
+### Match Calendar (signature)
+
+`/matches` answers "when did we play". A month grid sits beside the lobby list: Monday-first columns, one `.cal-day` per date, and a count under the dates that have matches. A date with matches is the only interactive cell (accent-tinted, hoverable, `aria-pressed` when it filters the list); empty dates are inert. Today keeps the azure border, the selected day inverts to a solid azure fill. Empty months say so in words rather than showing a grid nobody can read.
+
+Match cards are inner wells on `charcoal-panel-2` — not nested cards. The header is one button: time and duration, the winner as a side-colored badge (azure for Radiant, gold for Dire), a two-sided `.splitbar` of team kills with the score beside it, and a Show/Hide hint. Below it the two lineups sit in columns, five hero avatars with the player's name over the hero they actually played; expanding the card adds K/D/A per player. Grouping headers (`Sat, 30 May 2026`) appear only when the list spans more than one day.
+
+Dates are bucketed by the **reader's own time zone** from the stored epoch, so a 22:00 lobby stays on its own evening rather than sliding into the next day for the server.
+
+**The Column-Truth Rule.** A date sits in the column of its real weekday, computed from the date itself. A calendar that is one day off still looks tidy, so it is validated against real dates, never by eye.
+
 ## Do's and Don'ts
 
 ### Do:
@@ -396,6 +406,7 @@ The donut is static — no animation, per The Respectful Motion Rule — and car
 - **Do** treat an optional payload as optional: a missing `matches.json` becomes one explanatory line, never an error page or an empty-looking block.
 - **Do** give every chart a `role="img"` text alternative and repeat its numbers as text; a chart summarises, it never replaces the table.
 - **Do** color a hero's chart slice with the same tint as its tile, by reading one shared helper over one ordering.
+- **Do** bucket every date by the reader's local time zone and assert each calendar cell against the real weekday of its date.
 
 ### Don't:
 
