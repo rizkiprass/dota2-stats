@@ -21,18 +21,19 @@ A fully serverless, database-free pipeline that treats the `.dem` replay as the 
 ## Operating Context
 
 - Replays (`.dem`) are collected locally, then uploaded to S3 (`raw/<match_id>.dem`) — manually or via `scripts/upload-replays.sh`.
-- An S3 `ObjectCreated` event runs the parser Lambda, which writes `parsed/<match_id>.json`; that in turn triggers the aggregator Lambda, which rebuilds `stats/stats.json`.
-- The dashboard is a static React SPA served over CloudFront (custom domain `dls.rpras.my.id`), fetching a same-origin `stats.json`.
+- An S3 `ObjectCreated` event runs the parser Lambda, which writes `parsed/<match_id>.json`; that in turn triggers the aggregator Lambda, which republishes two objects: `stats/stats.json` (the aggregate) and `stats/matches.json` (a capped, newest-first per-match list).
+- The dashboard is a static React SPA served over CloudFront (custom domain `dls.rpras.my.id`), fetching a same-origin `stats.json` on load and `matches.json` lazily when a leaderboard detail page needs per-match history.
 - Players are expected to read the dashboard on both desktop and mobile; the maintainer runs build/deploy scripts and reads CloudWatch logs when something fails.
 - Only Dota 2 **private lobby** replays are in scope, and they are always supplied manually; no automatic match fetch exists.
 
 ## Capabilities and Constraints
 
-- MVP delivered: replay parsing (Lambda container + bundled odota/parser) → normalized match JSON → full historical aggregation → dashboard.
+- MVP delivered: replay parsing (Lambda container + bundled odota/parser) → normalized match JSON → full historical aggregation → dashboard, plus a detail page per leaderboard category at `/leaderboard/<category>`.
 - **Player identity is the numeric `account_id`/`steam_id`, never `player_name`.** A player with no `account_id` still counts toward match summary and hero-pick stats but is excluded from player, player-hero, teammate, and head-to-head statistics.
 - `player_name` and `hero_name` are display-only labels and never affect aggregation math.
 - Invalid matches are skipped and logged, never allowed to corrupt the aggregate; duplicate `match_id` values are counted once.
-- Leaderboards have minimum-sample thresholds (`MIN_PLAYER_MATCHES`, `MIN_HERO_PICKS`, `MIN_TEAMMATE_MATCHES`, `MIN_H2H_MATCHES`); they are env-configurable and currently lowered to `2` for the small early dataset, to be raised as history grows.
+- Leaderboards have minimum-sample thresholds (`MIN_PLAYER_MATCHES`, `MIN_HERO_PICKS`, `MIN_TEAMMATE_MATCHES`, `MIN_H2H_MATCHES`); they are env-configurable and currently lowered to `2` for the small early dataset, to be raised as history grows. The aggregator also publishes them in `stats.json` under `metadata.thresholds` so clients read the numbers instead of duplicating them.
+- `matches.json` holds at most `MATCHES_LIMIT` (default 500) newest matches and carries per-player counts only — never chat text or raw log lines.
 - Behavior metrics are aggregated **counts only** (pings, chat-message counts, ward/order/rune counts); raw chat text is deliberately outside the product's data contract.
 - Explicitly out of scope so far: advanced analytics (timelines, positions, combat logs), any database/API Gateway/DynamoDB/Athena, and authentication.
 - All UI copy is English.
