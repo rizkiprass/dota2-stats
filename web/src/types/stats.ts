@@ -96,7 +96,7 @@ export interface LeaderboardEntry {
 
 export interface Metadata {
   generated_at: string;
-  schema_version: number;
+  schema_version: string;
   source_match_count: number;
 }
 

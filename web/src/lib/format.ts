@@ -2,7 +2,12 @@ export function fmtInt(value: number | null | undefined): string {
   return Number(value ?? 0).toLocaleString("en-US");
 }
 
-export function fmtCount(value: number | null | undefined, singular: string, plural = `${singular}s`): string {
+// Default plural keeps English spelling honest: "match" -> "matches", not "matchs".
+function pluralize(singular: string): string {
+  return /(ch|sh|s|x|z)$/i.test(singular) ? `${singular}es` : `${singular}s`;
+}
+
+export function fmtCount(value: number | null | undefined, singular: string, plural = pluralize(singular)): string {
   return `${fmtInt(value)} ${Number(value ?? 0) === 1 ? singular : plural}`;
 }
 

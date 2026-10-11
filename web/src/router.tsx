@@ -17,7 +17,15 @@ const playerRoute = createRoute({
   component: lazyRouteComponent(() => import("./components/PlayerProfile"), "PlayerProfile"),
 });
 
-const routeTree = rootRoute.addChildren([indexRoute, playerRoute]);
+// One generic detail page for every leaderboard category, split out of the
+// dashboard chunk the same way the profile route is.
+const leaderboardRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/leaderboard/$category",
+  component: lazyRouteComponent(() => import("./components/LeaderboardDetail"), "LeaderboardDetail"),
+});
+
+const routeTree = rootRoute.addChildren([indexRoute, playerRoute, leaderboardRoute]);
 
 export const router = createRouter({ routeTree, defaultPreload: "intent" });
 

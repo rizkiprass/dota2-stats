@@ -1,41 +1,12 @@
 import type { ReactNode } from "react";
+import { Link } from "@tanstack/react-router";
 import { Avatar, AvatarPair, Bar, PlayerAvatar, PlayerName, useCountUp } from "./ui";
-import { fmtInt, fmtNum, fmtPct } from "../lib/format";
 import { heroName, playerName } from "../lib/derived";
 import { useDashboard } from "../lib/dashboard-context";
+import { CATEGORIES } from "../lib/leaderboard";
 import type { LeaderboardEntry, Stats } from "../types/stats";
 
-const TITLES: Record<string, string> = {
-  most_matches: "Most Matches",
-  highest_win_rate: "Highest Win Rate",
-  most_kills: "Most Kills",
-  best_kda: "Best KDA",
-  most_assists: "Most Assists",
-  most_picked_hero: "Most Picked Hero",
-  best_hero_win_rate: "Best Hero Win Rate",
-  best_duo_win_rate: "Best Duo Win Rate",
-  most_played_duo: "Most Played Duo",
-  most_played_rivalry: "Most Played Rivalry",
-};
-
-interface Spec {
-  format: (value: number) => string;
-  metric: (entry: LeaderboardEntry) => number;
-  pill?: boolean;
-}
-
-const SPECS: Record<string, Spec> = {
-  most_matches: { format: (value) => fmtInt(Math.round(value)), metric: (e) => e.matches ?? 0 },
-  highest_win_rate: { format: fmtPct, metric: (e) => e.win_rate ?? 0, pill: true },
-  most_kills: { format: (value) => fmtInt(Math.round(value)), metric: (e) => e.kills ?? 0 },
-  best_kda: { format: fmtNum, metric: (e) => e.kda ?? 0 },
-  most_assists: { format: (value) => fmtInt(Math.round(value)), metric: (e) => e.assists ?? 0 },
-  most_picked_hero: { format: (value) => fmtInt(Math.round(value)), metric: (e) => e.picks ?? 0 },
-  best_hero_win_rate: { format: fmtPct, metric: (e) => e.win_rate ?? 0, pill: true },
-  best_duo_win_rate: { format: fmtPct, metric: (e) => e.win_rate ?? 0, pill: true },
-  most_played_duo: { format: (value) => fmtInt(Math.round(value)), metric: (e) => e.matches ?? 0 },
-  most_played_rivalry: { format: (value) => fmtInt(Math.round(value)), metric: (e) => e.matches ?? 0 },
-};
+const COLLAPSED_COUNT = 5;
 
 function Row({
   category,
@@ -63,7 +34,7 @@ function Row({
   } else if (entry.player_a !== undefined && entry.player_b !== undefined) {
     avatarNode = <AvatarPair a={entry.player_a} b={entry.player_b} />;
     nameNode = <PlayerName id={entry.player_a} />;
-    const prep = category === "best_duo_win_rate" || category === "most_played_duo" ? "with" : "vs";
+    const prep = category.includes("duo") ? "with" : "vs";
     sub = `${prep} ${playerName(stats, entry.player_b)}`;
   } else if (entry.hero_id !== undefined) {
     const label = entry.hero_name ?? `Hero ${entry.hero_id}`;
@@ -74,7 +45,7 @@ function Row({
     nameNode = <PlayerName id={entry.id} />;
   }
 
-  const spec = SPECS[category];
+  const spec = CATEGORIES[category];
   const metric = spec ? Number(spec.metric(entry)) : 0;
   const animatedMetric = useCountUp(metric);
   const scale = category.includes("win_rate") ? 100 : maxMetric;
@@ -105,12 +76,32 @@ export function Leaderboards({ stats }: { stats: Stats }) {
       <h2 className="section-title">Leaderboards</h2>
       <div className="board-grid">
         {Object.entries(boards).map(([category, entries]) => {
+          const all = entries || [];
           const gold = category.includes("win_rate");
-          const shown = (entries || []).slice(0, 5);
-          const maxMetric = Math.max(...shown.map((e) => Number(SPECS[category]?.metric(e) ?? 0)), 1);
+          const shown = all.slice(0, COLLAPSED_COUNT);
+          const maxMetric = Math.max(...all.map((e) => Number(CATEGORIES[category]?.metric(e) ?? 0)), 1);
+          const spec = CATEGORIES[category];
+          const title = spec?.title ?? category;
+
           return (
             <div className="lb" key={category}>
-              <h3>{TITLES[category] ?? category}</h3>
+              <h3 className="lb-hd">
+                {all.length > 0 ? (
+                  <Link
+                    to="/leaderboard/$category"
+                    params={{ category }}
+                    className="lb-hd-link"
+                    aria-label={`Open the ${title} leaderboard`}
+                  >
+                    <span className="lb-hd-title">{title}</span>
+                    <svg className="lb-hd-arrow" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <path d="M9 5l7 7-7 7" />
+                    </svg>
+                  </Link>
+                ) : (
+                  <span className="lb-hd-title lb-hd-static">{title}</span>
+                )}
+              </h3>
               {shown.length === 0 ? (
                 <div className="empty-state">
                   <strong>No qualifying entries yet</strong>
