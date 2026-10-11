@@ -161,6 +161,12 @@ components:
     textColor: "{colors.ash-grey}"
     typography: "{typography.label}"
     padding: "14px 18px"
+  match-combo:
+    backgroundColor: "{colors.charcoal-panel-2}"
+    textColor: "{colors.chalk-2}"
+    typography: "{typography.label}"
+    rounded: "{rounded.pill}"
+    padding: "6px 10px"
 ---
 
 # Design System: Dota 2 Private Lobby Statistics
@@ -347,6 +353,14 @@ Two pill controls sit above a ranked table, matching the search field's shape: `
 
 A pairing's score uses the `.splitbar` two-sided meter already used for Radiant/Dire: azure for the first player, Dire gold for the second, with the `2–0` score set beside it in tabular figures. The two colors name the two sides, not an award — a split bar is the system's established way to compare two parties.
 
+### Per-Match History (signature)
+
+`.board-history` closes a detail page with the per-match record, loaded lazily from `matches.json` so history can grow without inflating the payload the dashboard always fetches. Each `.match-row` is a five-column grid: the date, the hero portrait(s) as overlapping avatars, the hero name(s), the player's K/D/A in tabular figures, and a single `W`/`L` letter tinted by outcome. Above the list, `.badge` chips summarise the run — matches published, W–L, a win or loss streak, and the first and last date.
+
+`.match-combo` chips collect the hero pairings a duo actually ran, most frequent first, each an avatar pair plus `3× · 67%`.
+
+The payload is optional: when `matches.json` is absent the block prints one explanatory line and the rest of the page is unaffected. The page must never look broken because a secondary payload is missing.
+
 ### Hero Tile (signature)
 
 `.hero-tile` is a square-cropped hero portrait in a 12px-radius well with a 3px top border in the hero's tint. Hover lifts it 4px and scales the portrait 1.045; the name and a two-column stat line sit below. `.stat-tile` in the summary uses the same cap-and-lift language at a smaller size.
@@ -369,6 +383,7 @@ A pairing's score uses the `.splitbar` two-sided meter already used for Radiant/
 - **Do** treat a leaderboard card header as navigation: the title plus a chevron, with a static title when the board has no entries so the card never looks clickable and does nothing.
 - **Do** keep a category's metric as the first numeric column, in tabular figures, and keep it on screen at phone width.
 - **Do** reserve the gold `pill-value` for winning values (≥50%); a 0% entry is plain text.
+- **Do** treat an optional payload as optional: a missing `matches.json` becomes one explanatory line, never an error page or an empty-looking block.
 
 ### Don't:
 

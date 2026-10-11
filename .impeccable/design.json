@@ -167,6 +167,14 @@
       "description": "Two-sided meter for a rivalry: azure for the first player, Dire gold for the second, score beside it.",
       "html": "<span class=\"ds-h2h\"><span class=\"ds-h2h-bar\"><i style=\"width: 50%\"></i><i class=\"ds-h2h-b\" style=\"width: 50%\"></i></span><span class=\"ds-h2h-score\">1–1</span></span>",
       "css": ".ds-h2h { display: inline-flex; align-items: center; gap: 10px; } .ds-h2h-bar { display: flex; gap: 3px; width: 96px; height: 8px; border-radius: var(--pill); background: var(--color-track); overflow: hidden; } .ds-h2h-bar i { display: block; height: 100%; border-radius: var(--pill); background: var(--color-accent); } .ds-h2h-bar .ds-h2h-b { background: var(--color-accent-2); } .ds-h2h-score { font-family: var(--font-sans); font-weight: 800; font-variant-numeric: tabular-nums; white-space: nowrap; }"
+    },
+    {
+      "name": "Match History Row",
+      "kind": "custom",
+      "refersTo": "card",
+      "description": "One per-match line on a detail page: date, hero portrait(s), hero name, K/D/A, and a single W/L marker tinted by outcome.",
+      "html": "<div class=\"ds-match-row\"><span class=\"ds-match-date\">30 May 2026</span><span class=\"ds-match-heroes\"><span class=\"ds-match-av\">N</span><span class=\"ds-match-av ds-match-av-b\">F</span></span><span class=\"ds-match-main\"><span class=\"ds-match-title\">Necrophos + Faceless Void</span><span class=\"ds-match-sub\">35m 54s · #1780000002</span></span><span class=\"ds-match-kda\">7/9/17</span><span class=\"ds-match-result ds-match-loss\">L</span></div><div class=\"ds-match-row\"><span class=\"ds-match-date\">29 May 2026</span><span class=\"ds-match-heroes\"><span class=\"ds-match-av\">A</span><span class=\"ds-match-av ds-match-av-b\">S</span></span><span class=\"ds-match-main\"><span class=\"ds-match-title\">Anti-Mage + Skywrath Mage</span><span class=\"ds-match-sub\">35m 00s · #1780000001</span></span><span class=\"ds-match-kda\">8/9/16</span><span class=\"ds-match-result ds-match-win\">W</span></div>",
+      "css": ".ds-match-row { display: grid; grid-template-columns: 96px 44px minmax(0, 1fr) 74px 24px; align-items: center; gap: 10px; padding: 10px 0; border-top: 1px solid var(--color-line); font-family: var(--font-sans); font-size: 13px; color: var(--color-text); } .ds-match-row:first-child { border-top: none; } .ds-match-date { color: var(--color-muted); font-size: 12px; font-variant-numeric: tabular-nums; } .ds-match-heroes { display: flex; } .ds-match-av { display: grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; background: var(--color-panel-3); color: #fff; font-size: 12px; font-weight: 800; } .ds-match-av-b { margin-left: -8px; box-shadow: 0 0 0 2px var(--color-panel); } .ds-match-main { min-width: 0; } .ds-match-title { display: block; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } .ds-match-sub { display: block; color: var(--color-muted); font-size: 11.5px; } .ds-match-kda { text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; } .ds-match-result { text-align: center; font-weight: 800; font-size: 12px; } .ds-match-win { color: var(--color-positive); } .ds-match-loss { color: var(--color-negative); }"
     }
   ],
   "narrative": {
@@ -199,7 +207,8 @@
       "Do fall back to a tinted initials avatar whenever hero art is missing or fails to load.",
       "Do treat a leaderboard card header as navigation: the title plus a chevron, with a static title when the board has no entries so the card never looks clickable and does nothing.",
       "Do keep a category's metric as the first numeric column, in tabular figures, and keep it on screen at phone width.",
-      "Do reserve the gold pill-value for winning values (>=50%); a 0% entry is plain text."
+      "Do reserve the gold pill-value for winning values (>=50%); a 0% entry is plain text.",
+      "Do treat an optional payload as optional: a missing matches.json becomes one explanatory line, never an error page or an empty-looking block."
     ],
     "donts": [
       "Don't hardcode a hex in a component; if a value is missing, add it to @theme first.",
