@@ -25,7 +25,15 @@ const leaderboardRoute = createRoute({
   component: lazyRouteComponent(() => import("./components/LeaderboardDetail"), "LeaderboardDetail"),
 });
 
-const routeTree = rootRoute.addChildren([indexRoute, playerRoute, leaderboardRoute]);
+// Match history pulls the per-match payload, so it stays out of the dashboard
+// chunk and out of the always-fetched stats payload.
+const matchesRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/matches",
+  component: lazyRouteComponent(() => import("./components/MatchHistory"), "MatchHistory"),
+});
+
+const routeTree = rootRoute.addChildren([indexRoute, playerRoute, leaderboardRoute, matchesRoute]);
 
 export const router = createRouter({ routeTree, defaultPreload: "intent" });
 

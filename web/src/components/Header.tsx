@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useLocation } from "@tanstack/react-router";
+import { Link, useLocation } from "@tanstack/react-router";
 import { fmtCount, fmtDate } from "../lib/format";
 import type { Stats } from "../types/stats";
 
@@ -72,15 +72,18 @@ export function Header({ stats }: { stats: Stats }) {
           </span>
         </a>
 
-        {isDashboard ? (
-          <nav className="site-nav" aria-label="Sections">
-            {navigation.map((item) => (
-              <a key={item.id} href={`#${item.id}`} className={active === item.id ? "active" : undefined}>
-                {item.label}
-              </a>
-            ))}
-          </nav>
-        ) : null}
+        <nav className="site-nav" aria-label="Sections">
+          {isDashboard
+            ? navigation.map((item) => (
+                <a key={item.id} href={`#${item.id}`} className={active === item.id ? "active" : undefined}>
+                  {item.label}
+                </a>
+              ))
+            : null}
+          <Link to="/matches" activeProps={{ className: "active" }}>
+            Matches
+          </Link>
+        </nav>
       </div>
     </header>
   );
