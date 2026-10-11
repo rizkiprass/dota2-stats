@@ -213,7 +213,8 @@
       { "name": "The One Lift Rule", "body": "A surface lifts exactly once, by 3px, on hover. No static elevation hierarchy, no stacked shadows, no parallax.", "section": "elevation" },
       { "name": "The Respectful Motion Rule", "body": "Every animation is disabled or reduced under prefers-reduced-motion: reduce, including the lift transform and the ambient background drift.", "section": "elevation" },
       { "name": "The Others Rule", "body": "A share chart names at most five slices. Everything past that is one neutral Others slice that states how many heroes it stands for, so the chart never renders more arcs than it can label - whether the group has eighteen heroes or eight hundred.", "section": "components" },
-      { "name": "The Column-Truth Rule", "body": "A date sits in the column of its real weekday, computed from the date itself. A calendar that is one day off still looks tidy, so it is validated against real dates, never by eye.", "section": "components" }
+      { "name": "The Column-Truth Rule", "body": "A date sits in the column of its real weekday, computed from the date itself. A calendar that is one day off still looks tidy, so it is validated against real dates, never by eye.", "section": "components" },
+      { "name": "The Bounded Teaser Rule", "body": "A card on the always-loaded dashboard carries a capped summary whose limit is owned by the aggregator, never by the client. The front page reads one payload and cannot grow with history; anything unbounded lives behind a route.", "section": "components" }
     ],
     "dos": [
       "Do reference a token for every color, radius, and shadow; the token set lives in web/src/styles.css and the design-system skill documents it.",
@@ -229,7 +230,8 @@
       "Do treat an optional payload as optional: a missing matches.json becomes one explanatory line, never an error page or an empty-looking block.",
       "Do give every chart a role=\"img\" text alternative and repeat its numbers as text; a chart summarises, it never replaces the table.",
       "Do color a hero's chart slice with the same tint as its tile, by reading one shared helper over one ordering.",
-      "Do bucket every date by the reader's local time zone and assert each calendar cell against the real weekday of its date."
+      "Do bucket every date by the reader's local time zone and assert each calendar cell against the real weekday of its date.",
+      "Do keep every dashboard card bounded by an aggregator-owned cap, and put the unbounded view behind a route."
     ],
     "donts": [
       "Don't hardcode a hex in a component; if a value is missing, add it to @theme first.",

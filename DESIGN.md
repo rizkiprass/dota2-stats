@@ -324,7 +324,7 @@ There is no generic secondary/ghost button in the incumbent system; actions else
 ### Navigation
 
 - **Style:** a horizontally scrollable pill row in the sticky header, pushed to the right with `margin-left: auto`. Each link is 13px/600 `ash-grey` on a transparent pill with a 1px transparent border.
-- **States:** hover turns text `chalk-white` on a 5% white wash; active uses a 16%-mixed azure background with a 34%-mixed azure border and white text. The active item comes from scroll-spy on the dashboard; the Match history pill is the one nav destination that is a page rather than a section, so its active state follows the route instead.
+- **States:** hover turns text `chalk-white` on a 5% white wash; active uses a 16%-mixed azure background with a 34%-mixed azure border and white text. The active item comes from scroll-spy on the dashboard; the `History` pill is the one nav destination that is a page rather than a section, so its active state follows the route instead. It is deliberately not called "Matches" — "Matchups" already names the teammates and head-to-head section, and two near-identical labels in one row are unreadable.
 - **Mobile (≤560px):** the nav drops to its own full-width row, wraps under the brand, keeps the horizontal scroll, and fades its right edge with a mask.
 
 ### KPI Value (signature)
@@ -389,6 +389,14 @@ Dates are bucketed by the **reader's own time zone** from the stored epoch, so a
 
 **The Column-Truth Rule.** A date sits in the column of its real weekday, computed from the date itself. A calendar that is one day off still looks tidy, so it is validated against real dates, never by eye.
 
+### Recent Matches (signature)
+
+The dashboard's newest section is a bounded teaser, not a history view: at most five `.recent-row` lines — date and local time, duration, the winner as a side-colored badge, a two-sided kill bar, and `40–41 kills` — with an `All matches` link in the header carrying the same title-plus-chevron language as a leaderboard tile. The full calendar and the 5-vs-5 lineups stay on `/matches`.
+
+It renders straight from `stats.json`: no extra request, no loading state, and it sits between the KPI bento and the leaderboards so the hero art and the headline numbers still lead the page. A payload that predates the field renders nothing at all rather than an empty shell.
+
+**The Bounded Teaser Rule.** A card on the always-loaded dashboard carries a capped summary whose limit is owned by the aggregator, never by the client. The front page reads one payload and cannot grow with history; anything unbounded lives behind a route.
+
 ## Do's and Don'ts
 
 ### Do:
@@ -407,6 +415,7 @@ Dates are bucketed by the **reader's own time zone** from the stored epoch, so a
 - **Do** give every chart a `role="img"` text alternative and repeat its numbers as text; a chart summarises, it never replaces the table.
 - **Do** color a hero's chart slice with the same tint as its tile, by reading one shared helper over one ordering.
 - **Do** bucket every date by the reader's local time zone and assert each calendar cell against the real weekday of its date.
+- **Do** keep every dashboard card bounded by an aggregator-owned cap, and put the unbounded view behind a route.
 
 ### Don't:
 
