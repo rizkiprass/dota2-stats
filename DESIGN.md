@@ -391,9 +391,11 @@ Dates are bucketed by the **reader's own time zone** from the stored epoch, so a
 
 ### Recent Matches (signature)
 
-The dashboard's newest section is a bounded teaser, not a history view: at most five `.recent-row` lines — date and local time, duration, the winner as a side-colored badge, a two-sided kill bar, and `40–41 kills` — with an `All matches` link in the header carrying the same title-plus-chevron language as a leaderboard tile. The full calendar and the 5-vs-5 lineups stay on `/matches`.
+The dashboard's newest section is a bounded teaser, not a history view: at most five `.recent-row` lines, each with the date and local time, a strip of the ten heroes that played, the winner as a side-colored badge, a two-sided kill bar, and `40–41 kills`, all under an `All matches` link that carries the same title-plus-chevron language as a leaderboard tile. The full calendar and the K/D/A lineups stay on `/matches`.
 
-It renders straight from `stats.json`: no extra request, no loading state, and it sits between the KPI bento and the leaderboards so the hero art and the headline numbers still lead the page. A payload that predates the field renders nothing at all rather than an empty shell.
+The hero strip is five portraits, a muted `vs`, five more. It renders the payload's hero ids in the parser's order — the same order the `/matches` lineups use — so the two views can never disagree about who played what, and hero names resolve client-side from `heroes` rather than being shipped twice. The strip is one `role="img"` with both sides named for assistive tech, and each portrait carries a `title`. A row is never a link; the card stays a summary.
+
+It renders straight from `stats.json`: no extra request, no loading state, and it sits between the KPI bento and the leaderboards so the hero art and the headline numbers still lead the page. A payload that predates a field renders the row without it rather than an empty shell, and a payload that predates `recent_matches` itself renders no card at all.
 
 **The Bounded Teaser Rule.** A card on the always-loaded dashboard carries a capped summary whose limit is owned by the aggregator, never by the client. The front page reads one payload and cannot grow with history; anything unbounded lives behind a route.
 

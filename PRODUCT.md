@@ -35,7 +35,7 @@ A fully serverless, database-free pipeline that treats the `.dem` replay as the 
 - Leaderboards have minimum-sample thresholds (`MIN_PLAYER_MATCHES`, `MIN_HERO_PICKS`, `MIN_TEAMMATE_MATCHES`, `MIN_H2H_MATCHES`); they are env-configurable and currently lowered to `2` for the small early dataset, to be raised as history grows. The aggregator also publishes them in `stats.json` under `metadata.thresholds` so clients read the numbers instead of duplicating them.
 - `matches.json` holds at most `MATCHES_LIMIT` (default 500) newest matches and carries per-player counts only — never chat text or raw log lines.
 - `stats.heroes` also carries `radiant_picks`, `dire_picks`, and `contested` (the number of matches in which both sides picked that hero), so the Heroes section can summarise pick distribution and contested picks without loading any per-match data.
-- `stats.recent_matches` carries a bounded newest-match teaser (`RECENT_MATCHES_LIMIT`, default 5) with per-side kill totals, so the dashboard can show recent lobbies without fetching the per-match payload.
+- `stats.recent_matches` carries a bounded newest-match teaser (`RECENT_MATCHES_LIMIT`, default 5) with per-side kill totals and the five hero ids each side fielded, so the dashboard can show recent lobbies — and the heroes that played them — without fetching the per-match payload.
 - Behavior metrics are aggregated **counts only** (pings, chat-message counts, ward/order/rune counts); raw chat text is deliberately outside the product's data contract.
 - Explicitly out of scope so far: advanced analytics (timelines, positions, combat logs), any database/API Gateway/DynamoDB/Athena, and authentication.
 - All UI copy is English.
