@@ -20,6 +20,9 @@ English.
 OpenCode discovers these automatically from the project's `.opencode/` directory.
 No `opencode.jsonc` entry is required.
 
+The UI verification tooling lives with the frontend: `web/playwright.config.ts`,
+`web/tests/dashboard.spec.ts`, and `scripts/fetch-stats.sh`.
+
 ## Why models were chosen this way
 
 All models come from the `opencode-go` provider. Two facts drove the choices:
@@ -48,12 +51,18 @@ or `kimi-k3#max` (pricier), or use `space-bunny-free` to explore for free.
 The builder. Its permissions allow:
 
 - `edit` on `web/**`
-- `shell` for `npm run *`, `npm install*`, `npx tsc*`, `node --check*`, `python3 -m http.server*`
+- `shell` for `npm run *`, `npm install*`, `npx tsc*`, `npx playwright*`,
+  `node --check*`, `python3 -m http.server*`, `bash scripts/*`, and `google-chrome*`
 
 Everything else stays permission-controlled, so it cannot wander outside `web/`.
 Its system prompt enforces the project's frontend rules: React + TypeScript +
 Tailwind, tokens from `web/src/styles.css`, no new runtime dependencies without
 asking, run `npm run typecheck` / `npm run build`, small reviewable changes.
+
+Its definition of done is local-first: build, refresh the `stats.json` fixture,
+run the Playwright UI suite (`npm run test:ui`), get a clean `visual-reviewer`
+pass, and only then deploy with `deploy-web.sh --wait`. This keeps unfinished
+work off the public live site.
 
 ### `visual-reviewer` (subagent, read-only)
 
@@ -97,31 +106,38 @@ frontmatter `name`.
 ## End-to-end workflow (proven in practice)
 
 ```text
-1. Build + deploy               scripts/deploy-web.sh --wait
-2. Capture screenshots          scripts/screenshot-web.sh (live site)
-3. visual-reviewer subagent     lists issues by severity, with file + fix
-4. (you verify the findings)    reports can be wrong or stale — always check
-5. frontend agent               implements the fixes in web/src/
-6. deploy + screenshot again    repeat until a fresh capture is clean
-7. commit
+1. Build locally                npm run build
+2. Refresh stats fixture        scripts/fetch-stats.sh  (live stats.json -> web/dist/)
+3. Run the UI suite             npm run test:ui  (Playwright: preview + asserts + screenshots)
+4. visual-reviewer subagent     lists issues by severity, with file + fix
+5. (you verify the findings)    reports can be wrong or stale — always check
+6. frontend agent               implements the fixes in web/src/ and tests/
+7. repeat 1–6                   until a fresh run is clean
+8. Deploy + live re-check       scripts/deploy-web.sh --wait; then UI_BASE_URL=... npm run test:ui
+9. commit
 ```
 
-Verification happens against the **live site**, so every iteration is publicly
-visible until the next deploy. The `frontend` agent runs this loop as its
-definition of done before reporting a UI change complete.
+Verification happens against a **local `vite preview` build** first, so
+unfinished work is never published. The `frontend` agent runs this loop as its
+definition of done, and only deploys after a run is clean.
 
-### Step 1–2 — deploy, then screenshot the live site
+### Step 1–3 — build, seed data, then run Playwright
 
 ```bash
-bash scripts/deploy-web.sh --wait   # build + publish + wait for invalidation
-bash scripts/screenshot-web.sh      # live desktop / mobile / player-profile PNGs
+npm run build                       # from web/
+bash scripts/fetch-stats.sh         # live stats.json -> web/dist/stats.json
+npm run test:ui                     # from web/; starts vite preview itself
 ```
 
-`deploy-web.sh` reads the bucket and CloudFront distribution from
-`terraform output`, preserves `stats.json`, and waits for the invalidation to
-finish — so the screenshots captured immediately after show the new build.
+`vite preview` serves `web/dist/`, which never contains `stats.json` (the
+aggregator writes it to S3 at deploy time). Without the fixture the SPA fallback
+returns `index.html` and the app shows a connection error, so
+`scripts/fetch-stats.sh` copies the live file into `web/dist/` after each build.
 
-`screenshot-web.sh` writes to `/tmp/opencode/shots/`:
+Playwright uses the system Google Chrome (`channel: "chrome"`), so no browser
+download is needed. `web/tests/dashboard.spec.ts` drives `/` and `/player/<id>`
+at 1440px and 360px, asserts real content with no console errors, no uncaught
+exceptions, and no horizontal overflow, and writes to `/tmp/opencode/shots/`:
 
 ```text
 dashboard-desktop.png   1440px, "/"
@@ -129,9 +145,20 @@ dashboard-mobile.png     360px, "/"
 player-desktop.png      1440px, "/player/<id>"
 ```
 
-It uses headless Chrome with `--force-prefers-reduced-motion`, so count-up and
-entrance animations are captured at their final values and screenshots are
-deterministic. It does not build or deploy anything and never touches `web/dist`.
+The suite starts its own `vite preview` server locally. Point `UI_BASE_URL` at
+another origin (for example the live site) to run the same checks without a
+local server:
+
+```bash
+UI_BASE_URL=https://dls.rpras.my.id npm run test:ui
+```
+
+Add assertions to `web/tests/dashboard.spec.ts` whenever a change introduces new
+observable behavior.
+
+`scripts/screenshot-web.sh` remains available as a single-shot fallback
+(headless Chrome, `--only all|desktop|mobile|player`); it does not build or
+deploy and never touches `web/dist`.
 
 ### Step 3 — how to invoke the agents
 

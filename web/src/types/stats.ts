@@ -100,6 +100,32 @@ export interface Metadata {
   source_match_count: number;
 }
 
+// Aggregated, privacy-conscious replay activity metrics. Raw chat text is never
+// part of this dashboard contract; only message counts are exposed.
+export interface BehaviorPlayerRecord {
+  matches: number;
+  pings?: number;
+  pings_per_match?: number;
+  ping_bursts?: number;
+  chat_messages?: number;
+  chat_messages_per_match?: number;
+  chatwheel?: Record<string, number>;
+  orders?: number;
+  orders_per_minute?: number;
+  wards_obs?: number;
+  wards_sen?: number;
+  wards_per_match?: number;
+  runes?: number;
+  runes_per_match?: number;
+  pauses_initiated?: number;
+  pause_seconds?: number;
+  hero_badge_xp?: number;
+}
+
+export interface BehaviorStats {
+  players: Record<string, BehaviorPlayerRecord>;
+}
+
 export interface Stats {
   summary: Summary;
   players: Record<string, PlayerRecord>;
@@ -108,5 +134,6 @@ export interface Stats {
   teammates: Record<string, TeammateRecord>;
   head_to_head: Record<string, HeadToHeadRecord>;
   leaderboards: Record<string, LeaderboardEntry[]>;
+  behavior?: BehaviorStats;
   metadata: Metadata;
 }

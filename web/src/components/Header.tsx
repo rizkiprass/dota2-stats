@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useLocation } from "@tanstack/react-router";
-import { fmtDate, fmtInt } from "../lib/format";
+import { fmtCount, fmtDate } from "../lib/format";
 import type { Stats } from "../types/stats";
 
 const NAV = [
@@ -9,9 +9,11 @@ const NAV = [
   { id: "players", label: "Players" },
   { id: "heroes", label: "Heroes" },
   { id: "matchups", label: "Matchups" },
+  { id: "activity", label: "Activity" },
 ] as const;
 
 const NAV_IDS: string[] = NAV.map((item) => item.id);
+const NAV_IDS_NO_ACTIVITY = NAV_IDS.filter((id) => id !== "activity");
 const NO_IDS: string[] = [];
 
 // Highlights the section currently occupying the middle of the viewport.
@@ -45,7 +47,9 @@ export function Header({ stats }: { stats: Stats }) {
   const meta = stats.metadata;
   const location = useLocation();
   const isDashboard = location.pathname === "/";
-  const active = useScrollSpy(isDashboard ? NAV_IDS : NO_IDS);
+  const hasActivity = Object.values(stats.behavior?.players ?? {}).some((record) => record.matches >= 3);
+  const navigation = NAV.filter((item) => item.id !== "activity" || hasActivity);
+  const active = useScrollSpy(isDashboard ? (hasActivity ? NAV_IDS : NAV_IDS_NO_ACTIVITY) : NO_IDS);
 
   return (
     <header className="site-header">
@@ -62,7 +66,7 @@ export function Header({ stats }: { stats: Stats }) {
           <span className="header-titles">
             <h1>Dota&nbsp;2 Lobby Stats</h1>
             <p className="subtitle">
-              {fmtInt(meta.source_match_count)} matches
+              {fmtCount(meta.source_match_count, "match")}
               <span className="subtitle-built"> · last built {fmtDate(meta.generated_at)}</span>
             </p>
           </span>
@@ -70,7 +74,7 @@ export function Header({ stats }: { stats: Stats }) {
 
         {isDashboard ? (
           <nav className="site-nav" aria-label="Sections">
-            {NAV.map((item) => (
+            {navigation.map((item) => (
               <a key={item.id} href={`#${item.id}`} className={active === item.id ? "active" : undefined}>
                 {item.label}
               </a>

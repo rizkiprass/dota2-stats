@@ -1,7 +1,7 @@
 import { Link, useParams } from "@tanstack/react-router";
 import { Avatar, Badge, Bar, PlayerAvatar } from "./ui";
 import { ActivityRadar } from "./ActivityRadar";
-import { fmtInt, fmtNum, fmtPct } from "../lib/format";
+import { fmtCount, fmtInt, fmtNum, fmtPct } from "../lib/format";
 import {
   average,
   bestDuoFor,
@@ -19,6 +19,7 @@ import {
   type RadarAxis,
 } from "../lib/derived";
 import { useDashboard } from "../lib/dashboard-context";
+import { PlayerActivity } from "./Behavior";
 
 export function PlayerProfile() {
   const { stats } = useDashboard();
@@ -126,7 +127,7 @@ function PlayerProfileContent({ id }: { id: string }) {
       <div className="dp-summary">
         <span className="big">{fmtPct(player.win_rate)}</span>
         <span className="sub">
-          {fmtInt(player.matches)} matches · {fmtInt(player.wins)}W–{fmtInt(player.losses)}L
+          {fmtCount(player.matches, "match")} · {fmtInt(player.wins)}W–{fmtInt(player.losses)}L
         </span>
       </div>
 
@@ -141,6 +142,8 @@ function PlayerProfileContent({ id }: { id: string }) {
           ))}
         </div>
       </section>
+
+      <PlayerActivity stats={stats} playerId={id} />
 
       <section className="dp-section">
         <h2 className="dp-title">Lobby ranking</h2>
@@ -192,7 +195,7 @@ function PlayerProfileContent({ id }: { id: string }) {
               <div className="dp-hero-info">
                 <div className="h-name">{heroName(stats, rec.heroId)}</div>
                 <div className="h-sub">
-                  {fmtInt(rec.matches)} matches · {fmtInt(rec.wins)}W–{fmtInt(rec.losses)}L
+                  {fmtCount(rec.matches, "match")} · {fmtInt(rec.wins)}W–{fmtInt(rec.losses)}L
                 </div>
                 <Bar pct={Number(rec.win_rate) || 0} gold={Number(rec.win_rate) >= 50} />
               </div>

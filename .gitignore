@@ -29,3 +29,7 @@ terraform/aggregator.zip
 node_modules/
 web/dist/
 web/stats.json
+
+# Playwright UI verification artifacts
+web/test-results/
+web/playwright-report/

@@ -2,6 +2,10 @@ export function fmtInt(value: number | null | undefined): string {
   return Number(value ?? 0).toLocaleString("en-US");
 }
 
+export function fmtCount(value: number | null | undefined, singular: string, plural = `${singular}s`): string {
+  return `${fmtInt(value)} ${Number(value ?? 0) === 1 ? singular : plural}`;
+}
+
 export function fmtNum(value: number | null | undefined, digits = 2): string {
   if (value === null || value === undefined) return "—";
   const n = Number(value);

@@ -3,6 +3,7 @@ import { Summary } from "./Summary";
 import { Leaderboards } from "./Leaderboards";
 import { Players, Teammates, HeadToHead } from "./Tables";
 import { Heroes } from "./Heroes";
+import { ActivityLeaderboards } from "./Behavior";
 
 export function Dashboard() {
   const { stats } = useDashboard();
@@ -16,6 +17,7 @@ export function Dashboard() {
         <Teammates stats={stats} />
         <HeadToHead stats={stats} />
       </div>
+      <ActivityLeaderboards stats={stats} />
     </main>
   );
 }

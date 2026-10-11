@@ -4,6 +4,7 @@ import {
   PolarRadiusAxis,
   Radar as RechartsRadar,
   RadarChart,
+  ResponsiveContainer,
 } from "recharts";
 import { cssVar } from "../lib/theme";
 import type { RadarAxis } from "../lib/derived";
@@ -23,13 +24,15 @@ export function ActivityRadar({ axes, playerLabel }: { axes: RadarAxis[]; player
 
   return (
     <div className="dp-radar">
-      <RadarChart width={360} height={300} outerRadius="72%" data={data}>
-        <PolarGrid stroke={line} />
-        <PolarAngleAxis dataKey="axis" tick={{ fill: muted, fontSize: 11 }} />
-        <PolarRadiusAxis domain={[0, 100]} tick={false} axisLine={false} />
-        <RechartsRadar name={playerLabel} dataKey="player" stroke={accent} fill={accent} fillOpacity={0.28} />
-        <RechartsRadar name="Lobby average" dataKey="average" stroke={line} fill={panel3} fillOpacity={0.6} />
-      </RadarChart>
+      <ResponsiveContainer width="100%" height={340}>
+        <RadarChart outerRadius="76%" data={data}>
+          <PolarGrid stroke={line} />
+          <PolarAngleAxis dataKey="axis" tick={{ fill: muted, fontSize: 11 }} />
+          <PolarRadiusAxis domain={[0, 100]} tick={false} axisLine={false} />
+          <RechartsRadar name={playerLabel} dataKey="player" stroke={accent} fill={accent} fillOpacity={0.28} isAnimationActive={false} />
+          <RechartsRadar name="Lobby average" dataKey="average" stroke={line} fill={panel3} fillOpacity={0.6} isAnimationActive={false} />
+        </RadarChart>
+      </ResponsiveContainer>
     </div>
   );
 }

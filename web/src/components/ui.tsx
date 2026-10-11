@@ -103,8 +103,13 @@ export function SectionTitle({ children }: { children: ReactNode }) {
 function useHeroImage(heroId: number | null) {
   const url = heroCropUrl(heroId);
   const [failed, setFailed] = useState(false);
+  const [loaded, setLoaded] = useState(false);
+  useEffect(() => {
+    setFailed(false);
+    setLoaded(false);
+  }, [url]);
   const isInitial = !url || failed;
-  return { url, isInitial, fail: () => setFailed(true) };
+  return { url, isInitial, loaded, fail: () => setFailed(true), load: () => setLoaded(true) };
 }
 
 function avatarClass(base: string, size: string, isInitial: boolean) {
@@ -124,11 +129,14 @@ export function Avatar({
   name: string;
   size?: "sm" | "lg" | "";
 }) {
-  const { url, isInitial, fail } = useHeroImage(heroId);
+  const { url, isInitial, loaded, fail, load } = useHeroImage(heroId);
   return (
     <span className={avatarClass("avatar", size, isInitial)} style={initialStyle(name, isInitial)}>
       {url && !isInitial ? (
-        <img src={url} alt={name} loading="lazy" decoding="async" onError={fail} />
+        <>
+          <span className="avatar-fallback" aria-hidden="true">{initials(name)}</span>
+          <img src={url} alt={name} className={loaded ? "loaded" : undefined} loading="lazy" decoding="async" onLoad={load} onError={fail} />
+        </>
       ) : (
         initials(name)
       )}
@@ -139,7 +147,7 @@ export function Avatar({
 export function PlayerAvatar({ id, size = "" }: { id: string; size?: "sm" | "lg" | "" }) {
   const { stats } = useDashboard();
   const name = playerName(stats, id);
-  const { url, isInitial, fail } = useHeroImage(playerTopHero(stats, id));
+  const { url, isInitial, loaded, fail, load } = useHeroImage(playerTopHero(stats, id));
   return (
     <Link
       to="/player/$playerId"
@@ -149,7 +157,10 @@ export function PlayerAvatar({ id, size = "" }: { id: string; size?: "sm" | "lg"
       title={`View ${name}'s details`}
     >
       {url && !isInitial ? (
-        <img src={url} alt={name} loading="lazy" decoding="async" onError={fail} />
+        <>
+          <span className="avatar-fallback" aria-hidden="true">{initials(name)}</span>
+          <img src={url} alt={name} className={loaded ? "loaded" : undefined} loading="lazy" decoding="async" onLoad={load} onError={fail} />
+        </>
       ) : (
         initials(name)
       )}
