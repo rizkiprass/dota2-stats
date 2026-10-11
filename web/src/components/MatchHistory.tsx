@@ -273,6 +273,7 @@ function MatchCard({ match, stats }: { match: MatchRecord; stats: Stats }) {
           </span>
           <span className="mc-score">
             {fmtInt(radiantKills)}–{fmtInt(direKills)}
+            <span className="mc-score-label"> kills</span>
           </span>
         </span>
         <span className="mc-hint">{open ? "Hide K/D/A" : "Show K/D/A"}</span>

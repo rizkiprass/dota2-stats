@@ -827,6 +827,7 @@ html { scroll-behavior: smooth; }
 .mc-verdict { display: flex; align-items: center; justify-content: flex-end; gap: 10px; }
 .mc-verdict .splitbar { width: 64px; flex: 0 0 auto; }
 .mc-score { font-weight: 800; font-size: 13px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.mc-score-label { font-weight: 600; font-size: 11.5px; color: var(--muted); }
 .mc-hint { color: var(--muted); font-size: 11.5px; font-weight: 600; white-space: nowrap; }
 .mc-lineups { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px 22px; padding-top: 8px; }
 .mc-side { min-width: 0; }
