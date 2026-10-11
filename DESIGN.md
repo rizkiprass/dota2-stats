@@ -214,7 +214,7 @@ A near-black neutral field carrying one cool accent and one warm accent, with gr
 - **Chalk 2** (#c9c9d1): secondary text inside otherwise prominent content.
 - **Ash Grey** (#9b9ba3): labels, captions, table headers, inactive nav.
 - **Hairline** (`rgba(255,255,255,0.06)`) / **Hairline Strong** (`rgba(255,255,255,0.12)`): dividers between rows, table cell borders, and the border on inner wells.
-- **Medal silver** (#c7ccd6) and **Medal bronze** (#cd8a57) complete the podium; **avatar azure/amber/green/violet/pink/teal** are the initials-avatar tints, assigned by name hash so a player keeps a consistent color.
+- **Medal silver** (#c7ccd6) and **Medal bronze** (#cd8a57) complete the podium; **avatar azure/amber/green/violet/pink/teal** are the shared identity tints: assigned by name hash for initials avatars, and by rank index for hero tiles and donut slices, so a hero's chart slice matches its tile.
 
 ### Named Rules
 
@@ -369,6 +369,16 @@ The payload is optional: when `matches.json` is absent the block prints one expl
 
 38px full circle (30px `.sm`, 58px `.lg`) on `charcoal-panel-3`. When hero art is available it fades in over an initials fallback at the same size; when it is not, the fallback gets a per-name gradient tint from `--av`. `AvatarPair` overlaps two avatars by 12px with a 2px `charcoal-panel` ring.
 
+### Hero Distribution (signature)
+
+The Heroes section opens with `.hero-dist`: a donut of pick share, its legend, and the contested-hero list. Arcs are stroked circles whose dash lengths are computed from the circumference rather than arc paths, so the chart needs no chart library — Recharts stays confined to the lazy profile chunk and the dashboard bundle stays lean.
+
+Slices reuse `--av1`–`--av5` plus a neutral `--muted` tail, and a hero's slice is the **same tint** as the accent cap on its tile below, because both read one `heroTint(index)` helper over one ordering. A slice therefore looks like the tile it refers to.
+
+The donut is static — no animation, per The Respectful Motion Rule — and carries `role="img"` with a text alternative naming every slice. The legend repeats each value as real text and the hero grid below is the complete table, so the chart is a summary and never the only way to read the numbers.
+
+**The Others Rule.** A share chart names at most five slices. Everything past that is one neutral Others slice that states how many heroes it stands for, so the chart never renders more arcs than it can label — whether the group has eighteen heroes or eight hundred.
+
 ## Do's and Don'ts
 
 ### Do:
@@ -384,6 +394,8 @@ The payload is optional: when `matches.json` is absent the block prints one expl
 - **Do** keep a category's metric as the first numeric column, in tabular figures, and keep it on screen at phone width.
 - **Do** reserve the gold `pill-value` for winning values (≥50%); a 0% entry is plain text.
 - **Do** treat an optional payload as optional: a missing `matches.json` becomes one explanatory line, never an error page or an empty-looking block.
+- **Do** give every chart a `role="img"` text alternative and repeat its numbers as text; a chart summarises, it never replaces the table.
+- **Do** color a hero's chart slice with the same tint as its tile, by reading one shared helper over one ordering.
 
 ### Don't:
 
