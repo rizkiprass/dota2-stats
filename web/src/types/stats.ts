@@ -176,6 +176,13 @@ export interface BehaviorStats {
  * Bounded newest-match teaser carried by stats.json, so the dashboard can show
  * recent activity without fetching the per-match payload.
  */
+export interface RecentMatchPlayer {
+  /** Canonical identity; null for anonymous players. */
+  account_id: string | null;
+  /** Display-only label from the parser; never an identifier. */
+  player_name: string | null;
+}
+
 export interface RecentMatch {
   match_id: string;
   start_time: number | null;
@@ -186,6 +193,12 @@ export interface RecentMatch {
   /** Hero ids per side, in the parser's order. Present from schema 1.4 onward. */
   radiant_heroes?: Array<number | string>;
   dire_heroes?: Array<number | string>;
+  /**
+   * Player identity per side, index-aligned with the hero arrays above.
+   * Present from schema 1.5 onward; absent payloads render hero-only portraits.
+   */
+  radiant_players?: RecentMatchPlayer[];
+  dire_players?: RecentMatchPlayer[];
 }
 
 export interface Stats {

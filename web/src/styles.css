@@ -501,6 +501,12 @@ html { scroll-behavior: smooth; }
 .recent-side { display: inline-flex; align-items: center; gap: 3px; }
 .recent-vs { color: var(--muted); font-size: 11.5px; font-weight: 700; }
 .recent-heroes .avatar.sm { width: 24px; height: 24px; font-size: 10px; }
+/* A portrait is the row's only link: it keeps the hero art, gains a player
+   tooltip, and shows its affordance with a ring rather than a lift. */
+.recent-hero-link { display: inline-flex; border-radius: 7px; color: inherit; text-decoration: none; }
+.recent-hero-link:hover .avatar { box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 60%, transparent); }
+.recent-hero-link:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.recent-hero-plain { display: inline-flex; }
 .recent-verdict { grid-column: 3; display: flex; align-items: center; justify-content: flex-end; gap: 12px; justify-self: end; }
 .recent-verdict .splitbar { width: 64px; flex: 0 0 auto; }
 .recent-score { font-weight: 800; font-size: 13px; font-variant-numeric: tabular-nums; white-space: nowrap; }

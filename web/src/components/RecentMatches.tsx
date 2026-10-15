@@ -1,9 +1,10 @@
 import { Link } from "@tanstack/react-router";
 import { Avatar } from "./ui";
 import { fmtDuration, fmtInt } from "../lib/format";
-import { heroName } from "../lib/derived";
+import { heroName, playerName } from "../lib/derived";
 import { formatDayLabel, formatTime } from "../lib/match-calendar";
 import { useDashboard } from "../lib/dashboard-context";
+import type { RecentMatchPlayer, Stats } from "../types/stats";
 
 /**
  * A bounded teaser of the newest lobbies, rendered straight from stats.json so
@@ -38,9 +39,18 @@ export function RecentMatches() {
             const radiantHeroes = match.radiant_heroes ?? [];
             const direHeroes = match.dire_heroes ?? [];
             const showHeroes = radiantHeroes.length > 0 && direHeroes.length > 0;
-            const sidesLabel = `Radiant: ${radiantHeroes
-              .map((heroId) => heroName(stats, heroId))
-              .join(", ")}. Dire: ${direHeroes.map((heroId) => heroName(stats, heroId)).join(", ")}.`;
+            // The player arrays are index-aligned with the hero arrays; a payload
+            // that predates them yields an empty side and falls back to hero-only
+            // portraits rather than an empty shell.
+            const radiant = sideEntries(stats, radiantHeroes, match.radiant_players);
+            const dire = sideEntries(stats, direHeroes, match.dire_players);
+            // One concise, group-level summary; each portrait below also names
+            // its own player so the strip stays navigable by link.
+            const sidesLabel = `Radiant: ${radiant
+              .map((entry) => `${entry.hero}${entry.name ? ` (${entry.name})` : ""}`)
+              .join(", ")}. Dire: ${dire
+              .map((entry) => `${entry.hero}${entry.name ? ` (${entry.name})` : ""}`)
+              .join(", ")}.`;
 
             return (
               <li className="recent-row" key={match.match_id}>
@@ -52,22 +62,18 @@ export function RecentMatches() {
                 </span>
 
                 {showHeroes ? (
-                  <span className="recent-heroes" role="img" aria-label={sidesLabel}>
+                  <span className="recent-heroes" role="group" aria-label={sidesLabel}>
                     <span className="recent-side">
-                      {radiantHeroes.map((heroId, index) => (
-                        <span key={`r-${heroId}-${index}`} title={heroName(stats, heroId)}>
-                          <Avatar heroId={Number(heroId) || null} name={heroName(stats, heroId)} size="sm" />
-                        </span>
+                      {radiant.map((entry, index) => (
+                        <HeroPortrait key={`r-${entry.key}-${index}`} entry={entry} />
                       ))}
                     </span>
                     <span className="recent-vs" aria-hidden="true">
                       vs
                     </span>
                     <span className="recent-side">
-                      {direHeroes.map((heroId, index) => (
-                        <span key={`d-${heroId}-${index}`} title={heroName(stats, heroId)}>
-                          <Avatar heroId={Number(heroId) || null} name={heroName(stats, heroId)} size="sm" />
-                        </span>
+                      {dire.map((entry, index) => (
+                        <HeroPortrait key={`d-${entry.key}-${index}`} entry={entry} />
                       ))}
                     </span>
                   </span>
@@ -92,5 +98,68 @@ export function RecentMatches() {
         </ul>
       </div>
     </section>
+  );
+}
+
+interface PortraitEntry {
+  key: string;
+  heroId: number | null;
+  hero: string;
+  /** Resolved display name, or null when the player is unknown. */
+  name: string | null;
+  accountId: string | null;
+}
+
+/**
+ * Pair each hero id with the player that fielded it. The player array is
+ * index-aligned with the hero array; when it is missing or short the entry keeps
+ * its hero and simply carries no player.
+ */
+function sideEntries(
+  stats: Stats,
+  heroIds: Array<number | string>,
+  players: RecentMatchPlayer[] | undefined,
+): PortraitEntry[] {
+  return heroIds.map((heroId, index) => {
+    const player = players?.[index];
+    const accountId = player?.account_id ?? null;
+    const resolved = accountId
+      ? playerName(stats, accountId)
+      : player?.player_name ?? null;
+    // A name that is only the account id (no record) is no name at all.
+    const name = resolved && resolved !== accountId ? resolved : null;
+    return {
+      key: accountId ?? String(heroId),
+      heroId: Number(heroId) || null,
+      hero: heroName(stats, heroId),
+      name,
+      accountId,
+    };
+  });
+}
+
+/**
+ * A portrait is the only interactive element in a row: it links to the player's
+ * page and names the player over the hero in its tooltip. An unknown player
+ * stays a plain, non-interactive portrait.
+ */
+function HeroPortrait({ entry }: { entry: PortraitEntry }) {
+  const label = entry.name ?? entry.hero;
+  const title = entry.name ? `${entry.name} — ${entry.hero}` : entry.hero;
+  const avatar = <Avatar heroId={entry.heroId} name={label} size="sm" />;
+
+  if (!entry.accountId) {
+    return <span className="recent-hero-plain" title={title}>{avatar}</span>;
+  }
+
+  return (
+    <Link
+      to="/player/$playerId"
+      params={{ playerId: entry.accountId }}
+      className="recent-hero-link"
+      title={title}
+    >
+      {avatar}
+    </Link>
   );
 }
