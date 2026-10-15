@@ -37,7 +37,7 @@ s3 = boto3.client("s3")
 PARSED_PREFIX = "parsed/"
 STATS_KEY = "stats/stats.json"
 MATCHES_KEY = "stats/matches.json"
-SCHEMA_VERSION = "1.4"
+SCHEMA_VERSION = "1.5"
 
 # Optional static-website mirror. When set, the same dashboard payload is also
 # written here so the browser can fetch it same-origin (no CORS, no public data
@@ -220,6 +220,12 @@ def _player_id(player: dict[str, Any]) -> str | None:
     return value or None
 
 
+def _player_name(player: dict[str, Any]) -> str | None:
+    """Display-only label from the parser; never used as an identifier."""
+    name = player.get("player_name")
+    return name.strip() if isinstance(name, str) and name.strip() else None
+
+
 def _pair_key(player_a: str, player_b: str) -> tuple[str, str, str]:
     first, second = sorted((player_a, player_b))
     return f"{first}#{second}", first, second
@@ -317,10 +323,9 @@ def _match_summary(match: dict[str, Any]) -> dict[str, Any]:
     players: list[dict[str, Any]] = []
     for player in match["players"]:
         hero_id = _normalize_hero_id(player["hero_id"])
-        name = player.get("player_name")
         players.append({
             "account_id": _player_id(player),
-            "player_name": name.strip() if isinstance(name, str) and name.strip() else None,
+            "player_name": _player_name(player),
             "hero_id": hero_id,
             "hero_name": HERO_NAMES.get(hero_id) if isinstance(hero_id, int) else None,
             "team": player["team"],
@@ -362,6 +367,21 @@ def _team_heroes(item: dict[str, Any], team: str) -> list[Any]:
     return [player["hero_id"] for player in item["players"] if player["team"] == team]
 
 
+def _team_players(item: dict[str, Any], team: str) -> list[dict[str, Any]]:
+    """Identity and display name for one side, in the parser's order.
+
+    Index-aligned with ``_team_heroes``: both walk the same players list with
+    the same team filter, so a name always pairs with the hero it fielded. An
+    entry is emitted for every player, even without an account_id, so the
+    alignment never shifts.
+    """
+    return [
+        {"account_id": _player_id(player), "player_name": _player_name(player)}
+        for player in item["players"]
+        if player["team"] == team
+    ]
+
+
 def _recent_matches(summaries: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """Bounded newest-match teaser carried by stats.json.
 
@@ -378,9 +398,12 @@ def _recent_matches(summaries: list[dict[str, Any]]) -> list[dict[str, Any]]:
             "radiant_kills": _team_kills(item, "radiant"),
             "dire_kills": _team_kills(item, "dire"),
             # Hero ids only: names resolve from stats.heroes, and this keeps the
-            # teaser around 190 bytes per match.
+            # teaser small. The per-side player arrays below carry the display
+            # identity, index-aligned with these hero ids.
             "radiant_heroes": _team_heroes(item, "radiant"),
             "dire_heroes": _team_heroes(item, "dire"),
+            "radiant_players": _team_players(item, "radiant"),
+            "dire_players": _team_players(item, "dire"),
         }
         for item in ordered
     ]
