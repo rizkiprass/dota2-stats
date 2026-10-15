@@ -28,6 +28,7 @@ BUCKET="${DASHBOARD_BUCKET:-}"
 DIST_ID="${CLOUDFRONT_DISTRIBUTION_ID:-}"
 PROFILE="${AWS_PROFILE_NAME:-pras-sandbox}"
 REGION="${AWS_REGION_NAME:-us-east-1}"
+UPLOAD_API_URL="${VITE_UPLOAD_API_URL:-}"
 DRY_RUN=false
 SKIP_BUILD=false
 WAIT=false
@@ -44,6 +45,8 @@ Options:
   -d, --distribution-id ID     CloudFront distribution ID (default: terraform output)
   -p, --profile NAME           AWS CLI profile
   -r, --region NAME            AWS region
+  -u, --upload-api-url URL     Replay upload API base URL (default: terraform
+                               output upload_api_url). Empty hides the upload button.
       --web-dir DIR            Frontend directory (default: <repo>/web)
       --tf-dir DIR             Terraform directory (default: <repo>/terraform)
       --skip-build             Deploy the existing web/dist/ without rebuilding
@@ -52,7 +55,7 @@ Options:
   -h, --help                   Show this help
 
 Environment overrides: DASHBOARD_BUCKET, CLOUDFRONT_DISTRIBUTION_ID,
-AWS_PROFILE_NAME, AWS_REGION_NAME, WEB_DIR, TF_DIR
+AWS_PROFILE_NAME, AWS_REGION_NAME, VITE_UPLOAD_API_URL, WEB_DIR, TF_DIR
 EOF
 }
 
@@ -65,6 +68,7 @@ while [[ $# -gt 0 ]]; do
     -d|--distribution-id) DIST_ID="${2:?--distribution-id needs a value}"; shift 2 ;;
     -p|--profile)         PROFILE="${2:?--profile needs a value}"; shift 2 ;;
     -r|--region)          REGION="${2:?--region needs a value}"; shift 2 ;;
+    -u|--upload-api-url)  UPLOAD_API_URL="${2:?--upload-api-url needs a value}"; shift 2 ;;
     --web-dir)            WEB_DIR="${2:?--web-dir needs a value}"; shift 2 ;;
     --tf-dir)             TF_DIR="${2:?--tf-dir needs a value}"; shift 2 ;;
     --skip-build)         SKIP_BUILD=true; shift ;;
@@ -95,12 +99,19 @@ if [[ -z "$DIST_ID" ]]; then
 fi
 [[ -n "$DIST_ID" ]] || die "CloudFront distribution ID unknown; pass --distribution-id or set CLOUDFRONT_DISTRIBUTION_ID"
 
+# The upload API URL is baked into the build. When it cannot be resolved the
+# dashboard still deploys, but the "Upload replay" button stays hidden.
+if [[ -z "$UPLOAD_API_URL" ]]; then
+  UPLOAD_API_URL="$(tf_output upload_api_url || true)"
+fi
+
 DIST="$WEB_DIR/dist"
 [[ -d "$WEB_DIR" ]] || die "web directory not found: $WEB_DIR"
 
 echo "web dir        : $WEB_DIR"
 echo "bucket         : s3://$BUCKET"
 echo "distribution   : $DIST_ID"
+echo "upload api     : ${UPLOAD_API_URL:-<none: upload button hidden>}"
 echo "profile/region : $PROFILE / $REGION"
 [[ "$SKIP_BUILD" == true ]] && echo "build          : skipped (using existing $DIST)"
 [[ "$DRY_RUN" == true ]] && echo "mode           : DRY RUN (nothing will be uploaded)"
@@ -111,9 +122,9 @@ if [[ "$SKIP_BUILD" == false ]]; then
   command -v npm >/dev/null 2>&1 || die "npm not found on PATH (use --skip-build to deploy an existing build)"
   echo "==> building (npm run build)"
   if [[ "$DRY_RUN" == true ]]; then
-    echo "    (dry run) cd \"$WEB_DIR\" && npm run build"
+    echo "    (dry run) cd \"$WEB_DIR\" && VITE_UPLOAD_API_URL=\"$UPLOAD_API_URL\" npm run build"
   else
-    ( cd "$WEB_DIR" && npm run build )
+    ( cd "$WEB_DIR" && VITE_UPLOAD_API_URL="$UPLOAD_API_URL" npm run build )
   fi
 fi
 [[ -f "$DIST/index.html" ]] || die "build output missing: $DIST/index.html (run without --skip-build)"

@@ -19,6 +19,7 @@ const ICON_PATHS = {
   scale: '<path d="M12 3.5v17"/><path d="M6 7h12"/><path d="M5.5 7 3 13h5z"/><path d="M18.5 7 21 13h-5z"/>',
   check: '<path d="m5 12.6 4.2 4.2L19 7"/>',
   close: '<path d="M6 6 18 18M18 6 6 18"/>',
+  upload: '<path d="M12 16V5"/><path d="m7 10 5-5 5 5"/><path d="M5 19h14"/>',
 } as const;
 
 export type IconName = keyof typeof ICON_PATHS;

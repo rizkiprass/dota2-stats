@@ -38,6 +38,16 @@ output "aggregator_cloudwatch_log_group" {
   value       = aws_cloudwatch_log_group.statistics_aggregator.name
 }
 
+output "upload_api_url" {
+  description = "Base URL of the replay upload API (presigned upload + status). Empty when disabled."
+  value       = aws_apigatewayv2_stage.upload.invoke_url
+}
+
+output "upload_api_lambda_function_name" {
+  description = "Name of the deployed upload API Lambda function."
+  value       = aws_lambda_function.upload_api.function_name
+}
+
 output "dashboard_bucket_name" {
   description = "S3 bucket holding the static statistics dashboard build."
   value       = aws_s3_bucket.dashboard.bucket

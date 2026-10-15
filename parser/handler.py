@@ -33,10 +33,55 @@ PARSER_JAR = os.environ.get("PARSER_JAR", "/opt/parser/parser.jar")
 PARSER_TIMEOUT_SECONDS = int(os.environ.get("PARSER_TIMEOUT_SECONDS", "780"))
 RAW_PREFIX = "raw/"
 PARSED_PREFIX = "parsed/"
+FAILED_PREFIX = "parse-failed/"
+# Duplicate guard: when a parsed object already exists, skip the replay instead
+# of parsing it again. The upload API already blocks duplicates, so this only
+# catches a re-fired S3 event or a re-upload that bypassed the API.
+SKIP_IF_ALREADY_PARSED = os.environ.get("SKIP_IF_ALREADY_PARSED", "true").strip().lower() in {
+    "1",
+    "true",
+    "yes",
+    "on",
+}
 
 
 class ReplayParseError(Exception):
     """Raised when the parser subprocess fails or produces no output."""
+
+
+def _object_exists(bucket: str, key: str) -> bool:
+    """Exact-key existence check via a prefix listing.
+
+    ListObjectsV2 (not HeadObject) because the role grants only prefix-scoped
+    ``s3:ListBucket``: HeadObject on a missing key would return 403, which is
+    indistinguishable from a real denial.
+    """
+    response = s3.list_objects_v2(Bucket=bucket, Prefix=key, MaxKeys=1)
+    return any(item["Key"] == key for item in response.get("Contents", []))
+
+
+def _write_failure_marker(bucket: str, match_id: str, message: str) -> None:
+    """Record why a parse failed so the upload dialog can report it.
+
+    Best-effort: a failure to write the marker must never mask the original
+    parse error.
+    """
+    body = json.dumps(
+        {
+            "match_id": match_id,
+            "error": message,
+            "failed_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+        }
+    ).encode("utf-8")
+    try:
+        s3.put_object(
+            Bucket=bucket,
+            Key=f"{FAILED_PREFIX}{match_id}.json",
+            Body=body,
+            ContentType="application/json",
+        )
+    except Exception:  # noqa: BLE001 - the parse error is already being reported
+        logger.exception("Failed to write the parse-failure marker for %s", match_id)
 
 
 def _match_id_from_key(key: str) -> str:
@@ -81,6 +126,11 @@ def _process_record(bucket: str, key: str) -> dict:
     json_path = f"/tmp/{match_id}.json"
     parsed_key = f"{PARSED_PREFIX}{match_id}.json"
 
+    if SKIP_IF_ALREADY_PARSED and _object_exists(bucket, parsed_key):
+        logger.info("Skipping %s: %s already exists", key, parsed_key)
+        _log_event(match_id=match_id, replay_file=key, skipped="already_parsed")
+        return {"match_id": match_id, "success": True, "skipped": "already_parsed"}
+
     parse_start_time = time.time()
     replay_size = None
     parser_exit_code = 0
@@ -104,12 +154,14 @@ def _process_record(bucket: str, key: str) -> dict:
         parser_exit_code = 1
         error_message = str(exc)
         logger.error("Replay parsing failed for %s: %s", key, error_message)
+        _write_failure_marker(bucket, match_id, error_message)
         # Per plan Section 12: keep the raw replay, do not delete/overwrite it,
         # log the failure, and allow manual reprocessing later.
     except Exception as exc:  # noqa: BLE001 - top level guard, we always want to log and continue
         parser_exit_code = 1
         error_message = f"unexpected error: {exc}"
         logger.exception("Unexpected error processing %s", key)
+        _write_failure_marker(bucket, match_id, error_message)
     finally:
         parse_end_time = time.time()
         _log_event(

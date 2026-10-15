@@ -17,6 +17,9 @@ dota-lobby-stats2/
 |   +-- normalize.py       Converts raw odota/parser line-delimited JSON into MVP match.json schema
 |   +-- requirements.txt
 |
++-- api/                  ZIP Lambda behind an API Gateway HTTP API
+|   +-- handler.py         Issues presigned uploads (raw/<match_id>.dem), rejects duplicates
+|
 +-- aggregator/            ZIP Lambda for deterministic historical statistics rebuilds
 |   +-- aggregator.py      Lists parsed JSON, validates/deduplicates, rebuilds stats/stats.json (+ stats/matches.json)
 |   +-- requirements.txt
@@ -29,6 +32,7 @@ dota-lobby-stats2/
 |   +-- ecr.tf
 |   +-- lambda.tf
 |   +-- iam.tf
+|   +-- api.tf            Upload API (API Gateway HTTP API + presigned-upload Lambda)
 |   +-- dashboard.tf      Static website bucket for the dashboard
 |
 +-- web/                  React + TypeScript dashboard (Vite + Tailwind v4)
@@ -69,6 +73,20 @@ dota-lobby-stats2/
 4. The aggregator Lambda is triggered by the new `parsed/<match_id>.json`; it lists every `parsed/*.json`, skips invalid and duplicate `match_id` values, recalculates all statistics, and overwrites `stats/stats.json`.
 5. The original `.dem` file is always retained in `raw/` as the source of truth.
 
+## In-dashboard replay upload
+
+Players upload a replay from the dashboard itself — the **Upload replay** button in the header — instead of running the script below.
+
+1. The player types the shared upload password once; the browser stores it and sends it as the `X-Upload-Token` header on every request.
+2. `POST /replays` validates the password, then rejects the replay with `409` when `raw/<match_id>.dem` **or** `parsed/<match_id>.json` already exists. Otherwise it returns a short-lived presigned S3 POST.
+3. The browser uploads the `.dem` straight to `raw/<match_id>.dem`; the replay bytes never pass through API Gateway or Lambda, so replay size is not capped by the 10 MB payload limit.
+4. The parser skips any replay whose `parsed/<match_id>.json` already exists, so a duplicate can never be processed twice. A failed parse is recorded under `parse-failed/<match_id>.json` and shown in the dialog.
+5. `GET /replays/<match_id>` reports `processing` / `parsed` / `failed`, which the dialog polls until the dashboard can refresh.
+
+Duplicates are therefore blocked twice: at the API (never uploaded) and again in the parser (never re-processed).
+
+`upload_token` in `terraform.tfvars` is that shared password — set it before `terraform apply`, and rotate it by changing the value. The dashboard itself stays public; the password only gates uploading, not viewing. It lives in the player's browser, never in the build output, so it cannot be lifted from the deployed JavaScript.
+
 ## Parser choice
 
 The odota/parser project normally runs as an HTTP server on port 5600 (`java -jar target/stats-0.1.0.jar`), receiving the replay as a POST body and returning line-delimited JSON events. For this MVP we instead run `Parse` directly against a file via a small CLI wrapper (`FileParse.java`) baked into the image, which avoids running an HTTP server inside the Lambda container and lets the Python handler simply shell out and capture stdout. See `parser/Dockerfile` and `parser/java/` for details.
@@ -103,6 +121,9 @@ Terraform creates:
 - ECR repository for the parser image
 - IAM role/policy scoping Lambda to S3 read/write + CloudWatch logs + ECR pull
 - Lambda function (container image) with the S3 `ObjectCreated` trigger scoped to `raw/*.dem`
+- Upload API (API Gateway HTTP API + `dota-replay-upload-api` Lambda) with its own least-privilege role, letting the dashboard request presigned uploads and check for duplicates
+
+> Set `upload_token` (the shared upload password) in `terraform.tfvars` before `terraform apply`; it is required. `scripts/deploy-web.sh` reads `terraform output upload_api_url` and bakes it into the build, so run the Terraform apply first.
 
 > Note: Terraform provisions the Lambda function pointing at the ECR image tag. Push the image (step 1) **before** running `terraform apply`, otherwise Lambda creation will fail because the image doesn't exist yet.
 
@@ -210,5 +231,6 @@ Implemented and deployed:
 - **MVP 1** — S3 raw storage, Lambda container replay parsing, normalized `parsed/<match_id>.json` output.
 - **MVP 2** — full-rebuild aggregator producing dashboard-ready `stats/stats.json` (summary, players, heroes, player-heroes, teammates, head-to-head, leaderboards).
 - **Dashboard** — React + TypeScript SPA (Vite + Tailwind v4, TanStack Router) served from a private S3 bucket via CloudFront (HTTPS, OAC), with a shareable player profile page at `/player/<id>`.
+- **Replay upload** — an **Upload replay** button in the dashboard: a shared-password gate, a duplicate check that refuses `raw/`- or `parsed/`-existing matches, direct-to-S3 presigned uploads, and live parse progress.
 
-Not implemented yet: advanced analytics (timelines, positions, combat logs) and authentication.
+Not implemented yet: advanced analytics (timelines, positions, combat logs). There are no player accounts — the upload password is a shared gate, not authentication.

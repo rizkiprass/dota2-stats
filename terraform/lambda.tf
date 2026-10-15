@@ -30,6 +30,10 @@ resource "aws_lambda_function" "replay_parser" {
     variables = {
       PARSER_JAR             = "/opt/parser/parser.jar"
       PARSER_TIMEOUT_SECONDS = tostring(var.lambda_timeout_seconds - 30)
+      # A replay whose parsed object already exists is skipped, so a duplicate
+      # upload (or a repeated S3 event) can never be parsed twice. Set to
+      # "false" and clear parsed/<match_id>.json to deliberately re-parse.
+      SKIP_IF_ALREADY_PARSED = "true"
     }
   }
 

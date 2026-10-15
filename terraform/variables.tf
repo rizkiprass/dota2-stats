@@ -98,3 +98,15 @@ variable "aggregator_lambda_reserved_concurrency" {
   type        = number
   default     = null
 }
+
+variable "upload_token" {
+  description = "Shared password players type once in the dashboard before they may upload a replay. Generate with `openssl rand -base64 24`."
+  type        = string
+  sensitive   = true
+}
+
+variable "upload_api_max_upload_mb" {
+  description = "Largest replay the upload API will accept, in megabytes."
+  type        = number
+  default     = 512
+}

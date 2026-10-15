@@ -2,6 +2,33 @@
 
 ## Current Flow
 
+A replay reaches `raw/` in one of two ways: the batch script
+(`scripts/upload-replays.sh`) or the dashboard's **Upload replay** button. The
+button path is:
+
+```text
+Browser (dashboard)
+      |
+      | POST /replays   (X-Upload-Token; filename -> match_id)
+      v
++----------------------------------------------------------+
+| API Gateway HTTP API -> Lambda: dota-replay-upload-api    |
+|  1. verify the shared upload password                     |
+|  2. reject when raw/<match_id>.dem or parsed/<id>.json    |
+|     already exists (409)                                  |
+|  3. otherwise return a presigned S3 POST                  |
++---------------------------+------------------------------+
+                            | browser uploads straight to S3
+                            v
+                  raw/<match_id>.dem  ->  (flow below)
+```
+
+Duplicate uploads are refused before any bytes are sent, and the parser skips a
+match whose `parsed/` object already exists, so a duplicate is never parsed
+twice.
+
+Once the replay is in `raw/`, both entry points converge on the same pipeline:
+
 ```text
 Developer / Dota 2 Replay Folder
              |
@@ -74,6 +101,9 @@ dta-replay-data-rizkiprass-2026/          # private data bucket
 +-- parsed/
 |   +-- 8987451980.json             # Normalized one-match data
 |
++-- parse-failed/
+|   +-- 8987451980.json             # Parse-failure marker (read by the upload API)
+|
 +-- stats/
     +-- stats.json                   # Rebuilt dashboard payload
     +-- matches.json                 # Capped, newest-first per-match list
@@ -93,6 +123,7 @@ dta-replay-dashboard-rizkiprass-2026/     # public-read website bucket
 | Amazon S3 | Stores replay sources, normalized matches, and the one dashboard payload. |
 | `dota-replay-parser` Lambda | Parses one new `.dem` replay and writes its normalized JSON. |
 | `dota-replay-aggregator` Lambda | Rebuilds all statistics from every valid parsed match when a parsed JSON object is created, and mirrors the payload to the dashboard bucket. |
+| `dota-replay-upload-api` Lambda (Amazon API Gateway HTTP API) | Validates the shared upload password, rejects duplicate matches, and issues presigned S3 POSTs so the browser uploads replays directly. |
 | Dashboard website bucket | Serves the static HTML/CSS/JS plus same-origin `stats.json` and `matches.json` copies over the S3 website endpoint. |
 | Amazon ECR | Stores the parser Lambda container image. |
 | Amazon CloudWatch Logs | Stores parser/aggregator execution logs and Lambda metrics. |
@@ -216,8 +247,9 @@ The parser and aggregator use different execution roles.
 
 | Lambda | Allowed S3 access |
 |---|---|
-| Parser | Read `raw/*`; write `parsed/*`; list `raw/*` and `parsed/*`. |
+| Parser | Read `raw/*`; write `parsed/*`; read `parsed/*` (skip already-parsed); write `parse-failed/*`; list `raw/*` and `parsed/*`. |
 | Aggregator | List/read `parsed/*`; write `stats/*`. No access to `raw/*`. |
+| Upload API | Read `raw/*`, `parsed/*`, `parse-failed/*` (duplicate + status checks); write `raw/*` (signs the presigned POSTs). |
 
 Both functions can write their own CloudWatch Logs through the AWS managed Lambda basic execution policy.
 
@@ -239,7 +271,7 @@ Useful CloudWatch log groups:
 
 ## Out of Scope
 
-The current system intentionally has no database, API Gateway, DynamoDB, Athena, Glue, SQS, Step Functions, or ECS. The dashboard is served from a public-read S3 website bucket only — no CloudFront, custom domain, HTTPS, or authentication yet. Advanced analytics (timelines, positions, combat logs) remain out of scope.
+The system intentionally has no database, DynamoDB, Athena, Glue, SQS, Step Functions, or ECS. The only API surface is the replay upload API — a single API Gateway HTTP API in front of the upload Lambda — and there are no player accounts: uploads are gated by a shared password, not authentication. Advanced analytics (timelines, positions, combat logs) remain out of scope.
 
 ## AI-assisted frontend development
 
