@@ -12,7 +12,7 @@ test.beforeAll(() => {
 
 async function gotoDetail(page: Page, category: string): Promise<void> {
   const statsLoaded = page.waitForResponse((r) => r.url().endsWith("/stats.json") && r.status() === 200);
-  const response = await page.goto(`/leaderboard/${category}`);
+  const response = await page.goto(`/leaderboard/${category}`, { waitUntil: "domcontentloaded" });
   expect(response?.status(), "index.html should load").toBe(200);
   await statsLoaded;
   await expect(page.locator(".board-title")).toBeVisible();
@@ -20,7 +20,15 @@ async function gotoDetail(page: Page, category: string): Promise<void> {
 
 test("dashboard leaderboard cards link to their detail page", async ({ page }) => {
   await page.setViewportSize(DESKTOP);
-  await page.goto("/");
+  // Force one board empty so the static-title branch is deterministic; the live
+  // payload may have every board populated as history grows.
+  await page.route("**/stats.json", async (route) => {
+    const response = await route.fetch();
+    const stats = (await response.json()) as { leaderboards: Record<string, unknown> };
+    stats.leaderboards.most_kills = [];
+    await route.fulfill({ response, json: stats });
+  });
+  await page.goto("/", { waitUntil: "domcontentloaded" });
   await page.waitForSelector("#leaderboards .lb");
 
   // Cards stay a five-row teaser; the chip copy is gone.
@@ -129,7 +137,7 @@ test("detail pages surface per-match history when it is published", async ({ pag
 });
 
 test("unknown category falls back to an error card", async ({ page }) => {
-  await page.goto("/leaderboard/not_a_leaderboard");
+  await page.goto("/leaderboard/not_a_leaderboard", { waitUntil: "domcontentloaded" });
   await expect(page.getByRole("alert")).toContainText("Unknown leaderboard");
 });
 

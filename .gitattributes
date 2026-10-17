@@ -1,0 +1,6 @@
+# Normalize line endings: store LF in the repository, check out LF everywhere.
+# Prevents CRLF churn when the repo is used from Windows/WSL.
+* text=auto eol=lf
+
+# Shell scripts must stay LF so they run on Linux/macOS.
+*.sh text eol=lf

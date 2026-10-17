@@ -48,14 +48,13 @@ dota-lobby-stats2/
 |
 +-- scripts/
 |   +-- upload-replays.sh Batch-upload .dem replays to s3://<bucket>/raw/
+|   +-- orca-shot.sh      Capture dashboard screenshots through the Orca browser for visual review
 |
 +-- samples/
 |   +-- parsed-example.json
 |
 +-- docs/
 |   +-- architecture.md
-|   +-- ai-frontend-setup.md  OpenCode agents/skills and the frontend workflow
-|   +-- ai-frontend-setup.md  OpenCode agents/skills and the frontend workflow
 |
 +-- dota_replay_mvp_plan.md
 +-- README.md
@@ -142,7 +141,7 @@ A React + TypeScript single-page app (Vite + Tailwind v4, TanStack Router) reads
 `stats.json` and renders the summary, leaderboards, player/hero/teammate/head-to-head
 views, and a shareable player profile page at `/player/<id>`.
 
-> Working on the dashboard with AI assistance? See [`docs/ai-frontend-setup.md`](./docs/ai-frontend-setup.md) for the OpenCode agents (`frontend`, `visual-reviewer`, `quick-edit`), the `design-system` skill, and the screenshot-review workflow.
+> Working on the dashboard with AI assistance? Run `npm run test:ui` (Playwright) for assertion coverage, capture screenshots of the running SPA with the Orca browser, and hand them to the `visual-reviewer` agent for critique. The `design-system` skill documents the tokens. See [`docs/architecture.md`](./docs/architecture.md) for the pipeline.
 
 - Terraform (`dashboard.tf`) creates a **private** S3 bucket fronted by **CloudFront** with Origin Access Control + a security-headers policy. HTTPS, caching, and the SPA fallback are handled at the edge.
 - The aggregator mirrors both payloads into the dashboard bucket — `stats.json` and `matches.json` — so the page always shows the latest rebuild with no cross-bucket CORS. CloudFront serves both paths with caching disabled, so neither is ever stale. The dashboard fetches `stats.json` on every load; leaderboard detail pages fetch `matches.json` lazily.

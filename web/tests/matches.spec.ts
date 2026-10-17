@@ -16,7 +16,7 @@ test.beforeAll(() => {
  */
 async function gotoMatches(page: Page): Promise<boolean> {
   const statsLoaded = page.waitForResponse((r) => r.url().endsWith("/stats.json") && r.status() === 200);
-  await page.goto("/matches");
+  await page.goto("/matches", { waitUntil: "domcontentloaded" });
   await statsLoaded;
   await expect(page.getByRole("heading", { level: 1, name: "Match history" })).toBeVisible();
   await page.waitForSelector(".mh-card, .empty-state");
@@ -147,7 +147,7 @@ test("month navigation is bounded by the published range", async ({ page }) => {
 
 test("the dashboard nav reaches match history", async ({ page }) => {
   await page.setViewportSize(DESKTOP);
-  await page.goto("/");
+  await page.goto("/", { waitUntil: "domcontentloaded" });
   await page.waitForSelector("#leaderboards");
 
   const nav = page.getByRole("navigation", { name: "Sections" });

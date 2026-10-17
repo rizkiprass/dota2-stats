@@ -275,4 +275,4 @@ The system intentionally has no database, DynamoDB, Athena, Glue, SQS, Step Func
 
 ## AI-assisted frontend development
 
-The dashboard is maintained with OpenCode agents and a shared skill defined under `.opencode/`. See [`ai-frontend-setup.md`](./ai-frontend-setup.md) for how the `frontend`, `visual-reviewer`, and `quick-edit` agents work, why their models were chosen, and the screenshot-review workflow.
+The dashboard is maintained with the read-only `visual-reviewer` agent and the shared `design-system` skill defined under `.opencode/`. Verification is two-part: `npm run test:ui` (Playwright) asserts content, console cleanliness, and no horizontal overflow, while `scripts/orca-shot.sh` captures screenshots of the running SPA through the Orca browser and hands them to `visual-reviewer` for a visual critique.

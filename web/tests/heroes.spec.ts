@@ -12,7 +12,7 @@ test.beforeAll(() => {
 
 async function gotoHeroes(page: Page): Promise<void> {
   const statsLoaded = page.waitForResponse((r) => r.url().endsWith("/stats.json") && r.status() === 200);
-  await page.goto("/");
+  await page.goto("/", { waitUntil: "domcontentloaded" });
   await statsLoaded;
   await expect(page.locator("#heroes")).toBeVisible();
   await page.locator("#heroes").scrollIntoViewIfNeeded();

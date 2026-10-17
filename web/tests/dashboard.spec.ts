@@ -25,7 +25,7 @@ function watchPage(page: Page): { consoleErrors: string[]; pageErrors: string[] 
 async function gotoDashboard(page: Page): Promise<void> {
   // Set the waiter up before navigation so a fast fetch cannot be missed.
   const statsLoaded = page.waitForResponse((r) => r.url().endsWith("/stats.json") && r.status() === 200);
-  const response = await page.goto("/");
+  const response = await page.goto("/", { waitUntil: "domcontentloaded" });
   expect(response?.status(), "index.html should load").toBe(200);
   await statsLoaded;
   await expect(page.getByRole("heading", { level: 1, name: /Dota/ })).toBeVisible();
@@ -76,6 +76,9 @@ test("mobile dashboard renders and captures", async ({ page }) => {
 });
 
 test("activity stats render when behavior data is present", async ({ page }) => {
+  // Heavy: mocks the payload and captures four full-page screenshots; under load
+  // the 30s default is not enough. test.slow() triples the timeout.
+  test.slow();
   let playerId = "";
   await page.route("**/stats.json", async (route) => {
     const response = await route.fetch();
@@ -119,7 +122,7 @@ test("activity stats render when behavior data is present", async ({ page }) => 
   await expectNoOverflow(page, "activity dashboard should not overflow on mobile");
   await page.screenshot({ path: `${OUT_DIR}/activity-dashboard-mobile.png`, fullPage: true });
   await page.setViewportSize(DESKTOP);
-  await page.goto(`/player/${playerId}`);
+  await page.goto(`/player/${playerId}`, { waitUntil: "domcontentloaded" });
   await expect(page.getByText("Orders / min", { exact: true })).toBeVisible();
   await expect(page.getByText("Averages use 1 recorded match.")).toBeVisible();
   await expect(page.getByText("Chat text is not displayed; only replay activity counts are included.")).toBeVisible();
@@ -140,7 +143,7 @@ test("player profile renders and captures", async ({ page, request }) => {
 
   const errors = watchPage(page);
   await page.setViewportSize(DESKTOP);
-  await page.goto(`/player/${playerId}`);
+  await page.goto(`/player/${playerId}`, { waitUntil: "domcontentloaded" });
   await expect(page.getByRole("link", { name: /Back to dashboard/i })).toBeVisible();
   await expect(page.getByRole("alert"), "no connection-error card").toHaveCount(0);
 
