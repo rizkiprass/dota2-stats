@@ -1,0 +1,52 @@
+name: Frontend CI
+
+on:
+  pull_request:
+    paths:
+      - "web/**"
+      - "scripts/deploy-web.sh"
+      - ".github/workflows/frontend-ci.yml"
+      - ".github/workflows/deploy-frontend.yml"
+  push:
+    branches: [main]
+    paths:
+      - "web/**"
+      - "scripts/deploy-web.sh"
+      - ".github/workflows/frontend-ci.yml"
+      - ".github/workflows/deploy-frontend.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: frontend-ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Build and test frontend
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: npm ci
+      - run: npm run build
+      - run: PW_WORKERS=1 npm run test:ui
+      - name: Upload UI diagnostics
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-ui-diagnostics
+          path: |
+            web/test-results
+            web/playwright-report
+            /tmp/opencode/shots
+          if-no-files-found: ignore
+          retention-days: 7

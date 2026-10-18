@@ -1,0 +1,17 @@
+diff --git a/src/main/java/opendota/Parse.java b/src/main/java/opendota/Parse.java
+index 4db124b..a9c1144 100644
+--- a/src/main/java/opendota/Parse.java
++++ b/src/main/java/opendota/Parse.java
+@@ -199,8 +199,10 @@ public class Parse {
+ 
+     @OnMessage(CMsgDOTAMatch.class)
+     public void onDotaMatch(Context ctx, CMsgDOTAMatch message) {
+-        // TODO could use this for match overview data for uploads
+-        // System.err.println(message);
++        Entry matchEntry = new Entry(time);
++        matchEntry.type = "match_info";
++        matchEntry.key = g.toJson(message);
++        output(matchEntry);
+     }
+ 
+     public Integer getPlayerSlotFromEntity(Context ctx, Entity e) {

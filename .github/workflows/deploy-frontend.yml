@@ -1,0 +1,94 @@
+name: Deploy frontend
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: production-frontend
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    name: Build and test frontend
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: npm ci
+      - run: npm run build
+      - run: PW_WORKERS=1 npm run test:ui
+      - name: Upload UI diagnostics
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-ui-diagnostics
+          path: |
+            web/test-results
+            web/playwright-report
+            /tmp/opencode/shots
+          if-no-files-found: ignore
+          retention-days: 7
+
+  deploy:
+    name: Deploy production frontend
+    needs: verify
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: https://dls.rpras.my.id/
+    env:
+      AWS_REGION_NAME: ${{ vars.AWS_REGION }}
+      AWS_PROFILE_NAME: default
+      DASHBOARD_BUCKET: ${{ vars.DASHBOARD_BUCKET }}
+      CLOUDFRONT_DISTRIBUTION_ID: ${{ vars.CLOUDFRONT_DISTRIBUTION_ID }}
+      VITE_UPLOAD_API_URL: ${{ vars.VITE_UPLOAD_API_URL }}
+      AWS_DEPLOY_ROLE_ARN: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - name: Install frontend dependencies
+        run: npm ci
+        working-directory: web
+      - name: Validate deployment configuration
+        run: |
+          test -n "$AWS_REGION_NAME"
+          test -n "$DASHBOARD_BUCKET"
+          test -n "$CLOUDFRONT_DISTRIBUTION_ID"
+          test -n "$AWS_DEPLOY_ROLE_ARN"
+      - uses: aws-actions/configure-aws-credentials@v5
+        with:
+          role-to-assume: ${{ env.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+      - name: Deploy dashboard
+        run: scripts/deploy-web.sh --wait
+      - name: Smoke test production
+        run: |
+          curl --fail --retry 5 --retry-all-errors --silent --show-error --output /dev/null https://dls.rpras.my.id/
+          curl --fail --retry 5 --retry-all-errors --silent --show-error --output /dev/null https://dls.rpras.my.id/stats.json
+      - name: Publish deployment summary
+        run: |
+          {
+            echo "## Frontend deployment"
+            echo
+            echo "- Environment: production"
+            echo "- URL: https://dls.rpras.my.id/"
+            echo "- Commit: \`${GITHUB_SHA}\`"
+            echo "- Bucket: \`${DASHBOARD_BUCKET}\`"
+            echo "- Distribution: \`${CLOUDFRONT_DISTRIBUTION_ID}\`"
+          } >> "$GITHUB_STEP_SUMMARY"
