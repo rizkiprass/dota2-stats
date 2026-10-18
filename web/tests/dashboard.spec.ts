@@ -59,6 +59,14 @@ test("desktop dashboard renders and captures", async ({ page }) => {
   await expect(page.getByRole("heading", { name: "Most toxic player" })).toBeVisible();
   await expect(page.getByText("Overall toxicity index")).toBeVisible();
   await expect(page.getByText("Not an official Dota Behavior Score.")).toBeVisible();
+  const toxicBox = await page.locator(".toxic-feature").boundingBox();
+  const winrateBox = await page.locator(".winrate-feature").boundingBox();
+  expect(toxicBox).not.toBeNull();
+  expect(winrateBox).not.toBeNull();
+  expect(Math.abs(toxicBox!.width - winrateBox!.width)).toBeLessThan(1);
+  expect(Math.abs(toxicBox!.y - winrateBox!.y)).toBeLessThan(1);
+  expect(winrateBox!.x).toBeGreaterThan(toxicBox!.x + toxicBox!.width);
+  expect(await horizontalOverflow(page)).toBe(0);
   await expect(page.getByRole("navigation", { name: "Primary navigation" }).getByRole("link", { name: "Records" })).toHaveCount(1);
   await expect(page.getByRole("heading", { name: "Lobby leaders" })).toBeVisible();
   await page.getByRole("button", { name: "Collapse navigation" }).click();
@@ -91,6 +99,59 @@ test("mobile dashboard renders and captures", async ({ page }) => {
 
   expect(errors.pageErrors, "no uncaught page errors").toEqual([]);
   expect(errors.consoleErrors, "no console errors").toEqual([]);
+});
+
+test("combined win rate card ranks eligible players and sorts without changing the leader", async ({ page }) => {
+  await page.route("**/stats.json", async (route) => {
+    const response = await route.fetch();
+    const stats = await response.json();
+    const template = Object.values(stats.players)[0] as Record<string, unknown>;
+    stats.players = Object.fromEntries(Array.from({ length: 7 }, (_, index) => [String(index + 1), {
+      ...template,
+      player_name: `Ranked player ${index + 1}`,
+      matches: index === 6 ? 1 : 4,
+      wins: index === 6 ? 1 : Math.max(0, 4 - index),
+      losses: index === 6 ? 0 : Math.min(4, index),
+      win_rate: index === 6 ? 100 : Math.max(0, 100 - index * 25),
+    }]));
+    stats.player_recent_results = { "1": ["W", "W", "W", "W"] };
+    await route.fulfill({ response, json: stats });
+  });
+  await page.setViewportSize(DESKTOP);
+  await gotoDashboard(page);
+  const card = page.getByRole("article", { name: "Highest Win Rate" });
+  await expect(card).toHaveCount(1);
+  await expect(card.getByRole("region", { name: "Qualifying Players" }).locator("strong")).toHaveText("6");
+  await expect(card.getByText("Lobby avg 41.67%")).toBeVisible();
+  await expect(card.locator(".winrate-ranking-row")).toHaveCount(5);
+  await expect(card.locator(".winrate-ranking-row").first().locator(".winrate-rank")).toHaveText("#1");
+  await expect(card.locator(".winrate-leader .winrate-player-name")).toHaveAttribute("href", "/player/1");
+  await expect(card.locator(".winrate-leader .avatar")).toHaveCSS("width", "68px");
+  await card.getByRole("combobox").selectOption("asc");
+  await expect(card.locator(".winrate-ranking-row").first().locator(".winrate-row-value")).toHaveText("0%");
+  await expect(card.locator(".winrate-leader .winrate-player-name")).toHaveAttribute("href", "/player/1");
+  await expect(card.locator(".winrate-ranking-row").first().locator(".winrate-gauge i")).toHaveCSS("width", "0px");
+  await page.setViewportSize(MOBILE);
+  await expectNoOverflow(page, "combined win rate card should fit mobile");
+  await expect(card.locator(".winrate-leader .avatar")).toHaveCSS("width", "68px");
+  await card.screenshot({ path: `${OUT_DIR}/winrate-mobile.png`, style: ".mobile-nav-toggle, .mobile-nav-title, .app-shell::before { visibility: hidden !important; }" });
+  await page.setViewportSize(DESKTOP);
+  await card.getByRole("combobox").selectOption("desc");
+  await card.screenshot({ path: `${OUT_DIR}/winrate-desktop.png` });
+  await card.getByRole("link", { name: "Highest Win Rate", exact: true }).click();
+  await expect(page).toHaveURL(/\/leaderboard\/highest_win_rate$/);
+  await expect(page.locator(".board-title")).toHaveText("Highest Win Rate");
+});
+
+test("win rate spotlight is omitted when no players qualify", async ({ page }) => {
+  await page.route("**/stats.json", async (route) => {
+    const response = await route.fetch();
+    const stats = await response.json();
+    for (const player of Object.values(stats.players) as Array<{ matches: number }>) player.matches = 1;
+    await route.fulfill({ response, json: stats });
+  });
+  await gotoDashboard(page);
+  await expect(page.getByRole("article", { name: "Highest Win Rate" })).toHaveCount(0);
 });
 
 test("activity stats live on the records page", async ({ page }) => {

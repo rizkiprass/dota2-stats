@@ -42,7 +42,7 @@ s3 = boto3.client("s3")
 PARSED_PREFIX = "parsed/"
 STATS_KEY = "stats/stats.json"
 MATCHES_KEY = "stats/matches.json"
-SCHEMA_VERSION = "1.7"
+SCHEMA_VERSION = "1.8"
 
 # Optional static-website mirror. When set, the same dashboard payload is also
 # written here so the browser can fetch it same-origin (no CORS, no public data
@@ -65,6 +65,7 @@ MIN_HERO_PICKS = int(os.environ.get("MIN_HERO_PICKS", "5"))
 MIN_TEAMMATE_MATCHES = int(os.environ.get("MIN_TEAMMATE_MATCHES", "3"))
 MIN_H2H_MATCHES = int(os.environ.get("MIN_H2H_MATCHES", "3"))
 MIN_BEHAVIOR_MATCHES = int(os.environ.get("MIN_BEHAVIOR_MATCHES", "3"))
+MIN_ROLE_MATCHES = int(os.environ.get("MIN_ROLE_MATCHES", "2"))
 LEADERBOARD_LIMIT = int(os.environ.get("LEADERBOARD_LIMIT", "10"))
 # Newest matches kept in the lazy per-match payload. The dashboard never reads
 # history itself, so only detail pages feel this cap.
@@ -323,6 +324,160 @@ def _new_behavior_record() -> dict[str, Any]:
         "disconnects": 0,
         "abandons": 0,
         "chatwheel": defaultdict(int),
+    }
+
+
+def _new_role_record() -> dict[str, Any]:
+    return {
+        "matches": 0,
+        "wins": 0,
+        "duration": 0.0,
+        "kill_participation": 0.0,
+        "gpm": 0.0,
+        "xpm": 0.0,
+        "last_hits": 0.0,
+        "hero_damage_per_minute": 0.0,
+        "tower_damage_per_minute": 0.0,
+        "stuns_per_minute": 0.0,
+        "vision": 0.0,
+        "assists": 0.0,
+        "role_confidence": 0.0,
+    }
+
+
+def _number(value: Any) -> float:
+    return float(value) if isinstance(value, (int, float)) else 0.0
+
+
+def _add_role_observation(record: dict[str, Any], player: dict[str, Any], duration: float) -> None:
+    minutes = max(duration / 60.0, 1.0)
+    record["matches"] += 1
+    record["wins"] += int(player["win"])
+    record["duration"] += duration
+    record["kill_participation"] += _number(player.get("kill_participation"))
+    record["gpm"] += _number(player.get("gold")) / minutes
+    record["xpm"] += _number(player.get("xp")) / minutes
+    record["last_hits"] += _number(player.get("last_hits"))
+    record["hero_damage_per_minute"] += _number(player.get("hero_damage")) / minutes
+    record["tower_damage_per_minute"] += _number(player.get("tower_damage")) / minutes
+    record["stuns_per_minute"] += _number(player.get("stuns")) / minutes
+    record["vision"] += _number(player.get("obs_placed")) + _number(player.get("sen_placed"))
+    record["assists"] += _number(player.get("assists"))
+    record["role_confidence"] += _number(player.get("role_confidence"))
+
+
+ROLE_SCORING: dict[str, dict[str, Any]] = {
+    "support": {
+        "description": "Lobby-relative support impact from vision, participation, assists, disable, and wins.",
+        "metrics": [
+            ("vision", "Vision contribution", 0.30, "wards per match"),
+            ("kill_participation", "Kill participation", 0.25, "%"),
+            ("assists", "Assists", 0.20, "per match"),
+            ("stuns_per_minute", "Disable", 0.15, "minutes"),
+            ("win_rate", "Win rate", 0.10, "%"),
+        ],
+    },
+    "offlane": {
+        "description": "Lobby-relative offlane impact from fights, damage, objectives, disable, and wins.",
+        "metrics": [
+            ("kill_participation", "Kill participation", 0.25, "%"),
+            ("hero_damage_per_minute", "Hero damage", 0.25, "per minute"),
+            ("tower_damage_per_minute", "Tower damage", 0.20, "per minute"),
+            ("stuns_per_minute", "Disable", 0.20, "minutes"),
+            ("win_rate", "Win rate", 0.10, "%"),
+        ],
+    },
+    "carry": {
+        "description": "Lobby-relative carry impact from farm, hero damage, objectives, last hits, and wins.",
+        "metrics": [
+            ("gpm", "Gold per minute", 0.30, "GPM"),
+            ("hero_damage_per_minute", "Hero damage", 0.25, "per minute"),
+            ("tower_damage_per_minute", "Tower damage", 0.25, "per minute"),
+            ("last_hits", "Last hits", 0.10, "per match"),
+            ("win_rate", "Win rate", 0.10, "%"),
+        ],
+    },
+}
+
+
+def _finalize_role_records(
+    records: dict[str, dict[str, dict[str, Any]]],
+    player_names: dict[str, str],
+) -> tuple[dict[str, list[dict[str, Any]]], dict[str, int]]:
+    """Publish role rankings using role-specific, lobby-relative metrics."""
+    rankings: dict[str, list[dict[str, Any]]] = {}
+    eligible_counts: dict[str, int] = {}
+    for role, role_records in records.items():
+        finalized: list[dict[str, Any]] = []
+        for player_id, record in role_records.items():
+            if record["matches"] < MIN_ROLE_MATCHES:
+                continue
+            matches = record["matches"]
+            item = {
+                "id": player_id,
+                "player_name": player_names.get(player_id),
+                "role": role,
+                "matches": matches,
+                "wins": record["wins"],
+                "win_rate": _rate(record["wins"], matches),
+                "kill_participation": _round(record["kill_participation"] / matches),
+                "gpm": _round(record["gpm"] / matches),
+                "xpm": _round(record["xpm"] / matches),
+                "last_hits": _round(record["last_hits"] / matches),
+                "hero_damage_per_minute": _round(record["hero_damage_per_minute"] / matches),
+                "tower_damage_per_minute": _round(record["tower_damage_per_minute"] / matches),
+                "stuns_per_minute": _round(record["stuns_per_minute"] / matches),
+                "vision": _round(record["vision"] / matches),
+                "assists": _round(record["assists"] / matches),
+                "role_confidence": _round(record["role_confidence"] / matches),
+            }
+            finalized.append(item)
+        metrics = ROLE_SCORING[role]["metrics"]
+        maxima = {
+            metric: max((item[metric] for item in finalized), default=0.0)
+            for metric, _, _, _ in metrics
+            if metric != "win_rate"
+        }
+        eligible_counts[role] = len(finalized)
+        for item in finalized:
+            score = 0.0
+            breakdown = []
+            for metric, label, weight, unit in metrics:
+                maximum = 100.0 if metric == "win_rate" else maxima.get(metric, 0.0)
+                normalized = ((item[metric] / maximum) if maximum else 0.0) * 100
+                contribution = weight * normalized
+                score += contribution
+                breakdown.append({
+                    "key": metric,
+                    "label": label,
+                    "value": item[metric],
+                    "normalized": _round(normalized),
+                    "weight": _round(weight * 100),
+                    "contribution": _round(contribution),
+                    "unit": unit,
+                })
+            item["score"] = _round(score)
+            item["score_breakdown"] = breakdown
+        rankings[role] = sorted(finalized, key=lambda item: (-item["score"], -item["matches"], item["id"]))[:LEADERBOARD_LIMIT]
+    return rankings, eligible_counts
+
+
+def _role_scoring_metadata(
+    rankings: dict[str, list[dict[str, Any]]],
+    eligible_counts: dict[str, int],
+) -> dict[str, dict[str, Any]]:
+    return {
+        role: {
+            "description": config["description"],
+            "minimum_matches": MIN_ROLE_MATCHES,
+            "eligible_players": eligible_counts.get(role, 0),
+            "method": "Lobby-relative weighted score",
+            "metrics": [
+                {"key": key, "label": label, "weight": _round(weight * 100), "unit": unit}
+                for key, label, weight, unit in config["metrics"]
+            ],
+        }
+        for role, config in ROLE_SCORING.items()
     }
 
 
@@ -633,6 +788,9 @@ def aggregate_matches(
     teammates: defaultdict[str, dict[str, int]] = defaultdict(_new_pair_record)
     head_to_head: defaultdict[str, dict[str, int]] = defaultdict(_new_h2h_record)
     behavior: defaultdict[str, dict[str, Any]] = defaultdict(_new_behavior_record)
+    role_performance: defaultdict[str, defaultdict[str, dict[str, Any]]] = defaultdict(
+        lambda: defaultdict(_new_role_record)
+    )
     radiant_wins = 0
     total_duration = 0.0
     duplicate_count = 0
@@ -687,6 +845,9 @@ def aggregate_matches(
             _add_player_observation(players[player_id], player)
             _add_behavior_observation(behavior[player_id], player)
             _add_player_observation(player_heroes[player_id][hero_id], player)
+            role = player.get("role")
+            if role in {"support", "offlane", "carry"}:
+                _add_role_observation(role_performance[role][player_id], player, match["duration"])
             (radiant if on_radiant else dire).append((player_id, player))
 
         # A contested hero is one BOTH sides picked in the same match. The count
@@ -756,6 +917,7 @@ def aggregate_matches(
         for pair_id, record in sorted(head_to_head.items())
     }
     finalized_behavior = _finalize_behavior_records(behavior)
+    finalized_roles, role_eligible_counts = _finalize_role_records(role_performance, player_names)
     summary = {
         "total_matches": valid_count,
         "total_players": len(finalized_players),
@@ -774,6 +936,8 @@ def aggregate_matches(
         "teammates": finalized_teammates,
         "head_to_head": finalized_h2h,
         "behavior": {"players": finalized_behavior},
+        "role_rankings": finalized_roles,
+        "role_scoring": _role_scoring_metadata(finalized_roles, role_eligible_counts),
         "leaderboards": _generate_leaderboards(finalized_players, finalized_heroes, finalized_player_heroes, finalized_teammates, finalized_h2h),
         "recent_matches": _recent_matches(match_summaries),
         "player_recent_results": _player_recent_results(match_summaries),

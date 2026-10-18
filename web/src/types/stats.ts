@@ -179,6 +179,52 @@ export interface BehaviorStats {
   players: Record<string, BehaviorPlayerRecord>;
 }
 
+export interface RoleRecord {
+  id: string;
+  player_name: string | null;
+  role: "support" | "offlane" | "carry";
+  matches: number;
+  wins: number;
+  win_rate: number;
+  score: number;
+  kill_participation: number;
+  gpm: number;
+  xpm: number;
+  last_hits: number;
+  hero_damage_per_minute: number;
+  tower_damage_per_minute: number;
+  stuns_per_minute: number;
+  vision: number;
+  assists: number;
+  role_confidence: number;
+  score_breakdown?: RoleScoreBreakdown[];
+}
+
+export interface RoleScoreBreakdown {
+  key: string;
+  label: string;
+  value: number;
+  normalized: number;
+  weight: number;
+  contribution: number;
+  unit: string;
+}
+
+export interface RoleScoringMetric {
+  key: string;
+  label: string;
+  weight: number;
+  unit: string;
+}
+
+export interface RoleScoring {
+  description: string;
+  minimum_matches: number;
+  eligible_players: number;
+  method: string;
+  metrics: RoleScoringMetric[];
+}
+
 /**
  * Bounded newest-match teaser carried by stats.json, so the dashboard can show
  * recent activity without fetching the per-match payload.
@@ -221,5 +267,8 @@ export interface Stats {
   /** Newest-first, bounded W/L outcomes per player; present from schema 1.7 onward. */
   player_recent_results?: Record<string, Array<"W" | "L">>;
   behavior?: BehaviorStats;
+  /** Role-specific rankings generated from replay telemetry. */
+  role_rankings?: Record<string, RoleRecord[]>;
+  role_scoring?: Record<string, RoleScoring>;
   metadata: Metadata;
 }

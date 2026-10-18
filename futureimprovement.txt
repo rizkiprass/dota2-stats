@@ -1,0 +1,124 @@
+FUTURE IMPROVEMENTS - DOTA 2 STATS
+
+Tujuan
+Meningkatkan performa, reliability, dan fitur dengan biaya rendah serta
+mengutamakan layanan usage-based, tanpa server atau database always-on.
+
+Kondisi Saat Ini
+- React static di S3 + CloudFront.
+- Upload replay langsung ke S3 melalui presigned URL dari API Gateway/Lambda.
+- Lambda parser menghasilkan normalized JSON; Lambda aggregator membangun
+  stats.json dan matches.json dari history di S3.
+- CloudFront edge cache untuk stats.json dan matches.json saat ini disabled.
+- Aggregator membaca ulang seluruh parsed history setiap rebuild.
+- Default parser: memory 4096 MB, temporary storage 4096 MB, timeout 900 detik.
+- Catatan ini berdasarkan repository, bukan verifikasi deployment atau tagihan.
+
+PRIORITAS OPTIMASI
+
+1. Cache JSON dengan freshness eksplisit
+   - Gunakan manifest dengan TTL pendek dan payload versioned yang immutable.
+   - Publish semua payload terlebih dahulu, lalu update manifest sebagai commit
+     point agar stats dan match detail berasal dari build yang sama.
+   - Manfaat: dashboard lebih cepat dan origin requests ke S3 berkurang.
+   - Biaya: memakai S3 + CloudFront existing; storage, request, dan transfer tetap
+     dikenakan sesuai penggunaan dan pricing plan yang dipakai.
+
+2. SQS + batching untuk aggregator
+   - Antrikan parsed events dan gabungkan beberapa event dalam satu rebuild.
+   - Tambahkan DLQ, retry policy, idempotency, dan kontrol concurrent rebuild.
+   - Queue saja tidak menjamin tidak ada overlapping publish. Desain serialisasi
+     atau locking harus dipilih sebelum implementasi.
+   - Manfaat: mengurangi full-history rebuild berulang saat batch upload.
+   - Biaya: SQS per operasi, Lambda per invocation dan durasi. Standard polling
+     dapat menghasilkan request meskipun queue kosong.
+
+3. Status upload sampai benar-benar published
+   - Pisahkan status processing, parsed, published, excluded, dan failed.
+   - Nyatakan selesai hanya setelah match tercakup dalam build yang published.
+   - Gunakan polling exponential backoff + jitter dengan batas waktu yang sesuai
+     durasi parser, bukan polling tetap yang berhenti terlalu cepat.
+   - Manfaat: user tidak melihat sukses sebelum dashboard ter-update.
+   - Biaya: memakai S3/API/Lambda existing dan mengurangi polling berulang.
+
+4. Benchmark konfigurasi parser Lambda
+   - Uji beberapa konfigurasi memory dengan replay representatif yang sama.
+   - Ukur durasi, peak memory, temporary storage, failure rate, dan biaya/replay.
+   - Memory lebih kecil belum tentu lebih murah jika runtime menjadi lebih lama.
+   - Manfaat: memilih konfigurasi berdasarkan pengukuran, bukan default.
+
+5. History dan detail match on-demand
+   - Publish sanitized JSON per match atau per bulan, beserta index-nya.
+   - Browser hanya mengambil detail yang dibuka; recent matches tetap ringan.
+   - Manfaat: payload awal lebih kecil dan history lama tetap dapat diakses.
+   - Biaya: S3 + CloudFront sesuai storage, request, dan transfer.
+
+FITUR TAMBAHAN
+
+1. Discord match summary
+   - Lambda mengirim webhook setelah publish sukses.
+   - Isi: skor, top performer, perubahan leaderboard, dan link match.
+   - Deduplicate berdasarkan match/build agar retry tidak mengirim dua kali.
+   - Tidak membutuhkan bot atau server always-on.
+   - Jangan kirim shared upload token atau raw chat.
+
+2. Player comparison dan personal insights
+   - Hitung saat aggregation dari data existing, tampilkan di React.
+   - Contoh: tren win rate, hero terbaik, duo efektif, dan head-to-head.
+   - Tidak memerlukan service tambahan; tetap menambah compute/payload sesuai
+     kompleksitas fitur.
+
+3. Seasonal atau monthly leaderboard
+   - Generate static JSON per season/bulan saat aggregation.
+   - Memberikan leaderboard periodik tanpa database query per page view.
+
+4. AI match recap (opsional)
+   - Gunakan Amazon Bedrock On-Demand saat user meminta recap.
+   - Simpan hasil di S3 dengan key berdasarkan match dan versi prompt/model agar
+     permintaan berulang dapat memakai hasil existing.
+   - Batasi input/output token, quota penggunaan, dan retry.
+   - Gunakan statistik yang tersedia; jangan mengarang analisis gameplay yang
+     tidak didukung data replay yang telah diekstrak.
+   - Biaya sesuai model dan token; bukan otomatis gratis atau selalu murah.
+   - Hindari generate recap otomatis untuk seluruh history.
+
+RELIABILITY DAN GUARDRAIL BIAYA
+- CloudWatch + SNS: alert parse failure, publish failure, durasi abnormal, dan
+  queue age/DLQ jika SQS digunakan. Metrics dan alarms dapat memiliki biaya
+  periodik, jadi bukan murni pay-per-request.
+- Tambahkan retry terkontrol untuk transient failure. Bedakan invalid replay
+  permanen dari kegagalan sementara saat mengakses S3.
+- Jangan publish history yang diam-diam berkurang akibat parsed object gagal
+  dibaca sementara.
+- S3 Lifecycle: atur retensi noncurrent versions dan abort incomplete multipart
+  uploads. Pertimbangkan storage class replay lama berdasarkan kebutuhan reparse.
+- Hitung retrieval fee, minimum storage duration, dan restore latency sebelum
+  memindahkan replay ke archival storage. Jangan hapus source of truth sembarang.
+- Pertahankan upload throttling; tetapkan batas penggunaan fitur AI bila dibuat.
+- Hindari dahulu RDS, ElastiCache, OpenSearch, EKS, dan NAT Gateway khusus untuk
+  stack ini. Belum ada kebutuhan yang membenarkan baseline cost tambahan.
+
+URUTAN IMPLEMENTASI YANG DISARANKAN
+1. Cache + publish status + benchmark Lambda.
+2. SQS + DLQ jika batch upload sering atau rebuild mulai lambat.
+3. Discord summary + seasonal leaderboard.
+4. Bedrock on-demand hanya bila AI recap memang dibutuhkan.
+
+DATA UNTUK ESTIMASI BIAYA
+- AWS region: [TODO: isi region deployment]
+- Replay per bulan dan rata-rata ukuran: [TODO: isi volume replay]
+- Pola upload single/batch: [TODO: isi pola upload]
+- Durasi parsing dan peak memory aktual: [TODO: isi hasil pengukuran]
+- Jumlah match tersimpan dan durasi rebuild: [TODO: isi ukuran history]
+- Traffic dashboard dan transfer data: [TODO: isi traffic]
+- Pricing plan dan eligibility Free Tier: [TODO: verifikasi]
+
+REFERENSI REPOSITORY
+- terraform/dashboard.tf: cache behavior stats.json dan matches.json.
+- aggregator/aggregator.py: _load_matches dan _matches_payload.
+- terraform/variables.tf: konfigurasi parser dan aggregator Lambda.
+- api/handler.py: upload dan replay status API.
+- web/src/components/UploadReplay.tsx: polling dan upload completion.
+
+Referensi AWS untuk desain SQS/Lambda:
+https://docs.aws.amazon.com/lambda/latest/dg/services-sqs-parameters.html

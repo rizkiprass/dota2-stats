@@ -55,6 +55,12 @@ resource "aws_iam_role_policy" "upload_api_s3" {
         Resource = "${aws_s3_bucket.replay_data.arn}/parse-failed/*"
       },
       {
+        Sid      = "ReadParsedSchema"
+        Effect   = "Allow"
+        Action   = ["s3:GetObject"]
+        Resource = "${aws_s3_bucket.replay_data.arn}/parsed/*"
+      },
+      {
         # A duplicate check is an exact-key prefix listing, so the role needs
         # ListBucket for the three prefixes the API inspects.
         Sid      = "ListReplayObjects"

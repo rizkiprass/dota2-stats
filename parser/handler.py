@@ -22,7 +22,7 @@ from typing import Any
 
 import boto3
 
-from normalize import normalize_events
+from normalize import SCHEMA_VERSION, normalize_events
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -58,6 +58,17 @@ def _object_exists(bucket: str, key: str) -> bool:
     """
     response = s3.list_objects_v2(Bucket=bucket, Prefix=key, MaxKeys=1)
     return any(item["Key"] == key for item in response.get("Contents", []))
+
+
+def _parsed_schema_version(bucket: str, key: str) -> int:
+    """Return the parsed payload version, treating legacy objects as version 0."""
+    try:
+        response = s3.get_object(Bucket=bucket, Key=key)
+        payload = json.loads(response["Body"].read().decode("utf-8"))
+        value = payload.get("schema_version", 0)
+        return int(value) if str(value).lstrip("-").isdigit() else 0
+    except Exception:  # noqa: BLE001 - a missing/invalid derived object must reparse
+        return 0
 
 
 def _write_failure_marker(bucket: str, match_id: str, message: str) -> None:
@@ -126,8 +137,12 @@ def _process_record(bucket: str, key: str) -> dict:
     json_path = f"/tmp/{match_id}.json"
     parsed_key = f"{PARSED_PREFIX}{match_id}.json"
 
-    if SKIP_IF_ALREADY_PARSED and _object_exists(bucket, parsed_key):
-        logger.info("Skipping %s: %s already exists", key, parsed_key)
+    if (
+        SKIP_IF_ALREADY_PARSED
+        and _object_exists(bucket, parsed_key)
+        and _parsed_schema_version(bucket, parsed_key) >= SCHEMA_VERSION
+    ):
+        logger.info("Skipping %s: %s is already current", key, parsed_key)
         _log_event(match_id=match_id, replay_file=key, skipped="already_parsed")
         return {"match_id": match_id, "success": True, "skipped": "already_parsed"}
 

@@ -42,6 +42,12 @@ resource "aws_iam_role_policy" "lambda_s3" {
         Resource = "${aws_s3_bucket.replay_data.arn}/parsed/*"
       },
       {
+        Sid      = "ReadParsedSchema"
+        Effect   = "Allow"
+        Action   = ["s3:GetObject"]
+        Resource = "${aws_s3_bucket.replay_data.arn}/parsed/*"
+      },
+      {
         # Failure markers the upload API reads back to report a failed parse.
         Sid      = "WriteParseFailures"
         Effect   = "Allow"

@@ -5,9 +5,10 @@ route). The dashboard is a public static site, so this function is the only
 place that decides whether a replay may be uploaded at all:
 
 * ``POST /replays``       — validate the shared upload password, reject a
-                            duplicate match, then hand back a presigned S3 POST
-                            for ``raw/<match_id>.dem``. The browser uploads the
-                            replay straight to S3; it never flows through here.
+                             current duplicate (but allow stale parsed schemas),
+                             then hand back a presigned S3 POST for
+                             ``raw/<match_id>.dem``. The browser uploads the
+                             replay straight to S3; it never flows through here.
 * ``GET  /replays/{id}``  — report ``uploaded`` / ``processing`` / ``parsed`` /
                             ``failed`` so the dialog can show progress.
 * ``GET  /token-check``   — cheap password check so the dialog can give instant
@@ -15,10 +16,10 @@ place that decides whether a replay may be uploaded at all:
 
 Duplicate protection is layered:
 
-1. this function rejects when ``raw/<match_id>.dem`` or
-   ``parsed/<match_id>.json`` already exists (HTTP 409); and
-2. the parser Lambda skips a replay whose parsed object already exists, so a
-   re-triggered S3 event cannot re-process a duplicate either.
+1. this function rejects current objects (HTTP 409), while allowing a replay
+   whose parsed schema is older than the deployed parser; and
+2. the parser Lambda skips only when the parsed schema is current, so a normal
+   re-upload can refresh stale derived data.
 
 The upload password is never baked into the frontend build. It is supplied by
 the player once and stored in the browser, then sent in the
@@ -47,6 +48,7 @@ UPLOAD_TOKEN = os.environ.get("UPLOAD_TOKEN", "")
 RAW_PREFIX = "raw/"
 PARSED_PREFIX = "parsed/"
 FAILED_PREFIX = "parse-failed/"
+CURRENT_SCHEMA_VERSION = 3
 
 MAX_UPLOAD_BYTES = int(os.environ.get("MAX_UPLOAD_BYTES", str(512 * 1024 * 1024)))
 PRESIGN_EXPIRES_SECONDS = int(os.environ.get("PRESIGN_EXPIRES_SECONDS", "300"))
@@ -133,10 +135,27 @@ def _parse_body(event: dict[str, Any]) -> dict[str, Any]:
     return parsed if isinstance(parsed, dict) else {}
 
 
+def _parsed_schema_version(match_id: str) -> int:
+    """Read the derived schema version so stale replays can be uploaded again."""
+    try:
+        response = s3.get_object(Bucket=BUCKET, Key=f"{PARSED_PREFIX}{match_id}.json")
+        payload = json.loads(response["Body"].read().decode("utf-8"))
+        value = payload.get("schema_version", 0)
+        return int(value) if str(value).lstrip("-").isdigit() else 0
+    except (ClientError, UnicodeDecodeError, json.JSONDecodeError, TypeError, ValueError):
+        return 0
+
+
 def _duplicate(match_id: str) -> dict[str, Any] | None:
     """The duplicate record for a match id, checked strongest signal first."""
+    parsed_key = f"{PARSED_PREFIX}{match_id}.json"
+    parsed = _find(parsed_key)
+    if parsed is not None and _parsed_schema_version(match_id) < CURRENT_SCHEMA_VERSION:
+        # The raw replay remains the source of truth. Re-uploading it lets the
+        # normal S3 event path regenerate a parsed payload after a schema bump.
+        return None
     for stage, key in (
-        ("parsed", f"{PARSED_PREFIX}{match_id}.json"),
+        ("parsed", parsed_key),
         ("raw", f"{RAW_PREFIX}{match_id}.dem"),
     ):
         found = _find(key)

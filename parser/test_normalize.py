@@ -79,5 +79,52 @@ class BehaviorNormalizationTests(unittest.TestCase):
         self.assertEqual(behavior["disconnects"], 1)
 
 
+class ReplayTelemetryNormalizationTests(unittest.TestCase):
+    def test_persists_latest_telemetry_and_schema_version(self):
+        raw = "\n".join(
+            [
+                json.dumps({"type": "player_slot", "key": "0", "value": 0}),
+                json.dumps({
+                    "type": "interval",
+                    "slot": 0,
+                    "time": 300,
+                    "hero_id": 1,
+                    "unit": "CDOTA_Unit_Hero_AntiMage",
+                    "kills": 4,
+                    "deaths": 2,
+                    "assists": 8,
+                    "gold": 9000,
+                    "xp": 10000,
+                    "lh": 120,
+                    "denies": 8,
+                    "networth": 11000,
+                    "hero_damage": 24000,
+                    "tower_damage": 900,
+                    "stuns": 12.5,
+                    "obs_placed": 3,
+                    "sen_placed": 2,
+                    "x": 1200,
+                    "y": 3000,
+                }),
+                _event(
+                    "epilogue",
+                    {
+                        "gameInfo_": {"dota_": {"matchId_": 789, "gameWinner_": 2, "endTime_": 500}},
+                        "playbackTime_": 300,
+                    },
+                ),
+            ]
+        )
+
+        match = normalize_events(raw, "fallback")
+        player = match["players"][0]
+
+        self.assertEqual(match["schema_version"], normalize.SCHEMA_VERSION)
+        self.assertEqual(player["hero_damage"], 24000)
+        self.assertEqual(player["last_hits"], 120)
+        self.assertEqual(player["obs_placed"], 3)
+        self.assertIn(player["role"], {"carry", "support", "offlane", "unknown", "mid"})
+
+
 if __name__ == "__main__":
     unittest.main()

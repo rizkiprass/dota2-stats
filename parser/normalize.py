@@ -42,6 +42,7 @@ import re
 from typing import Any, Iterable, Optional
 
 STEAM64_BASE = 76561197960265728
+SCHEMA_VERSION = 3
 PING_BURST_WINDOW_SECONDS = 5
 PING_BURST_MINIMUM = 3
 
@@ -176,6 +177,84 @@ def _finalize_behavior(raw: Optional[dict[str, Any]]) -> dict[str, Any]:
     }
 
 
+# Lane inference runs on the parser's cell-unit coordinates (roughly 64-190 per
+# axis, see getPreciseLocation in odota/parser). Each early-game position votes
+# for a lane band around the x=y diagonal; a band this wide captures the lane
+# bodies without soaking up river/jungle movement.
+LANE_VOTE_THRESHOLD = 15.0
+LANE_PHASE_START = 90  # skip the opening fountain/rosh shuffle
+LANE_PHASE_END = 600  # laning phase ends at 10 minutes
+
+
+def _lane_vote(x: float, y: float) -> str:
+    diff = x - y
+    if diff > LANE_VOTE_THRESHOLD:
+        return "bottom"
+    if diff < -LANE_VOTE_THRESHOLD:
+        return "top"
+    return "mid"
+
+
+def _farm_score(snapshot: Optional[dict]) -> float:
+    """Core-vs-support discriminator: last hits dominate, gold breaks ties."""
+    if not snapshot:
+        return 0.0
+    lh = snapshot.get("lh")
+    gold = snapshot.get("gold")
+    return (float(lh) if isinstance(lh, (int, float)) else 0.0) + (
+        float(gold) / 1000 if isinstance(gold, (int, float)) else 0.0
+    )
+
+
+def _infer_roles(
+    slot_teams: dict[int, str],
+    lane_votes_by_slot: dict[int, dict[str, int]],
+    farm_snapshot_by_slot: dict[int, dict],
+) -> dict[int, tuple[str, str, float]]:
+    """Assign (lane, role, confidence) per slot.
+
+    Per-sample position votes during the laning phase (90-600s) elect each
+    player's lane band; within a team's lane pair, the richer 10-minute farm
+    snapshot takes the core role and the leaner one is the support. Bottom is
+    the radiant safelane (dire offlane); top mirrors it. The published
+    confidence is the lane's vote share, so the UI can present this heuristic
+    as exactly that.
+    """
+    lanes: dict[int, tuple[str, float]] = {}
+    for slot in slot_teams:
+        votes = lane_votes_by_slot.get(slot) or {}
+        total = sum(votes.values())
+        if not total:
+            lanes[slot] = ("unknown", 0.0)
+            continue
+        lane, count = max(votes.items(), key=lambda item: (item[1], item[0]))
+        lanes[slot] = (lane, count / total)
+
+    groups: dict[tuple[str, str], list[int]] = {}
+    for slot, team in slot_teams.items():
+        lane, _ = lanes.get(slot, ("unknown", 0.0))
+        groups.setdefault((team, lane), []).append(slot)
+
+    results: dict[int, tuple[str, str, float]] = {}
+    for (team, lane), slots in groups.items():
+        if lane == "mid":
+            for slot in slots:
+                results[slot] = ("mid", "mid", round(lanes[slot][1], 3))
+            continue
+        if lane == "unknown":
+            for slot in slots:
+                results[slot] = ("unknown", "unknown", 0.0)
+            continue
+        safelane = (team == "radiant") == (lane == "bottom")
+        lane_name = "safelane" if safelane else "offlane"
+        ranked = sorted(slots, key=lambda slot: _farm_score(farm_snapshot_by_slot.get(slot)), reverse=True)
+        for index, slot in enumerate(ranked):
+            core = index == 0
+            role = ("carry" if safelane else "offlane") if core else "support"
+            results[slot] = (lane_name, role, round(lanes[slot][1], 3))
+    return results
+
+
 def normalize_events(raw_output: str, match_id_hint: str) -> dict:
     """Convert the raw odota/parser stdout into the MVP match JSON schema.
 
@@ -189,6 +268,8 @@ def normalize_events(raw_output: str, match_id_hint: str) -> dict:
     match_info = None
     player_slot_by_index: dict = {}  # slot index (0-9) -> player_slot value (0-127 radiant / 128-255 dire)
     latest_interval_by_slot: dict = {}  # slot index -> latest interval event
+    lane_votes_by_slot: dict[int, dict[str, int]] = {}
+    farm_snapshot_by_slot: dict[int, dict] = {}  # slot -> latest interval <= 10 min
     behavior_by_slot: dict[int, dict[str, Any]] = {}
 
     def behavior_for(slot: Any) -> Optional[dict[str, Any]]:
@@ -235,6 +316,17 @@ def normalize_events(raw_output: str, match_id_hint: str) -> dict:
             prev = latest_interval_by_slot.get(slot)
             if prev is None or (prev.get("time") or 0) <= time_:
                 latest_interval_by_slot[slot] = e
+            x = e.get("x")
+            y = e.get("y")
+            if LANE_PHASE_START <= time_ <= LANE_PHASE_END:
+                if isinstance(x, (int, float)) and isinstance(y, (int, float)):
+                    votes = lane_votes_by_slot.setdefault(int(slot), {"bottom": 0, "mid": 0, "top": 0})
+                    votes[_lane_vote(float(x), float(y))] += 1
+                if isinstance(slot, int) and (
+                    slot not in farm_snapshot_by_slot
+                    or (farm_snapshot_by_slot[slot].get("time") or 0) <= time_
+                ):
+                    farm_snapshot_by_slot[slot] = e
         elif etype in {"chat", "chatwheel", "pings"}:
             behavior = behavior_for(e.get("slot"))
             if behavior is None:
@@ -293,6 +385,8 @@ def normalize_events(raw_output: str, match_id_hint: str) -> dict:
             hero_name_to_info[hero_name.lower()] = pi
 
     players = []
+    player_slots: list[int] = []
+    slot_teams: dict[int, str] = {}
     for slot in sorted(latest_interval_by_slot.keys()):
         interval = latest_interval_by_slot[slot]
         player_slot_value = player_slot_by_index.get(slot)
@@ -326,13 +420,50 @@ def normalize_events(raw_output: str, match_id_hint: str) -> dict:
                 "deaths": interval.get("deaths"),
                 "assists": interval.get("assists"),
                 "win": win,
+                "gold": interval.get("gold"),
+                "xp": interval.get("xp"),
+                "last_hits": interval.get("lh"),
+                "denies": interval.get("denies"),
+                "networth": interval.get("networth"),
+                "hero_damage": interval.get("hero_damage"),
+                "tower_damage": interval.get("tower_damage"),
+                "stuns": interval.get("stuns"),
+                "obs_placed": interval.get("obs_placed", interval.get("observers_placed")),
+                "sen_placed": interval.get("sen_placed"),
+                "towers_killed": interval.get("towers_killed"),
+                "roshans_killed": interval.get("roshans_killed"),
+                "rune_pickups": interval.get("rune_pickups"),
+                "creeps_stacked": interval.get("creeps_stacked"),
+                "teamfight_participation": interval.get("teamfight_participation"),
                 # Keep counts only. The raw chat message in the event's key is
                 # intentionally discarded before this parsed match is persisted.
                 "behavior": _finalize_behavior(behavior_for(slot)),
             }
         )
+        player_slots.append(int(slot))
+        if team is not None:
+            slot_teams[int(slot)] = team
+
+    role_by_slot = _infer_roles(slot_teams, lane_votes_by_slot, farm_snapshot_by_slot)
+    for player, slot in zip(players, player_slots):
+        lane, role, role_confidence = role_by_slot.get(slot, ("unknown", "unknown", 0.0))
+        player["lane"] = lane
+        player["role"] = role
+        player["role_confidence"] = role_confidence
+
+    team_kills = {
+        team: sum(player.get("kills") or 0 for player in players if player["team"] == team)
+        for team in ("radiant", "dire")
+    }
+    for player in players:
+        team_total = team_kills.get(player["team"], 0)
+        player["kill_participation"] = (
+            ((player.get("kills") or 0) + (player.get("assists") or 0)) / team_total
+            if team_total else None
+        )
 
     return {
+        "schema_version": SCHEMA_VERSION,
         "match_id": str(match_id) if match_id is not None else match_id_hint,
         "duration": duration,
         "radiant_win": radiant_win,

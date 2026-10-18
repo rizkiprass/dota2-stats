@@ -1,9 +1,10 @@
-import type { CSSProperties } from "react";
+import { useEffect, useState, type CSSProperties } from "react";
+import { Link } from "@tanstack/react-router";
 import { Tile, Icon, PlayerAvatar, PlayerName, useCountUp } from "./ui";
 import { fmtDuration, fmtInt, fmtNum, fmtPct } from "../lib/format";
 import { heroCropUrl, heroPortraitUrl } from "../lib/heroes";
 import { playerTopHero } from "../lib/derived";
-import type { Stats } from "../types/stats";
+import type { RoleRecord, Stats } from "../types/stats";
 
 const TINTS = ["--av1", "--av2", "--av3", "--av4", "--av1", "--av3"];
 
@@ -286,6 +287,7 @@ function MostToxicPlayer({ stats }: { stats: Stats }) {
 }
 
 function HighestWinRatePlayer({ stats }: { stats: Stats }) {
+  const [sort, setSort] = useState("desc");
   const candidates = Object.entries(stats.players)
     .map(([id, record]) => ({ id, ...record }))
     .filter((player) => player.matches >= 2)
@@ -299,39 +301,251 @@ function HighestWinRatePlayer({ stats }: { stats: Stats }) {
   if (!player) return null;
   const lobbyAverage = candidates.reduce((total, candidate) => total + candidate.win_rate, 0) / candidates.length;
   const recentResults = stats.player_recent_results?.[player.id] ?? [];
+  const art = heroPortraitUrl(playerTopHero(stats, player.id));
+  const ranked = candidates.map((candidate, index) => ({ ...candidate, rank: index + 1 }));
+  const rows = (sort === "asc" ? [...ranked].sort((a, b) => a.win_rate - b.win_rate || a.rank - b.rank) : ranked).slice(0, 5);
   return (
-    <>
-      <article className="card winrate-feature">
-        <header className="winrate-header">
-          <span className="winrate-title"><Icon name="trophy" /> Match Win Rate</span>
+    <article className="card winrate-feature" aria-labelledby="winrate-heading">
+      <header className="winrate-header">
+        <div>
+          <p className="winrate-kicker"><Icon name="trophy" /> Lobby Leader</p>
+          <h2 id="winrate-heading">
+            <Link to="/leaderboard/$category" params={{ category: "highest_win_rate" }} className="winrate-detail-link" aria-label="Highest Win Rate">
+              <span>Highest <span>Win Rate</span></span>
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m9 5 7 7-7 7" /></svg>
+            </Link>
+          </h2>
+          <p className="winrate-context">Among players with at least 2 matches in this lobby</p>
+        </div>
           <span className="winrate-sample">{fmtInt(player.matches)} matches</span>
-        </header>
-        <div className="winrate-leader">
-          <PlayerAvatar id={player.id} size="sm" />
+      </header>
+      <div className="winrate-leader">
+        {art ? <div className="winrate-art" style={{ backgroundImage: `url(${art})` }} aria-hidden="true" /> : null}
+        <span className="winrate-first">#1</span>
+        <PlayerAvatar id={player.id} size="lg" />
+        <div className="winrate-identity">
           <PlayerName id={player.id} className="winrate-player-name" />
+          <p className="winrate-record"><span>{fmtInt(player.wins)} wins</span> · <span>{fmtInt(player.losses)} losses</span></p>
           {recentResults.length ? (
             <div className="winrate-results" aria-label={`${recentResults.join(", ")} in the most recent matches`}>
               {recentResults.map((result, index) => <span className={result === "W" ? "win" : "loss"} key={`${result}-${index}`}>{result}</span>)}
             </div>
           ) : null}
         </div>
+      </div>
+      <div className="winrate-stats">
+        <section className="winrate-metric" aria-label="Match Win Rate">
+          <h3><Icon name="trophy" /> Match Win Rate</h3>
         <div className="winrate-score">
           <strong>{fmtPct(winRate)}</strong>
           <span>{fmtInt(player.wins)} / {fmtInt(player.matches)} wins</span>
         </div>
         <div className="winrate-gauge" aria-label={`${fmtPct(player.win_rate)} win rate`}>
-          <i style={{ width: `${Math.max(2, Math.min(100, player.win_rate))}%` }} />
+          <i style={{ width: `${Math.max(0, Math.min(100, player.win_rate))}%` }} />
         </div>
         <span className="winrate-average">Lobby avg {fmtPct(lobbyAverage)}</span>
-      </article>
-      <article className="card qualifying-feature">
-        <header className="qualifying-header">
-          <span><Icon name="users" /> Qualifying Players</span>
-        </header>
+        </section>
+        <section className="qualifying-feature" aria-label="Qualifying Players">
+        <h3><Icon name="users" /> Qualifying Players</h3>
         <strong>{fmtInt(candidates.length)}</strong>
         <span>qualifying players</span>
-        <b>#1 of {fmtInt(candidates.length)}</b>
-      </article>
+        <b><span>#1</span> of {fmtInt(candidates.length)}</b>
+        </section>
+      </div>
+      <section className="winrate-ranking" aria-labelledby="winrate-ranking-heading">
+        <header className="winrate-ranking-header">
+          <h3 id="winrate-ranking-heading"><Icon name="layers" /> Player Win Rate Ranking</h3>
+          <select className="board-select" aria-label="Sort player win rate" value={sort} onChange={(event) => setSort(event.target.value)}>
+            <option value="desc">Win rate (high to low)</option>
+            <option value="asc">Win rate (low to high)</option>
+          </select>
+        </header>
+        <ol className="winrate-ranking-list">
+          {rows.map((candidate) => (
+            <li className={`winrate-ranking-row${candidate.rank === 1 ? " is-leader" : ""}`} key={candidate.id}>
+              <span className="winrate-rank">#{candidate.rank}</span>
+              <PlayerAvatar id={candidate.id} />
+              <div className="winrate-row-player">
+                <PlayerName id={candidate.id} />
+                <p className="winrate-record"><span>{fmtInt(candidate.wins)} wins</span> · <span>{fmtInt(candidate.losses)} losses</span></p>
+              </div>
+              <div className="winrate-results" aria-label="Recent match results">
+                {(stats.player_recent_results?.[candidate.id] ?? []).slice(0, 5).map((result, index) => <span className={result === "W" ? "win" : "loss"} key={index}>{result}</span>)}
+              </div>
+              <strong className="winrate-row-value">{fmtPct(candidate.win_rate)}</strong>
+              <div className="winrate-gauge" aria-label={`${fmtPct(candidate.win_rate)} win rate`}><i style={{ width: `${Math.max(0, Math.min(100, candidate.win_rate))}%` }} /></div>
+            </li>
+          ))}
+        </ol>
+      </section>
+    </article>
+  );
+}
+
+type RoleKey = "support" | "offlane" | "carry";
+
+type RoleCardConfig = {
+  key: RoleKey;
+  title: string;
+  icon: "shield" | "swords" | "trophy";
+  tone: string;
+  metric: (record: RoleRecord) => string[];
+};
+
+const ROLE_CARDS: RoleCardConfig[] = [
+  { key: "support", title: "Best support", icon: "shield", tone: "support", metric: (record) => [`Vision ${fmtNum(record.vision, 1)}`, `KP ${fmtNum(record.kill_participation * 100, 1)}%`] },
+  { key: "offlane", title: "Best offlane", icon: "swords", tone: "offlane", metric: (record) => [`Hero dmg ${fmtNum(record.hero_damage_per_minute, 0)}/m`, `Stuns ${fmtNum(record.stuns_per_minute, 2)}/m`] },
+  { key: "carry", title: "Best carry", icon: "trophy", tone: "carry", metric: (record) => [`GPM ${fmtInt(record.gpm)}`, `Tower ${fmtNum(record.tower_damage_per_minute, 0)}/m`] },
+];
+
+function roleValue(record: RoleRecord, key: string): string {
+  const value = record.score_breakdown?.find((metric) => metric.key === key);
+  if (!value) return "—";
+  if (key === "kill_participation" || key === "win_rate") return `${fmtNum(value.value * (key === "kill_participation" ? 100 : 1), 1)}%`;
+  if (key === "gpm") return `${fmtInt(value.value)} GPM`;
+  if (key === "vision" || key === "assists" || key === "last_hits") return `${fmtNum(value.value, 1)} ${value.unit}`;
+  return `${fmtNum(value.value, 2)} ${value.unit}`;
+}
+
+function RoleDetailModal({ role, stats, onClose }: { role: RoleCardConfig; stats: Stats; onClose: () => void }) {
+  const ranking = stats.role_rankings?.[role.key] ?? [];
+  const leader = ranking[0];
+  const scoring = stats.role_scoring?.[role.key];
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+    };
+    document.addEventListener("keydown", onKeyDown);
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.removeEventListener("keydown", onKeyDown);
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [onClose]);
+
+  if (!leader) return null;
+  const breakdown = leader.score_breakdown ?? [];
+
+  return (
+    <div className="role-modal-overlay" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
+      <section className={`role-modal ${role.tone}`} role="dialog" aria-modal="true" aria-labelledby="role-modal-title">
+        <header className="role-modal-header">
+          <div>
+            <p><Icon name={role.icon} /> Role scoring detail</p>
+            <h2 id="role-modal-title">{role.title}</h2>
+            <span>{scoring?.method ?? "Lobby-relative weighted score"}</span>
+          </div>
+          <button type="button" className="role-modal-close" onClick={onClose} aria-label="Close role scoring detail"><Icon name="close" /></button>
+        </header>
+
+        <div className="role-modal-leader">
+          <PlayerAvatar id={leader.id} size="lg" />
+          <div>
+            <PlayerName id={leader.id} className="role-modal-name" />
+            <p>{fmtInt(leader.matches)} role matches · {fmtPct(leader.win_rate)} win rate</p>
+          </div>
+          <strong>{fmtNum(leader.score, 0)}<small>/100</small></strong>
+        </div>
+
+        <div className="role-modal-why">
+          <strong>Why this player is best</strong>
+          <p>{scoring?.description ?? "This player has the highest weighted role score among qualifying players in this lobby."}</p>
+          <span>{scoring?.eligible_players ?? ranking.length} qualifying players · minimum {scoring?.minimum_matches ?? 2} matches</span>
+        </div>
+
+        <section className="role-modal-section" aria-labelledby="role-breakdown-title">
+          <div className="role-modal-section-head">
+            <h3 id="role-breakdown-title">Score breakdown</h3>
+            <span>Each metric is normalized against the best qualifying value.</span>
+          </div>
+          {breakdown.length ? (
+            <div className="role-breakdown-list">
+              {breakdown.map((metric) => (
+                <div className="role-breakdown-row" key={metric.key}>
+                  <div className="role-breakdown-label"><strong>{metric.label}</strong><span>{metric.weight}% weight</span></div>
+                  <div className="role-breakdown-track"><i style={{ width: `${Math.max(2, Math.min(100, metric.normalized))}%` }} /></div>
+                  <div className="role-breakdown-value"><b>{roleValue(leader, metric.key)}</b><span>+{fmtNum(metric.contribution, 1)} pts</span></div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="role-modal-empty">Detailed breakdown is unavailable in this older stats payload.</p>
+          )}
+        </section>
+
+        <section className="role-modal-section role-modal-method" aria-labelledby="role-method-title">
+          <div className="role-modal-section-head"><h3 id="role-method-title">How role assignment works</h3></div>
+          <p>Early-game position votes identify the lane. At the 10-minute farm snapshot, the higher-farm player in a lane pair is treated as the core and the other player as support.</p>
+          <div className="role-method-tags"><span>{leader.role} heuristic</span><span>{fmtNum(leader.role_confidence * 100, 0)}% lane confidence</span><span>Replay telemetry</span></div>
+          <small>It is not an official Dota 2 role or Valve performance score.</small>
+        </section>
+
+        {ranking.length > 1 ? (
+          <section className="role-modal-section role-modal-runners" aria-labelledby="role-runners-title">
+            <div className="role-modal-section-head"><h3 id="role-runners-title">Other qualifying players</h3></div>
+            {ranking.slice(0, 3).map((candidate, index) => (
+              <div className={`role-runner${index === 0 ? " leader" : ""}`} key={candidate.id}>
+                <span>#{index + 1}</span><PlayerName id={candidate.id} /><b>{fmtNum(candidate.score, 0)} / 100</b>
+              </div>
+            ))}
+          </section>
+        ) : null}
+      </section>
+    </div>
+  );
+}
+
+function RoleLeaders({ stats }: { stats: Stats }) {
+  const [selectedRole, setSelectedRole] = useState<RoleKey | null>(null);
+  return (
+    <>
+      <div className="role-highlights">
+      {ROLE_CARDS.map((role) => {
+        const leader = stats.role_rankings?.[role.key]?.[0];
+        const art = leader ? heroPortraitUrl(playerTopHero(stats, leader.id)) : null;
+        const open = () => { if (leader) setSelectedRole(role.key); };
+        return (
+          <article
+            className={`card role-card ${role.tone}${leader ? " is-clickable" : ""}`}
+            key={role.key}
+            role={leader ? "button" : undefined}
+            tabIndex={leader ? 0 : undefined}
+            aria-label={leader ? `View ${role.title} scoring details` : undefined}
+            onClick={(event) => { if (!(event.target as HTMLElement).closest("a,button")) open(); }}
+            onKeyDown={(event) => { if (leader && (event.key === "Enter" || event.key === " ")) { event.preventDefault(); open(); } }}
+          >
+            <header className="role-card-header">
+              <div>
+                <p><Icon name={role.icon} /> Role spotlight</p>
+                <h2>{role.title}<svg className="role-card-chevron" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7" /></svg></h2>
+              </div>
+              <span className="role-card-score">{leader ? `${fmtNum(leader.score, 0)} / 100` : "—"}</span>
+            </header>
+            {leader ? (
+              <>
+                <div className="role-card-leader">
+                  {art ? <div className="role-card-art" style={{ backgroundImage: `url(${art})` }} aria-hidden="true" /> : null}
+                  <PlayerAvatar id={leader.id} size="lg" />
+                  <div>
+                    <PlayerName id={leader.id} className="role-card-name" />
+                    <span>{fmtInt(leader.matches)} role matches · {fmtPct(leader.win_rate)} win rate</span>
+                  </div>
+                </div>
+                <div className="role-card-metrics">
+                  {role.metric(leader).map((metric) => <span key={metric}>{metric}</span>)}
+                </div>
+              </>
+            ) : (
+              <div className="role-card-empty">Waiting for enriched replay data</div>
+            )}
+            <footer>{leader ? "Click for scoring details" : "Waiting for enriched replay data"}</footer>
+          </article>
+        );
+      })}
+      </div>
+      {selectedRole ? <RoleDetailModal role={ROLE_CARDS.find((role) => role.key === selectedRole) ?? ROLE_CARDS[0]} stats={stats} onClose={() => setSelectedRole(null)} /> : null}
     </>
   );
 }
@@ -345,10 +559,9 @@ export function Summary({ stats }: { stats: Stats }) {
       </div>
       <div className="summary-highlights">
         <MostToxicPlayer stats={stats} />
-      </div>
-      <div className="winrate-highlights">
         <HighestWinRatePlayer stats={stats} />
       </div>
+      <RoleLeaders stats={stats} />
       <div className="bento">
         <MatchesCard stats={stats} />
         <SplitCard stats={stats} />

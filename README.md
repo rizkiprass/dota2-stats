@@ -14,7 +14,7 @@ dota-lobby-stats2/
 +-- parser/               Lambda container image (Python orchestrator + odota/parser Java jar)
 |   +-- Dockerfile
 |   +-- handler.py         Lambda entrypoint: download -> parse -> normalize -> upload
-|   +-- normalize.py       Converts raw odota/parser line-delimited JSON into MVP match.json schema
+|   +-- normalize.py       Converts parser events into the versioned telemetry schema
 |   +-- requirements.txt
 |
 +-- api/                  ZIP Lambda behind an API Gateway HTTP API
@@ -62,27 +62,90 @@ dota-lobby-stats2/
 
 ## How it works
 
-1. A `.dem` replay is uploaded manually to `s3://<bucket>/raw/<match_id>.dem`.
-2. S3 emits an `ObjectCreated` event (filtered to `raw/` prefix, `.dem` suffix) which invokes the Lambda function.
-3. The Lambda container:
-   - Downloads the replay to `/tmp/<match_id>.dem`.
-   - Runs the bundled [`odota/parser`](https://github.com/odota/parser) Java jar (`java -jar parser.jar --file /tmp/<match_id>.dem`), which streams the replay through [Clarity](https://github.com/skadistats/clarity) and prints line-delimited JSON match events to stdout.
-   - Normalizes the event stream into the minimal MVP schema (match info + 10 players).
-   - Writes `/tmp/<match_id>.json` and uploads it to `s3://<bucket>/parsed/<match_id>.json`.
-4. The aggregator Lambda is triggered by the new `parsed/<match_id>.json`; it lists every `parsed/*.json`, skips invalid, duplicate, and non-lobby `match_id` values (only `lobby_type` `1`, Practice/private lobby, is counted — see `ALLOWED_LOBBY_TYPES`), recalculates all statistics, and overwrites `stats/stats.json`.
-5. The original `.dem` file is always retained in `raw/` as the source of truth.
+The pipeline has two S3-triggered stages. `raw/*.dem` is immutable source data;
+`parsed/*.json`, `stats.json`, and `matches.json` are derived data.
+
+```text
+Browser / CLI
+    -> S3 raw/<match_id>.dem
+    -> S3 ObjectCreated notification
+    -> Parser Lambda
+    -> S3 parsed/<match_id>.json
+    -> S3 ObjectCreated notification
+    -> Aggregator Lambda (full historical rebuild)
+    -> stats/stats.json and stats/matches.json
+    -> dashboard bucket mirror
+    -> CloudFront
+    -> React dashboard
+```
+
+### Upload and parse
+
+1. Web upload calls `POST /replays`; the Upload API validates the shared token,
+   filename, size, and duplicate state, then returns a short-lived presigned
+   S3 POST. CLI upload writes to the same `raw/` prefix directly.
+2. The browser uploads replay bytes directly to
+   `s3://<bucket>/raw/<match_id>.dem`; API Gateway and the Upload API never
+   receive the replay body.
+3. S3 `ObjectCreated:*` filtered to `raw/*.dem` invokes the Parser Lambda.
+4. The parser checks `parsed/<match_id>.json`. It skips only when the parsed
+   `schema_version` is current; an older schema is eligible for reprocessing.
+5. The parser downloads the `.dem` to `/tmp`, runs the bundled
+   [`odota/parser`](https://github.com/odota/parser) Java parser through
+   [Clarity](https://github.com/skadistats/clarity), and normalizes the event
+   stream in `parser/normalize.py`.
+6. Normalized output includes match metadata, players, K/D/A, behavior counts,
+   economy, last hits, damage, wards, stuns, early positions, lane heuristic,
+   and role heuristic.
+7. The parser writes `parsed/<match_id>.json`. Failed parses retain the raw
+   replay and write a diagnostic marker to `parse-failed/<match_id>.json`.
+
+### Aggregate and publish
+
+1. S3 `ObjectCreated:*` filtered to `parsed/*.json` invokes the Aggregator
+   Lambda.
+2. The aggregator lists every parsed JSON and performs a full rebuild. It
+   validates matches, removes duplicate match IDs, and counts only allowed
+   lobby types (`1` by default, Practice/private lobby).
+3. It calculates player, hero, player-hero, teammate, head-to-head, behavior,
+   leaderboard, recent-match, and role-specific statistics.
+4. Role rankings use replay telemetry: Support uses vision, kill participation,
+   assists, and stuns; Offlane uses kill participation, hero/tower damage, and
+   stuns; Carry uses GPM, hero/tower damage, and last hits.
+5. The aggregator writes the source payloads to:
+
+   ```text
+   s3://<bucket>/stats/stats.json
+   s3://<bucket>/stats/matches.json
+   ```
+
+6. It mirrors both JSON payloads to the private dashboard bucket. CloudFront
+   serves the static assets and same-origin `stats.json`/`matches.json` to the
+   React application.
+7. The frontend reads `stats.json` for the dashboard summary and loads the
+   bounded `matches.json` payload for match-history and detail views.
+
+The original `.dem` file remains in `raw/` as the source of truth at every
+stage.
 
 ## In-dashboard replay upload
 
 Players upload a replay from the dashboard itself — the **Upload replay** button in the header — instead of running the script below.
 
 1. The player types the shared upload password once; the browser stores it and sends it as the `X-Upload-Token` header on every request.
-2. `POST /replays` validates the password, then rejects the replay with `409` when `raw/<match_id>.dem` **or** `parsed/<match_id>.json` already exists. Otherwise it returns a short-lived presigned S3 POST.
+2. `POST /replays` validates the password, rejects a current duplicate with
+   `409`, and allows upload when the existing parsed payload has an older
+   schema. Otherwise it returns a short-lived presigned S3 POST.
 3. The browser uploads the `.dem` straight to `raw/<match_id>.dem`; the replay bytes never pass through API Gateway or Lambda, so replay size is not capped by the 10 MB payload limit.
-4. The parser skips any replay whose `parsed/<match_id>.json` already exists, so a duplicate can never be processed twice. A failed parse is recorded under `parse-failed/<match_id>.json` and shown in the dialog.
+4. The parser skips only when `parsed/<match_id>.json` has the current schema.
+   This protects against duplicate events while still allowing stale derived
+   data to be regenerated. A failed parse is recorded under
+   `parse-failed/<match_id>.json` and shown in the dialog.
 5. `GET /replays/<match_id>` reports `processing` / `parsed` / `failed`, which the dialog polls until the dashboard can refresh.
 
-Duplicates are therefore blocked twice: at the API (never uploaded) and again in the parser (never re-processed).
+Current duplicates are blocked at the API and parser. Replays with an older
+parsed schema are intentionally allowed through so the normal pipeline can
+refresh derived data after a parser upgrade.
 
 `upload_token` in `terraform.tfvars` is that shared password — set it before `terraform apply`, and rotate it by changing the value. The dashboard itself stays public; the password only gates uploading, not viewing. It lives in the player's browser, never in the build output, so it cannot be lifted from the deployed JavaScript.
 
@@ -125,6 +188,34 @@ Terraform creates:
 > Set `upload_token` (the shared upload password) in `terraform.tfvars` before `terraform apply`; it is required. `scripts/deploy-web.sh` reads `terraform output upload_api_url` and bakes it into the build, so run the Terraform apply first.
 
 > Note: Terraform provisions the Lambda function pointing at the ECR image tag. Push the image (step 1) **before** running `terraform apply`, otherwise Lambda creation will fail because the image doesn't exist yet.
+
+### Updating an existing deployment without Terraform state
+
+Terraform is only needed when provisioning or reconciling infrastructure. If
+the Terraform state is unavailable, update existing resources directly with
+the AWS CLI:
+
+1. Build and push the parser image to ECR, then run
+   `aws lambda update-function-code --image-uri ...` for the parser Lambda.
+2. Zip `aggregator/aggregator.py` and `api/handler.py` and deploy them with
+   `aws lambda update-function-code --zip-file ...`.
+3. Apply any new IAM statements with `aws iam put-role-policy`, preserving the
+   existing inline policy statements.
+4. Deploy the dashboard with explicit `--bucket`, `--distribution-id`,
+   `--upload-api-url`, `--profile`, and `--region` values:
+
+   ```bash
+   scripts/deploy-web.sh \
+     --bucket <dashboard_bucket> \
+     --distribution-id <cloudfront_distribution_id> \
+     --upload-api-url <upload_api_url> \
+     --profile <profile> \
+     --region <region> \
+     --wait
+   ```
+
+Do not run `terraform apply` against a new or empty state unless the existing
+AWS resources have first been imported and the configuration has been audited.
 
 ### 3. Test
 
@@ -177,6 +268,65 @@ views, and a shareable player profile page at `/player/<id>`.
 
 - Terraform outputs `dashboard_url` (HTTPS CloudFront URL), `dashboard_cloudfront_domain` (CNAME target), and `dashboard_cloudfront_distribution_id`. `GET /stats.json` and `GET /matches.json` are served same-origin.
 
+### Frontend CI/CD
+
+GitHub Actions validates frontend changes before they reach production. The
+workflows live in `.github/workflows/` and only cover the React dashboard and
+its static deployment; Terraform and the replay parser remain manually
+operated.
+
+| Workflow | Trigger | What it does |
+| --- | --- | --- |
+| `Frontend CI` | Pull request or push to `main` that changes frontend files | Installs dependencies, installs Playwright Chromium, builds the app, and runs the Playwright UI suite. |
+| `Deploy frontend` | Manual `workflow_dispatch` from `main` | Re-runs build and UI tests, deploys `web/dist/` to S3, invalidates CloudFront, and smoke-tests the production dashboard. |
+
+The normal frontend workflow is:
+
+```text
+Change frontend -> review on localhost -> push / open PR -> Frontend CI passes
+-> manually run Deploy frontend from main -> production smoke test passes
+```
+
+Before pushing, review the UI locally and run the same core checks:
+
+```bash
+cd web
+npm run dev       # manual desktop/mobile visual review on localhost
+npm run build     # TypeScript check and production bundle
+npm run test:ui   # Playwright browser tests
+```
+
+`npm run build` confirms the dashboard can be compiled into `web/dist/`.
+`npm run test:ui` opens the built application in Playwright and checks routes,
+data loading, responsive layout, and browser errors. The CI runner installs its
+own Chromium binary with `npx playwright install --with-deps chromium` before
+running the suite.
+
+Production deployment is deliberately manual. The repository does not expose a
+GitHub Environment required-reviewer rule, so starting `Deploy frontend` from
+the Actions tab is the production approval gate. Select `main` before clicking
+**Run workflow**.
+
+The deploy workflow uses GitHub Actions OIDC, not a long-lived AWS access key.
+AWS grants temporary credentials to
+`dota-replay-dashboard-github-deploy` only for the `production` environment in
+`rizkiprass/dota2-stats`. The role can update static dashboard assets and create
+CloudFront invalidations, but has an explicit deny on `stats.json` and
+`matches.json`; those files remain owned by the aggregator Lambda.
+
+The `production` GitHub Environment contains these non-secret variables:
+
+| Variable | Purpose |
+| --- | --- |
+| `AWS_REGION` | Region for the dashboard resources. |
+| `AWS_DEPLOY_ROLE_ARN` | OIDC role assumed by the deploy job. |
+| `DASHBOARD_BUCKET` | Static dashboard S3 bucket. |
+| `CLOUDFRONT_DISTRIBUTION_ID` | Distribution invalidated after deployment. |
+| `VITE_UPLOAD_API_URL` | Upload API base URL baked into the frontend build. |
+
+See [`docs/frontend-cicd.md`](./docs/frontend-cicd.md) for the OIDC trust
+policy, least-privilege IAM policy, and first-deployment checklist.
+
 ### Custom domain
 
 Set `dashboard_domain` (e.g. `dls.rpras.my.id`) in `terraform.tfvars`. Terraform then:
@@ -206,6 +356,93 @@ scripts/upload-replays.sh --wait           # upload, then await parsed/*.json
 
 `--bucket`, `--profile`, `--region`, and `--source` override the defaults; the same values can be set through the `S3_BUCKET`, `AWS_PROFILE_NAME`, `AWS_REGION_NAME`, and `DOTA_REPLAY_DIR` environment variables.
 
+## Adding replay data features
+
+There are three different change paths. Choose the smallest path that contains
+the new data:
+
+### Field already exists in `parsed/`
+
+If the normalized field already exists, update only `aggregator/aggregator.py`.
+Deploy the aggregator ZIP and invoke one full rebuild. No replay parsing is
+needed because the aggregator reads the existing parsed history.
+
+```text
+parsed/*.json -> Aggregator Lambda -> stats.json/matches.json -> dashboard
+```
+
+### Field exists only in the raw replay
+
+If the field is available in the `.dem` parser event stream but is not present
+in `parsed/*.json`:
+
+1. Add extraction and normalization in `parser/normalize.py`.
+2. Bump the parser `SCHEMA_VERSION`.
+3. Build and deploy the parser container image.
+4. Reprocess old raw objects without changing them; see the next section.
+5. The newly written parsed JSON automatically triggers the full aggregator.
+6. Add the field to `web/src/types/stats.ts` and the relevant component if it
+   needs to be displayed.
+
+The parser schema and aggregate schema are independent. The parser currently
+uses an integer schema version, while the dashboard aggregate publishes its
+own string `metadata.schema_version`.
+
+### Field already exists in `stats.json`
+
+If the backend payload already contains the new field, update the React types
+and components, run `npm run build`, upload the static assets, and invalidate
+CloudFront. No parser or aggregator rebuild is required.
+
+## Reprocess without uploading a replay
+
+Deploying a new parser image does not automatically execute it against old
+objects. To reprocess without uploading or modifying `raw/*.dem`, invoke the
+Parser Lambda directly with the same S3 event shape normally emitted by S3:
+
+```bash
+aws lambda invoke \
+  --function-name dota-replay-parser \
+  --invocation-type RequestResponse \
+  --cli-binary-format raw-in-base64-out \
+  --payload '{"Records":[{"s3":{"bucket":{"name":"<bucket>"},"object":{"key":"raw/<match_id>.dem"}}}]}' \
+  /tmp/parser-response.json \
+  --profile <profile> \
+  --region <region>
+```
+
+The parser downloads the existing raw object, checks its parsed schema, and
+rewrites only `parsed/<match_id>.json` when the schema is stale. That parsed
+write emits the existing `parsed/` S3 notification, so the aggregator rebuilds
+the full history and republishes both dashboard payloads. The raw replay is
+not uploaded, copied, deleted, or modified.
+
+For multiple objects, invoke the Lambda once per `raw/*.dem` key. A future
+batch wrapper should support `--all`, match ID filters, `--schema-before`,
+`--dry-run`, and `--wait`; the parser's schema-aware skip check makes invoking
+all raw keys safe because current parsed objects are skipped.
+
+The caller needs `lambda:InvokeFunction` for `dota-replay-parser`. The parser
+execution role still needs `s3:GetObject` on `raw/*`, `s3:GetObject` on
+`parsed/*` for the schema check, and `s3:PutObject` on `parsed/*`.
+
+## Data flow when adding a feature
+
+```text
+Raw replay feature
+    -> parser/normalize.py
+    -> parsed/<match_id>.json
+    -> Aggregator Lambda reads all parsed files
+    -> stats/stats.json and stats/matches.json
+    -> dashboard bucket mirror
+    -> CloudFront
+    -> React component
+```
+
+The aggregator never reads `.dem` files. The frontend never reads
+`parsed/*.json` directly. This separation keeps replay decoding, historical
+aggregation, and presentation independently deployable.
+
 ## Implementation order
 
 Matches the plan's recommended order:
@@ -230,6 +467,10 @@ Implemented and deployed:
 - **MVP 1** — S3 raw storage, Lambda container replay parsing, normalized `parsed/<match_id>.json` output.
 - **MVP 2** — full-rebuild aggregator producing dashboard-ready `stats/stats.json` (summary, players, heroes, player-heroes, teammates, head-to-head, leaderboards).
 - **Dashboard** — React + TypeScript SPA (Vite + Tailwind v4, TanStack Router) served from a private S3 bucket via CloudFront (HTTPS, OAC), with a shareable player profile page at `/player/<id>`.
-- **Replay upload** — an **Upload replay** button in the dashboard: a shared-password gate, a duplicate check that refuses `raw/`- or `parsed/`-existing matches, direct-to-S3 presigned uploads, and live parse progress.
+- **Replay upload** — an **Upload replay** button in the dashboard: a shared-password gate, current-duplicate protection, stale-schema reprocessing support, direct-to-S3 presigned uploads, and live parse progress.
+- **Role analytics** — parser telemetry extraction, lane/role heuristic, role-specific aggregate scoring, and Best Support/Offlane/Carry dashboard cards.
 
-Not implemented yet: advanced analytics (timelines, positions, combat logs). There are no player accounts — the upload password is a shared gate, not authentication.
+The parser now extracts selected advanced telemetry (economy, damage, wards,
+stuns, early positions, and role signals). Full timelines and raw combat-log
+visualization remain out of scope. There are no player accounts — the upload
+password is a shared gate, not authentication.
