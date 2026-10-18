@@ -117,5 +117,25 @@ class BehaviorAggregationTests(unittest.TestCase):
         self.assertEqual(behavior["disruptive_score"], 100.0)
 
 
+class PlayerRecentResultsTests(unittest.TestCase):
+    def test_publishes_newest_four_outcomes_per_player(self):
+        matches = []
+        for match_id, start_time, win in [
+            ("1", 100, True),
+            ("2", 500, False),
+            ("3", 300, True),
+            ("4", 400, True),
+            ("5", 200, False),
+        ]:
+            match = _match(match_id, 1)
+            match["start_time"] = start_time
+            match["players"][0]["win"] = win
+            matches.append((f"parsed/{match_id}.json", match))
+
+        stats, _, _ = agg.aggregate_matches(matches)
+
+        self.assertEqual(stats["player_recent_results"]["1000"], ["L", "W", "W", "L"])
+
+
 if __name__ == "__main__":
     unittest.main()

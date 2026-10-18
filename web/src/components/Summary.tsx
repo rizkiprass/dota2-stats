@@ -286,54 +286,53 @@ function MostToxicPlayer({ stats }: { stats: Stats }) {
 }
 
 function HighestWinRatePlayer({ stats }: { stats: Stats }) {
-  const ranked = Object.entries(stats.players)
+  const candidates = Object.entries(stats.players)
     .map(([id, record]) => ({ id, ...record }))
     .filter((player) => player.matches >= 2)
     .sort((a, b) =>
       b.win_rate - a.win_rate
       || b.matches - a.matches
       || a.id.localeCompare(b.id),
-    )
-    .slice(0, 3);
-  const player = ranked[0];
+    );
+  const player = candidates[0];
   const winRate = useCountUp(player?.win_rate ?? 0);
   if (!player) return null;
+  const lobbyAverage = candidates.reduce((total, candidate) => total + candidate.win_rate, 0) / candidates.length;
+  const recentResults = stats.player_recent_results?.[player.id] ?? [];
   return (
-    <article className="card winrate-feature">
-      <header className="winrate-header">
-        <div>
-          <p>Lobby leader</p>
-          <h2>Highest <span>win rate</span></h2>
-        </div>
-        <span className="winrate-sample">{fmtInt(player.matches)} matches</span>
-      </header>
-      <div className="winrate-player">
-        <PlayerAvatar id={player.id} size="lg" />
-        <div>
+    <>
+      <article className="card winrate-feature">
+        <header className="winrate-header">
+          <span className="winrate-title"><Icon name="trophy" /> Match Win Rate</span>
+          <span className="winrate-sample">{fmtInt(player.matches)} matches</span>
+        </header>
+        <div className="winrate-leader">
+          <PlayerAvatar id={player.id} size="sm" />
           <PlayerName id={player.id} className="winrate-player-name" />
-          <span>{fmtInt(player.wins)} wins · {fmtInt(player.losses)} losses</span>
-        </div>
-      </div>
-      <div className="winrate-score">
-        <strong>{fmtPct(winRate)}</strong>
-        <span>match win rate</span>
-      </div>
-      <div className="winrate-gauge" aria-label={`${fmtPct(player.win_rate)} win rate`}>
-        <i style={{ width: `${Math.max(2, Math.min(100, player.win_rate))}%` }} />
-      </div>
-      {ranked.length > 1 ? (
-        <div className="winrate-runners">
-          {ranked.slice(1).map((runner, index) => (
-            <div className="winrate-runner" key={runner.id}>
-              <span className="winrate-rank">#{index + 2}</span>
-              <PlayerAvatar id={runner.id} size="sm" />
-              <PlayerName id={runner.id} className="winrate-runner-name" />
-              <strong>{fmtPct(runner.win_rate)}</strong>
+          {recentResults.length ? (
+            <div className="winrate-results" aria-label={`${recentResults.join(", ")} in the most recent matches`}>
+              {recentResults.map((result, index) => <span className={result === "W" ? "win" : "loss"} key={`${result}-${index}`}>{result}</span>)}
             </div>
-          ))}
+          ) : null}
         </div>
-      ) : null}
-    </article>
+        <div className="winrate-score">
+          <strong>{fmtPct(winRate)}</strong>
+          <span>{fmtInt(player.wins)} / {fmtInt(player.matches)} wins</span>
+        </div>
+        <div className="winrate-gauge" aria-label={`${fmtPct(player.win_rate)} win rate`}>
+          <i style={{ width: `${Math.max(2, Math.min(100, player.win_rate))}%` }} />
+        </div>
+        <span className="winrate-average">Lobby avg {fmtPct(lobbyAverage)}</span>
+      </article>
+      <article className="card qualifying-feature">
+        <header className="qualifying-header">
+          <span><Icon name="users" /> Qualifying Players</span>
+        </header>
+        <strong>{fmtInt(candidates.length)}</strong>
+        <span>qualifying players</span>
+        <b>#1 of {fmtInt(candidates.length)}</b>
+      </article>
+    </>
   );
 }
 
@@ -346,6 +345,8 @@ export function Summary({ stats }: { stats: Stats }) {
       </div>
       <div className="summary-highlights">
         <MostToxicPlayer stats={stats} />
+      </div>
+      <div className="winrate-highlights">
         <HighestWinRatePlayer stats={stats} />
       </div>
       <div className="bento">

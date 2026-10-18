@@ -42,7 +42,7 @@ s3 = boto3.client("s3")
 PARSED_PREFIX = "parsed/"
 STATS_KEY = "stats/stats.json"
 MATCHES_KEY = "stats/matches.json"
-SCHEMA_VERSION = "1.6"
+SCHEMA_VERSION = "1.7"
 
 # Optional static-website mirror. When set, the same dashboard payload is also
 # written here so the browser can fetch it same-origin (no CORS, no public data
@@ -72,6 +72,9 @@ MATCHES_LIMIT = int(os.environ.get("MATCHES_LIMIT", "500"))
 # Newest matches summarised into stats.json so the dashboard can show a recent
 # teaser without fetching the per-match payload at all.
 RECENT_MATCHES_LIMIT = int(os.environ.get("RECENT_MATCHES_LIMIT", "5"))
+# Per-player outcome strips are carried in stats.json for compact dashboard
+# highlights. This remains bounded regardless of total replay history.
+PLAYER_RECENT_RESULTS_LIMIT = int(os.environ.get("PLAYER_RECENT_RESULTS_LIMIT", "4"))
 
 # Static hero_id -> display-name table (source: OpenDota /api/heroes).
 # Display-only: it never affects identity or aggregation math.
@@ -515,6 +518,18 @@ def _recent_matches(summaries: list[dict[str, Any]]) -> list[dict[str, Any]]:
     ]
 
 
+def _player_recent_results(summaries: list[dict[str, Any]]) -> dict[str, list[str]]:
+    """Newest-first, bounded W/L histories derived from parsed match summaries."""
+    results: defaultdict[str, list[str]] = defaultdict(list)
+    for match in sorted(summaries, key=_match_order_key, reverse=True):
+        for player in match["players"]:
+            player_id = player.get("account_id")
+            if player_id is None or len(results[player_id]) >= PLAYER_RECENT_RESULTS_LIMIT:
+                continue
+            results[player_id].append("W" if player["win"] else "L")
+    return dict(sorted(results.items()))
+
+
 def _matches_payload(summaries: list[dict[str, Any]], generated_at: str) -> dict[str, Any]:
     """Newest-first, capped per-match payload published next to stats.json."""
     ordered = sorted(summaries, key=_match_order_key, reverse=True)[:MATCHES_LIMIT]
@@ -761,6 +776,7 @@ def aggregate_matches(
         "behavior": {"players": finalized_behavior},
         "leaderboards": _generate_leaderboards(finalized_players, finalized_heroes, finalized_player_heroes, finalized_teammates, finalized_h2h),
         "recent_matches": _recent_matches(match_summaries),
+        "player_recent_results": _player_recent_results(match_summaries),
     }
     return stats, {
         "valid_matches": valid_count,

@@ -91,6 +91,8 @@ resource "aws_lambda_function" "statistics_aggregator" {
       MATCHES_LIMIT = "500"
       # Newest matches summarised into stats.json for the dashboard teaser.
       RECENT_MATCHES_LIMIT = "5"
+      # Newest per-player W/L outcomes carried by stats.json for highlights.
+      PLAYER_RECENT_RESULTS_LIMIT = "4"
       # Mirror the dashboard payload into the static website bucket.
       DASHBOARD_BUCKET      = aws_s3_bucket.dashboard.bucket
       DASHBOARD_MATCHES_KEY = "matches.json"

@@ -218,6 +218,8 @@ export interface Stats {
   leaderboards: Record<string, LeaderboardEntry[]>;
   /** Present from schema 1.3 onward; absent payloads must still render. */
   recent_matches?: RecentMatch[];
+  /** Newest-first, bounded W/L outcomes per player; present from schema 1.7 onward. */
+  player_recent_results?: Record<string, Array<"W" | "L">>;
   behavior?: BehaviorStats;
   metadata: Metadata;
 }
