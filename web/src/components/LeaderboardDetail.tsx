@@ -1,7 +1,6 @@
 import { useMemo, useState, type ReactNode } from "react";
 import { Link, useParams } from "@tanstack/react-router";
 import { Avatar, AvatarPair, Bar, Badge, PlayerAvatar, PlayerName } from "./ui";
-import { useMatches } from "../lib/api";
 import { fmtCount, fmtDuration, fmtEpochDate, fmtInt, fmtNum, fmtPct } from "../lib/format";
 import { heroName, playerName } from "../lib/derived";
 import { useDashboard } from "../lib/dashboard-context";
@@ -87,7 +86,6 @@ export function LeaderboardDetail() {
 
 function BoardContent({ category, spec }: { category: string; spec: CategorySpec }) {
   const { stats } = useDashboard();
-  const matchesQuery = useMatches();
 
   const all = useMemo(() => buildRanked(stats, category), [stats, category]);
   const sampleMax = Math.max(1, ...all.map((entry) => sampleOf(entry, spec)));
@@ -100,12 +98,6 @@ function BoardContent({ category, spec }: { category: string; spec: CategorySpec
   );
   const [query, setQuery] = useState("");
   const [sortBySample, setSortBySample] = useState(false);
-
-  const matches: MatchesState = {
-    data: matchesQuery.data,
-    pending: matchesQuery.isPending,
-    failed: matchesQuery.isError,
-  };
 
   const rows = useMemo(() => {
     const needle = query.trim().toLowerCase();
@@ -240,7 +232,6 @@ function BoardContent({ category, spec }: { category: string; spec: CategorySpec
         </section>
       )}
 
-      {leader ? <FocusPanel spec={spec} entry={leader} rows={rows} matches={matches} /> : null}
     </>
   );
 }
@@ -345,7 +336,7 @@ function EntityCell({
   if (pair) {
     const joiner = family === "rivalry" ? "vs" : "with";
     return (
-      <span className="pcell">
+      <span className="pcell pcell-pair">
         <AvatarPair a={pair[0]} b={pair[1]} />
         <span className="pinfo">
           <span className="pname">
@@ -394,7 +385,7 @@ function insightValue(entry: LeaderboardEntry, spec: CategorySpec, stats: Stats)
 /* Focus panel — the family-specific "extra information"              */
 /* ------------------------------------------------------------------ */
 
-function FocusPanel({
+export function FocusPanel({
   spec,
   entry,
   rows,

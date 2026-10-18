@@ -77,7 +77,8 @@ test("the dashboard shows a bounded recent-match teaser", async ({ page }) => {
     const row = rows.nth(index);
     await expect(row.locator(".recent-date")).toHaveText(await dayLabel(page, entry.start_time));
     await expect(row.locator(".badge")).toHaveText(entry.radiant_win ? "Radiant win" : "Dire win");
-    await expect(row.locator(".recent-score")).toContainText(`${entry.radiant_kills}–${entry.dire_kills}`);
+    await expect(row.locator(".recent-score")).toContainText(`Radiant ${entry.radiant_kills}`);
+    await expect(row.locator(".recent-score")).toContainText(`Dire ${entry.dire_kills}`);
   }
 
   // The card is a teaser: the calendar and lineups live on the history page.
@@ -85,6 +86,38 @@ test("the dashboard shows a bounded recent-match teaser", async ({ page }) => {
   await expect(link).toHaveAttribute("href", "/matches");
   await link.click();
   await expect(page).toHaveURL(/\/matches$/);
+});
+
+test("a recent match opens its full match detail", async ({ page }) => {
+  await page.setViewportSize(DESKTOP);
+  await gotoDashboard(page);
+
+  const row = page.locator(".recent-row").first();
+  if ((await row.count()) === 0) return;
+
+  const detail = row.getByRole("link", { name: "View match" });
+  const href = await detail.getAttribute("href");
+  expect(href).toMatch(/^\/matches\/.+$/);
+  await detail.click();
+
+  await expect(page).toHaveURL(/\/matches\/[^/]+$/);
+  await expect(page.locator(".match-detail-hero")).toBeVisible();
+  await expect(page.locator(".match-hero-vs")).toHaveText("VS");
+  expect(await page.evaluate(() => window.scrollY), "match detail should open at the top").toBe(0);
+  await expect(page.locator(".match-detail-card")).toBeVisible();
+  await expect(page.locator(".match-detail-side")).toHaveCount(2);
+  await expect(page.locator(".match-detail-card .dp-hero-row")).toHaveCount(10);
+  await expect(page.locator(".match-detail-kpi")).toHaveCount(3);
+  await expect(page.locator(".match-detail-comparison")).toContainText("Team KDA");
+  await expect(page.locator(".match-detail-award")).toHaveCount(4);
+  await expect(page.locator(".match-detail-player-metrics")).toHaveCount(10);
+});
+
+test("an unknown match id has a clear fallback", async ({ page }) => {
+  await page.setViewportSize(DESKTOP);
+  await page.goto("/matches/not-a-published-match", { waitUntil: "domcontentloaded" });
+  await expect(page.getByText("Match not found", { exact: true })).toBeVisible();
+  await expect(page.getByRole("link", { name: "← Back to match history" })).toHaveAttribute("href", "/matches");
 });
 
 test("each recent match lists five heroes a side", async ({ page }) => {
@@ -99,10 +132,10 @@ test("each recent match lists five heroes a side", async ({ page }) => {
     (match) => (match.radiant_heroes ?? []).length > 0 && (match.dire_heroes ?? []).length > 0,
   );
 
-  const strips = page.locator(".recent-heroes");
+  const lineups = page.locator(".recent-lineups");
   if (withHeroes.length === 0) {
-    // A payload predating the field renders the row without a strip.
-    await expect(strips).toHaveCount(0);
+    // A payload predating the field renders the row without lineups.
+    await expect(lineups).toHaveCount(0);
     return;
   }
 
@@ -110,26 +143,27 @@ test("each recent match lists five heroes a side", async ({ page }) => {
   const rows = page.locator(".recent-row");
   for (let index = 0; index < withHeroes.length; index += 1) {
     const entry = withHeroes[index];
-    const strip = rows.nth(index).locator(".recent-heroes");
+    const lineup = rows.nth(index).locator(".recent-lineups");
     const heroes = [...(entry.radiant_heroes ?? []), ...(entry.dire_heroes ?? [])].map(nameOf);
 
     // Portraits render in payload order, Radiant first, and every tooltip names
     // the hero it fields (a known player is named over it).
-    const titles = await strip
+    const titles = await lineup
       .locator(".avatar")
       .evaluateAll((els) => els.map((el) => el.parentElement?.getAttribute("title") ?? ""));
     expect(titles.length).toBe(heroes.length);
     titles.forEach((title, position) => expect(title).toContain(heroes[position]));
 
-    const sides = strip.locator(".recent-side");
+    const sides = lineup.locator(".recent-side");
     expect(await sides.count()).toBe(2);
     expect(await sides.first().locator(".avatar").count(), "five a side").toBe(5);
     expect(await sides.nth(1).locator(".avatar").count(), "five a side").toBe(5);
-    await expect(strip.locator(".recent-vs")).toHaveText("vs");
+    await expect(sides.first().locator(".recent-side-label")).toHaveText("Radiant");
+    await expect(sides.nth(1).locator(".recent-side-label")).toHaveText("Dire");
 
     // One labelled group, with both sides named for assistive tech.
-    await expect(strip).toHaveAttribute("role", "group");
-    const label = (await strip.getAttribute("aria-label")) ?? "";
+    await expect(lineup).toHaveAttribute("role", "group");
+    const label = (await lineup.getAttribute("aria-label")) ?? "";
     expect(label).toContain("Radiant:");
     expect(label).toContain("Dire:");
     heroes.forEach((hero) => expect(label).toContain(hero));
@@ -186,8 +220,7 @@ test("a portrait links to its player and names them in the tooltip", async ({ pa
     const { accountId, playerName, hero } = expected[index];
     await expect(link).toHaveAttribute("href", `/player/${accountId}`);
     await expect(link).toHaveAttribute("title", `${playerName} — ${hero}`);
-    // The link is named by the player, not the hero, for assistive tech.
-    await expect(link).toHaveAccessibleName(playerName);
+    await expect(link.locator(".recent-player-name")).toHaveText(playerName);
   }
 });
 
@@ -209,7 +242,7 @@ test("portraits stay plain when the payload has no player identities", async ({ 
   if ((await card.count()) === 0) return;
 
   const row = card.locator(".recent-row").first();
-  if ((await row.locator(".recent-heroes").count()) === 0) return;
+  if ((await row.locator(".recent-lineups").count()) === 0) return;
 
   await expect(row.locator(".recent-hero-link"), "an older payload has no links").toHaveCount(0);
   await expect(row.locator(".recent-hero-plain").first()).toBeVisible();
@@ -235,12 +268,13 @@ test("the hero strip is omitted when the payload has no hero ids", async ({ page
   const card = page.locator(".recent-card");
   if ((await card.count()) === 0) return; // the payload has no teaser at all
 
-  await expect(card.locator(".recent-heroes")).toHaveCount(0);
+  await expect(card.locator(".recent-lineups")).toHaveCount(0);
   // The row itself still reads: date, winner and score.
   const row = card.locator(".recent-row").first();
   await expect(row.locator(".recent-date")).toBeVisible();
   await expect(row.locator(".badge")).toBeVisible();
-  await expect(row.locator(".recent-score")).toContainText("kills");
+  await expect(row.locator(".recent-score")).toContainText("Radiant");
+  await expect(row.locator(".recent-score")).toContainText("Dire");
 });
 
 test("the teaser is omitted when the payload has none", async ({ page }) => {

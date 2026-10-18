@@ -2,6 +2,7 @@ import type { CSSProperties } from "react";
 import { Tile, Icon, PlayerAvatar, PlayerName, useCountUp } from "./ui";
 import { fmtDuration, fmtInt, fmtNum, fmtPct } from "../lib/format";
 import { heroCropUrl, heroPortraitUrl } from "../lib/heroes";
+import { playerTopHero } from "../lib/derived";
 import type { Stats } from "../types/stats";
 
 const TINTS = ["--av1", "--av2", "--av3", "--av4", "--av1", "--av3"];
@@ -201,6 +202,89 @@ function PlayerOfTheLobby({ stats }: { stats: Stats }) {
   );
 }
 
+function MostToxicPlayer({ stats }: { stats: Stats }) {
+  const candidates = Object.entries(stats.behavior?.players ?? {})
+    .filter(([, record]) => record.matches >= 3 && (record.disruptive_score ?? 0) > 0)
+    .map(([id, record]) => ({ id, ...record }));
+  const player = candidates.sort((a, b) =>
+    (b.disruptive_score ?? 0) - (a.disruptive_score ?? 0)
+    || (b.chat_messages ?? 0) - (a.chat_messages ?? 0)
+    || a.id.localeCompare(b.id),
+  )[0];
+  const score = useCountUp(player?.disruptive_score ?? 0);
+  if (!player) return null;
+  const rank = candidates.findIndex((candidate) => candidate.id === player.id) + 1;
+  const topHero = playerTopHero(stats, player.id);
+  const art = heroPortraitUrl(topHero);
+  const maxChat = Math.max(...candidates.map((candidate) => candidate.chat_messages_per_match ?? 0), 1);
+  const maxBursts = Math.max(...candidates.map((candidate) => candidate.ping_bursts_per_match ?? 0), 1);
+  const maxDisconnects = Math.max(...candidates.map((candidate) => candidate.disconnects_or_abandons_per_match ?? 0), 1);
+  const breakdown = [
+    { label: "Chat activity", weight: 35, value: player.chat_messages_per_match ?? 0, max: maxChat, tone: "chat" },
+    { label: "Repeated ping bursts", weight: 25, value: player.ping_bursts_per_match ?? 0, max: maxBursts, tone: "pings" },
+    { label: "Disconnects or abandons", weight: 40, value: player.disconnects_or_abandons_per_match ?? 0, max: maxDisconnects, tone: "disconnects" },
+  ];
+  return (
+    <article className="card toxic-feature">
+      <header className="toxic-header">
+        <div>
+          <p className="toxic-kicker">Replay activity spotlight</p>
+          <h2>Most <span>toxic</span> player</h2>
+          <p>Based on chat, repeated ping bursts, and disconnect or abandon activity.</p>
+        </div>
+        <div className="toxic-disclaimer">Not an official Dota Behavior Score.</div>
+      </header>
+
+      <div className="toxic-main">
+        <div className={`toxic-identity${art ? "" : " no-art"}`}>
+          {art ? <div className="toxic-art" style={{ backgroundImage: `url(${art})` }} aria-hidden="true" /> : null}
+          <div className="toxic-player">
+            <PlayerAvatar id={player.id} size="lg" />
+            <div>
+              <PlayerName id={player.id} className="toxic-player-name" />
+              <span>{fmtInt(player.matches)} recorded matches</span>
+              <small>via replay activity proxy</small>
+            </div>
+          </div>
+          <div className="toxic-tags">
+            <span>Highest activity index</span>
+            {(player.chat_messages_per_match ?? 0) > 0 ? <span>Chat activity</span> : null}
+            {(player.ping_bursts_per_match ?? 0) > 0 ? <span>Ping bursts</span> : null}
+          </div>
+        </div>
+
+        <div className="toxic-score-panel">
+          <div className="toxic-score-top">
+            <span>Overall toxicity index</span>
+            <strong>{fmtNum(score)} / 100</strong>
+          </div>
+          <div className="toxic-gauge" aria-label={`${fmtNum(player.disruptive_score ?? 0)} out of 100 relative activity index`}>
+            <i style={{ width: `${Math.max(2, Math.min(100, player.disruptive_score ?? 0))}%` }} />
+          </div>
+          <div className="toxic-score-meta">
+            <span>Relative activity index</span>
+            <b>#{rank} of {fmtInt(candidates.length)} qualifying players</b>
+          </div>
+        </div>
+      </div>
+
+      <div className="toxic-breakdown">
+        <div className="toxic-breakdown-list">
+          <h3>Activity breakdown</h3>
+          {breakdown.map((item) => (
+            <div className="toxic-breakdown-row" key={item.label}>
+              <span>{item.label}</span>
+              <div className={`toxic-breakdown-bar ${item.tone}`}><i style={{ width: `${Math.max(4, (item.value / item.max) * 100)}%` }} /></div>
+              <b>{item.weight}%</b>
+            </div>
+          ))}
+        </div>
+        <p>Relative to this lobby: 35% chat, 25% repeated ping bursts, and 40% disconnects or abandons per match.</p>
+      </div>
+    </article>
+  );
+}
+
 export function Summary({ stats }: { stats: Stats }) {
   return (
     <section className="section" id="summary">
@@ -208,6 +292,7 @@ export function Summary({ stats }: { stats: Stats }) {
         <SpotLightHero stats={stats} />
         <PlayerOfTheLobby stats={stats} />
       </div>
+      <MostToxicPlayer stats={stats} />
       <div className="bento">
         <MatchesCard stats={stats} />
         <SplitCard stats={stats} />

@@ -10,9 +10,9 @@ interface Column<T> {
   render: (row: T) => ReactNode;
 }
 
-function Table<T>({ columns, rows }: { columns: Array<Column<T>>; rows: T[] }) {
+function Table<T>({ columns, rows, className = "" }: { columns: Array<Column<T>>; rows: T[]; className?: string }) {
   return (
-    <div className="card table-card">
+    <div className={`card table-card ${className}`}>
       <table>
         <thead>
           <tr>
@@ -105,6 +105,7 @@ export function Players({ stats }: { stats: Stats }) {
       ) : null}
       <Table
         rows={rows}
+        className="player-table"
         columns={[
           { label: "Player", render: (r) => <PlayerCell id={r.id} sub={`${fmtInt(r.matches)} matches`} /> },
           { label: "W", num: true, render: (r) => r.wins },

@@ -20,6 +20,12 @@ const ICON_PATHS = {
   check: '<path d="m5 12.6 4.2 4.2L19 7"/>',
   close: '<path d="M6 6 18 18M18 6 6 18"/>',
   upload: '<path d="M12 16V5"/><path d="m7 10 5-5 5 5"/><path d="M5 19h14"/>',
+  swords: '<path d="m6 4 14 14"/><path d="m16 4-2 2"/><path d="m18 6 2-2"/><path d="m4 18 2-2"/><path d="m6 20-2-2"/><path d="m18 4-14 14"/>',
+  shield: '<path d="M12 3.5 19 6v5.4c0 4.2-2.8 7.7-7 9.1-4.2-1.4-7-4.9-7-9.1V6l7-2.5Z"/><path d="m8.8 12.1 2.1 2.1 4.4-4.4"/>',
+  menu: '<path d="M4 7h16M4 12h16M4 17h16"/>',
+  home: '<path d="m4 11 8-7 8 7v8a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-8Z"/><path d="M9 20v-5h6v5"/>',
+  trophy: '<path d="M8 4h8v5a4 4 0 0 1-8 0V4Z"/><path d="M8 6H5v1a4 4 0 0 0 3 3.9M16 6h3v1a4 4 0 0 1-3 3.9M12 13v4M8 20h8"/>',
+  book: '<path d="M4.5 5.5A2.5 2.5 0 0 1 7 3h11v16H7a2.5 2.5 0 0 0-2.5 2V5.5Z"/><path d="M4.5 5.5A2.5 2.5 0 0 1 7 8h11M8 12h6"/>',
 } as const;
 
 export type IconName = keyof typeof ICON_PATHS;

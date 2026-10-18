@@ -1,4 +1,4 @@
-import { test, expect, type Locator, type Page } from "@playwright/test";
+import { test, expect, type Page } from "@playwright/test";
 import { mkdirSync } from "node:fs";
 
 // Screenshots land here by default so `visual-reviewer` can pick them up by path.
@@ -25,7 +25,7 @@ test("dashboard leaderboard cards link to their detail page", async ({ page }) =
   await page.route("**/stats.json", async (route) => {
     const response = await route.fetch();
     const stats = (await response.json()) as { leaderboards: Record<string, unknown> };
-    stats.leaderboards.most_kills = [];
+    stats.leaderboards.best_kda = [];
     await route.fulfill({ response, json: stats });
   });
   await page.goto("/", { waitUntil: "domcontentloaded" });
@@ -40,9 +40,20 @@ test("dashboard leaderboard cards link to their detail page", async ({ page }) =
   // EMPTY boards render a static title instead of a dead link.
   await expect(page.locator("#leaderboards .lb-hd-static")).toHaveCount(1);
 
-  await page.locator("#leaderboards .lb", { hasText: "Best Duo Win Rate" }).locator(".lb-hd-link").click();
-  await expect(page).toHaveURL(/\/leaderboard\/best_duo_win_rate$/);
-  await expect(page.locator(".board-title")).toHaveText("Best Duo Win Rate");
+  await page.locator("#leaderboards .lb", { hasText: "Highest Win Rate" }).locator(".lb-hd-link").click();
+  await expect(page).toHaveURL(/\/leaderboard\/highest_win_rate$/);
+  await expect(page.locator(".board-title")).toHaveText("Highest Win Rate");
+});
+
+test("all leaderboards and records have dedicated routes", async ({ page }) => {
+  await page.setViewportSize(DESKTOP);
+  await page.goto("/leaderboards", { waitUntil: "domcontentloaded" });
+  await expect(page.getByRole("heading", { name: "All leaderboards", exact: true })).toBeVisible();
+  await expect(page.locator("#leaderboards .lb")).toHaveCount(10);
+
+  await page.goto("/records", { waitUntil: "domcontentloaded" });
+  await expect(page.getByRole("heading", { name: "Records", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Players", exact: true })).toBeVisible();
 });
 
 test("duo detail page ranks the full population beyond the card's top 5", async ({ page }) => {
@@ -55,29 +66,28 @@ test("duo detail page ranks the full population beyond the card's top 5", async 
   await expect(page.locator(".board-count")).toContainText(/Showing \d+ of \d+ · minimum \d+ match/);
   await expect(page.locator(".board-table thead th")).toContainText(["#", "Duo", "Win rate", "Matches", "W–L"]);
 
-  // Extra blocks: togetherness coverage + partnerships per player.
-  await expect(page.getByText("Togetherness")).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Partnerships for" })).toBeVisible();
-  await expect(page.locator(".board-partnerships")).toBeVisible();
+  await expect(page.locator(".board-focus")).toHaveCount(0);
 
   await page.screenshot({ path: `${OUT_DIR}/board-detail-duo.png`, fullPage: true });
 });
 
-test("player detail page shows the compact profile highlights", async ({ page }) => {
+test("player profile owns leaderboard highlights and match history", async ({ page }) => {
   await page.setViewportSize(DESKTOP);
   await gotoDetail(page, "highest_win_rate");
 
-  const focus = page.locator(".board-focus");
-  await expect(focus).toContainText("Signature hero");
-  await expect(focus).toContainText("Best duo");
-  await expect(focus).toContainText("Toughest rival");
+  await expect(page.locator(".board-focus")).toHaveCount(0);
+  await page.locator(".board-table tbody tr").first().locator('a[href^="/player/"]').first().click();
+  await expect(page.getByRole("heading", { name: "Hero pool" })).toBeVisible();
+  await expect(page.getByText("Signature hero")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Recent matches" })).toBeVisible();
 });
 
-test("hero detail page lists who played the hero", async ({ page }) => {
+test("hero detail page stays a ranking without a focus panel", async ({ page }) => {
   await page.setViewportSize(DESKTOP);
   await gotoDetail(page, "most_picked_hero");
 
-  await expect(page.locator(".board-focus")).toContainText(/Picked by \d+ player/);
+  await expect(page.locator(".board-focus")).toHaveCount(0);
+  await expect(page.locator(".board-table tbody tr").first()).toBeVisible();
 });
 
 test("minimum filter, search and sort narrow the ranking", async ({ page }) => {
@@ -103,39 +113,6 @@ test("minimum filter, search and sort narrow the ranking", async ({ page }) => {
   await expect(toggle).toHaveAttribute("aria-pressed", "true");
 });
 
-/** The lazy payload may still be in flight: settle on rows, or the explicit note. */
-async function historyState(history: Locator): Promise<"rows" | "note" | "pending"> {
-  if ((await history.locator(".match-row").count()) > 0) return "rows";
-  if ((await history.getByText(/Per-match history isn.t published/).count()) > 0) return "note";
-  return "pending";
-}
-
-test("detail pages surface per-match history when it is published", async ({ page }) => {
-  await page.setViewportSize(DESKTOP);
-  await gotoDetail(page, "best_duo_win_rate");
-
-  const history = page.locator(".board-history");
-  await expect(history).toBeVisible();
-  await expect(history.locator(".board-focus-title").first()).toHaveText("Played together");
-
-  // matches.json is optional per deployment: either rows render, or the block
-  // says so instead of looking broken.
-  await expect.poll(() => historyState(history), { timeout: 15_000 }).not.toBe("pending");
-  if ((await historyState(history)) === "note") {
-    await expect(history).toContainText(/Per-match history isn.t published/);
-  } else {
-    await expect(history.locator(".board-badges .badge").first()).toBeVisible();
-    await expect(history.locator(".match-result").first()).toHaveText(/^[WL]$/);
-  }
-
-  // Every family wires its own history view.
-  for (const category of ["highest_win_rate", "most_played_rivalry", "most_picked_hero"]) {
-    await gotoDetail(page, category);
-    await expect(page.locator(".board-history .board-focus-title").first()).toBeVisible();
-    await expect.poll(() => historyState(page.locator(".board-history")), { timeout: 15_000 }).not.toBe("pending");
-  }
-});
-
 test("unknown category falls back to an error card", async ({ page }) => {
   await page.goto("/leaderboard/not_a_leaderboard", { waitUntil: "domcontentloaded" });
   await expect(page.getByRole("alert")).toContainText("Unknown leaderboard");
@@ -157,4 +134,17 @@ test("mobile detail page renders without horizontal overflow", async ({ page }) 
   expect(Math.round(primary!.x + primary!.width)).toBeLessThanOrEqual(MOBILE.width);
 
   await page.screenshot({ path: `${OUT_DIR}/board-detail-mobile.png`, fullPage: true });
+});
+
+test("mobile duo rows keep both player names readable", async ({ page }) => {
+  await page.setViewportSize(MOBILE);
+  await gotoDetail(page, "most_played_duo");
+
+  const pair = page.locator(".board-table tbody tr").first().locator("td").nth(1);
+  await expect(pair).toBeVisible();
+  const names = pair.locator('a[href^="/player/"]:not(:has(img))');
+  await expect(names).toHaveCount(2);
+  await expect(names).toHaveText([/\S+/, /\S+/]);
+  const overflows = await pair.evaluate((element) => element.scrollWidth > element.clientWidth);
+  expect(overflows, "pair names should wrap instead of truncating or overflowing").toBeFalsy();
 });

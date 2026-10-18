@@ -69,7 +69,7 @@ dota-lobby-stats2/
    - Runs the bundled [`odota/parser`](https://github.com/odota/parser) Java jar (`java -jar parser.jar --file /tmp/<match_id>.dem`), which streams the replay through [Clarity](https://github.com/skadistats/clarity) and prints line-delimited JSON match events to stdout.
    - Normalizes the event stream into the minimal MVP schema (match info + 10 players).
    - Writes `/tmp/<match_id>.json` and uploads it to `s3://<bucket>/parsed/<match_id>.json`.
-4. The aggregator Lambda is triggered by the new `parsed/<match_id>.json`; it lists every `parsed/*.json`, skips invalid and duplicate `match_id` values, recalculates all statistics, and overwrites `stats/stats.json`.
+4. The aggregator Lambda is triggered by the new `parsed/<match_id>.json`; it lists every `parsed/*.json`, skips invalid, duplicate, and non-lobby `match_id` values (only `lobby_type` `1`, Practice/private lobby, is counted — see `ALLOWED_LOBBY_TYPES`), recalculates all statistics, and overwrites `stats/stats.json`.
 5. The original `.dem` file is always retained in `raw/` as the source of truth.
 
 ## In-dashboard replay upload

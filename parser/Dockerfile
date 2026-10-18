@@ -28,6 +28,8 @@ RUN git init parser \
 # can invoke the parser against a local file without running the upstream
 # HTTP server (opendota.Main / port 5600).
 COPY java/FileParse.java /build/parser/src/main/java/opendota/FileParse.java
+COPY java/ParseLobbyType.patch /tmp/ParseLobbyType.patch
+RUN git -C /build/parser apply /tmp/ParseLobbyType.patch
 
 WORKDIR /build/parser
 RUN mvn -q -DskipTests clean package

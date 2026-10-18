@@ -7,6 +7,7 @@ import { CATEGORIES } from "../lib/leaderboard";
 import type { LeaderboardEntry, Stats } from "../types/stats";
 
 const COLLAPSED_COUNT = 5;
+const OVERVIEW_CATEGORIES = ["most_matches", "best_kda", "highest_win_rate", "most_picked_hero"];
 
 function Row({
   category,
@@ -22,6 +23,7 @@ function Row({
   gold: boolean;
 }) {
   const { stats } = useDashboard();
+  const isPair = entry.player_a !== undefined && entry.player_b !== undefined;
 
   let avatarNode: ReactNode;
   let nameNode: ReactNode;
@@ -56,7 +58,7 @@ function Row({
       <div className={`lb-rank${rank <= 3 ? ` medal medal-${rank}` : ""}`}>{rank}</div>
       {avatarNode}
       <div className="lb-main">
-        <div className="lb-name">
+          <div className={`lb-name${isPair ? " lb-name-pair" : ""}`}>
           {nameNode}
           {sub ? <span className="sub">{sub}</span> : null}
         </div>
@@ -69,13 +71,20 @@ function Row({
   );
 }
 
-export function Leaderboards({ stats }: { stats: Stats }) {
+export function Leaderboards({ stats, overview = false }: { stats: Stats; overview?: boolean }) {
   const boards = stats.leaderboards || {};
+  const categories = overview
+    ? OVERVIEW_CATEGORIES.filter((category) => boards[category])
+    : Object.keys(boards);
   return (
     <section className="section" id="leaderboards">
-      <h2 className="section-title">Leaderboards</h2>
+      <div className="section-head leaderboard-head">
+        <h2 className="section-title">{overview ? "Lobby leaders" : "Leaderboards"}</h2>
+        {overview ? <Link to="/leaderboards" className="section-link">All leaderboards</Link> : null}
+      </div>
       <div className="board-grid">
-        {Object.entries(boards).map(([category, entries]) => {
+        {categories.map((category) => {
+          const entries = boards[category];
           const all = entries || [];
           const gold = category.includes("win_rate");
           const shown = all.slice(0, COLLAPSED_COUNT);

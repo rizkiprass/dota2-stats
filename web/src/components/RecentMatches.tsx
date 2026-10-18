@@ -34,8 +34,6 @@ export function RecentMatches() {
           {recent.map((match) => {
             const radiantKills = Number(match.radiant_kills) || 0;
             const direKills = Number(match.dire_kills) || 0;
-            const totalKills = radiantKills + direKills;
-            const radiantShare = totalKills > 0 ? (radiantKills / totalKills) * 100 : 50;
             const radiantHeroes = match.radiant_heroes ?? [];
             const direHeroes = match.dire_heroes ?? [];
             const showHeroes = radiantHeroes.length > 0 && direHeroes.length > 0;
@@ -59,23 +57,15 @@ export function RecentMatches() {
                   <span className="recent-meta">
                     {formatTime(match.start_time)} · {fmtDuration(match.duration)}
                   </span>
+                  <Link to="/matches/$matchId" params={{ matchId: match.match_id }} className="recent-match-link">
+                    View match
+                  </Link>
                 </span>
 
                 {showHeroes ? (
-                  <span className="recent-heroes" role="group" aria-label={sidesLabel}>
-                    <span className="recent-side">
-                      {radiant.map((entry, index) => (
-                        <HeroPortrait key={`r-${entry.key}-${index}`} entry={entry} />
-                      ))}
-                    </span>
-                    <span className="recent-vs" aria-hidden="true">
-                      vs
-                    </span>
-                    <span className="recent-side">
-                      {dire.map((entry, index) => (
-                        <HeroPortrait key={`d-${entry.key}-${index}`} entry={entry} />
-                      ))}
-                    </span>
+                  <span className="recent-lineups" role="group" aria-label={sidesLabel}>
+                    <RecentLineup label="Radiant" side="r" entries={radiant} />
+                    <RecentLineup label="Dire" side="d" entries={dire} />
                   </span>
                 ) : null}
 
@@ -83,13 +73,13 @@ export function RecentMatches() {
                   <span className={`badge${match.radiant_win ? " b1" : " b2"}`}>
                     {match.radiant_win ? "Radiant win" : "Dire win"}
                   </span>
-                  <span className="splitbar" aria-hidden="true">
-                    <i className="r" style={{ width: `${radiantShare}%` }} />
-                    <i className="d" style={{ width: `${100 - radiantShare}%` }} />
-                  </span>
-                  <span className="recent-score">
-                    {fmtInt(radiantKills)}–{fmtInt(direKills)}
-                    <span className="recent-score-label"> kills</span>
+                  <span className="recent-score" aria-label={`Radiant ${radiantKills} kills, Dire ${direKills} kills`}>
+                    <span className={match.radiant_win ? "recent-score-side winner r" : "recent-score-side r"}>
+                      <b>Radiant</b> {fmtInt(radiantKills)}
+                    </span>
+                    <span className={match.radiant_win ? "recent-score-side d" : "recent-score-side winner d"}>
+                      <b>Dire</b> {fmtInt(direKills)}
+                    </span>
                   </span>
                 </span>
               </li>
@@ -138,18 +128,46 @@ function sideEntries(
   });
 }
 
+function RecentLineup({
+  label,
+  side,
+  entries,
+}: {
+  label: "Radiant" | "Dire";
+  side: "r" | "d";
+  entries: PortraitEntry[];
+}) {
+  return (
+    <span className={`recent-side ${side}`}>
+      <span className="recent-side-label">
+        <i className={`mc-dot ${side}`} aria-hidden="true" />
+        {label}
+      </span>
+      <span className="recent-player-list">
+        {entries.map((entry, index) => (
+          <HeroPortrait key={`${side}-${entry.key}-${index}`} entry={entry} />
+        ))}
+      </span>
+    </span>
+  );
+}
+
 /**
- * A portrait is the only interactive element in a row: it links to the player's
- * page and names the player over the hero in its tooltip. An unknown player
- * stays a plain, non-interactive portrait.
+ * A compact player tile keeps the player's identity visible and links known
+ * accounts to their profile. Unknown players retain the hero as their label.
  */
 function HeroPortrait({ entry }: { entry: PortraitEntry }) {
   const label = entry.name ?? entry.hero;
   const title = entry.name ? `${entry.name} — ${entry.hero}` : entry.hero;
-  const avatar = <Avatar heroId={entry.heroId} name={label} size="sm" />;
+  const content = (
+    <>
+      <Avatar heroId={entry.heroId} name={label} size="sm" />
+      <span className="recent-player-name">{label}</span>
+    </>
+  );
 
   if (!entry.accountId) {
-    return <span className="recent-hero-plain" title={title}>{avatar}</span>;
+    return <span className="recent-hero-plain" title={title}>{content}</span>;
   }
 
   return (
@@ -159,7 +177,7 @@ function HeroPortrait({ entry }: { entry: PortraitEntry }) {
       className="recent-hero-link"
       title={title}
     >
-      {avatar}
+      {content}
     </Link>
   );
 }

@@ -9,6 +9,7 @@ described in dota_replay_mvp_plan.md (Section 6/7):
   "radiant_win": true,
   "start_time": 1234567890,
   "game_mode": 22,
+  "lobby_type": 1,
   "players": [
     {
       "account_id": "...",
@@ -41,6 +42,8 @@ import re
 from typing import Any, Iterable, Optional
 
 STEAM64_BASE = 76561197960265728
+PING_BURST_WINDOW_SECONDS = 5
+PING_BURST_MINIMUM = 3
 
 # Prefix used by Source 2 hero entity class names, e.g. "CDOTA_Unit_Hero_Zuus"
 _HERO_UNIT_PREFIX = "CDOTA_Unit_Hero_"
@@ -146,6 +149,33 @@ def _parse_lines(raw_output: str) -> list:
     return events
 
 
+def _finalize_behavior(raw: Optional[dict[str, Any]]) -> dict[str, Any]:
+    """Convert one slot's raw replay activity into persisted count-only data."""
+    raw = raw or {}
+    pings = sorted(raw.get("pings", []))
+    ping_bursts = 0
+    burst_start = None
+    burst_count = 0
+    for timestamp in pings:
+        if burst_start is None or timestamp - burst_start > PING_BURST_WINDOW_SECONDS:
+            if burst_count >= PING_BURST_MINIMUM:
+                ping_bursts += 1
+            burst_start = timestamp
+            burst_count = 1
+        else:
+            burst_count += 1
+    if burst_count >= PING_BURST_MINIMUM:
+        ping_bursts += 1
+    return {
+        "chat_messages": raw.get("chat_messages", 0),
+        "pings": len(pings),
+        "ping_bursts": ping_bursts,
+        "chatwheel": raw.get("chatwheel", {}),
+        "disconnects": raw.get("disconnects", 0),
+        "abandons": raw.get("abandons", 0),
+    }
+
+
 def normalize_events(raw_output: str, match_id_hint: str) -> dict:
     """Convert the raw odota/parser stdout into the MVP match JSON schema.
 
@@ -156,8 +186,20 @@ def normalize_events(raw_output: str, match_id_hint: str) -> dict:
     events = _parse_lines(raw_output)
 
     epilogue = None
+    match_info = None
     player_slot_by_index: dict = {}  # slot index (0-9) -> player_slot value (0-127 radiant / 128-255 dire)
     latest_interval_by_slot: dict = {}  # slot index -> latest interval event
+    behavior_by_slot: dict[int, dict[str, Any]] = {}
+
+    def behavior_for(slot: Any) -> Optional[dict[str, Any]]:
+        try:
+            normalized_slot = int(slot)
+        except (TypeError, ValueError):
+            return None
+        return behavior_by_slot.setdefault(
+            normalized_slot,
+            {"chat_messages": 0, "pings": [], "chatwheel": {}, "disconnects": 0, "abandons": 0},
+        )
 
     for e in events:
         etype = e.get("type")
@@ -170,6 +212,15 @@ def normalize_events(raw_output: str, match_id_hint: str) -> dict:
                     epilogue = None
             elif isinstance(key, dict):
                 epilogue = key
+        elif etype == "match_info":
+            key = e.get("key")
+            if isinstance(key, str):
+                try:
+                    match_info = json.loads(key)
+                except json.JSONDecodeError:
+                    match_info = None
+            elif isinstance(key, dict):
+                match_info = key
         elif etype == "player_slot":
             try:
                 idx = int(e.get("key"))
@@ -184,11 +235,37 @@ def normalize_events(raw_output: str, match_id_hint: str) -> dict:
             prev = latest_interval_by_slot.get(slot)
             if prev is None or (prev.get("time") or 0) <= time_:
                 latest_interval_by_slot[slot] = e
+        elif etype in {"chat", "chatwheel", "pings"}:
+            behavior = behavior_for(e.get("slot"))
+            if behavior is None:
+                continue
+            if etype == "chat":
+                behavior["chat_messages"] += 1
+            elif etype == "chatwheel":
+                key = str(e.get("key", "unknown"))
+                behavior["chatwheel"][key] = behavior["chatwheel"].get(key, 0) + 1
+            else:
+                time_ = e.get("time")
+                if isinstance(time_, (int, float)):
+                    behavior["pings"].append(float(time_))
+        elif isinstance(etype, str):
+            behavior = behavior_for(e.get("player1"))
+            if behavior is None:
+                continue
+            if etype.startswith("CHAT_MESSAGE_DISCONNECT"):
+                behavior["disconnects"] += 1
+            elif etype.startswith("CHAT_MESSAGE_PLAYER_ABANDONED"):
+                behavior["abandons"] += 1
 
     dota_info = epilogue if epilogue is not None else {}
 
     match_id = _find(dota_info, "matchId", "match_id") or match_id_hint
     game_mode = _find(dota_info, "gameMode", "game_mode")
+    # lobby_type comes from the patched CMsgDOTAMatch ``match_info`` event and
+    # is the authoritative private-lobby vs public-matchmaking signal (1 =
+    # Practice/private lobby, 0 = Normal/public, 7 = Ranked). game_mode is NOT
+    # a discriminator: public and private Turbo matches both use game_mode 23.
+    lobby_type = _find(match_info or {}, "lobbyType", "lobby_type")
     game_winner = _find(dota_info, "gameWinner", "game_winner")
     playback_time = _find(dota_info, "playbackTime", "playback_time")
     end_time = _find(dota_info, "endTime", "end_time")
@@ -249,6 +326,9 @@ def normalize_events(raw_output: str, match_id_hint: str) -> dict:
                 "deaths": interval.get("deaths"),
                 "assists": interval.get("assists"),
                 "win": win,
+                # Keep counts only. The raw chat message in the event's key is
+                # intentionally discarded before this parsed match is persisted.
+                "behavior": _finalize_behavior(behavior_for(slot)),
             }
         )
 
@@ -258,5 +338,6 @@ def normalize_events(raw_output: str, match_id_hint: str) -> dict:
         "radiant_win": radiant_win,
         "start_time": start_time,
         "game_mode": game_mode,
+        "lobby_type": lobby_type,
         "players": players,
     }

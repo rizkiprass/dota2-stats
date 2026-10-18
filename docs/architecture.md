@@ -158,6 +158,7 @@ The parser output is stored at `parsed/<match_id>.json` and has this practical c
   "radiant_win": false,
   "start_time": 1788791908,
   "game_mode": 23,
+  "lobby_type": 1,
   "players": [
     {
       "account_id": "104623015",
@@ -214,6 +215,21 @@ A parsed match is skipped if it does not have:
 Player identity uses `account_id`, never `player_name`. A player with no `account_id` still contributes to the match summary and hero pick statistics, but is excluded from long-term player, player-hero, teammate, and head-to-head statistics.
 
 `player_name` is carried through as a display-only label (the most recent non-empty name seen per `account_id`) in `players` and `player_heroes`, and `hero_name` is attached to each `heroes` entry from a static `hero_id`-to-name table. Neither field affects identity or any aggregation math.
+
+### Private-lobby gate
+
+Only private-lobby matches are aggregated. The gate keys on `lobby_type` (not `game_mode`, which cannot separate a public Turbo match from a private lobby Turbo match — both are `game_mode` 23):
+
+| `lobby_type` | Meaning | Aggregated |
+|---|---|---|
+| `1` | Practice / private lobby | yes |
+| `0` | Normal (public matchmaking) | no |
+| `7` | Ranked matchmaking | no |
+| other | Bots, Battle Cup, 1v1, tutorial, … | no |
+
+The allowlist is configurable through the aggregator's `ALLOWED_LOBBY_TYPES` environment variable (default `"1"`). A parsed match without a readable `lobby_type` is rejected (fail-closed), preventing a parser regression from admitting public matches. Excluded matches are counted in the aggregation log as `non_lobby_matches_excluded`; they remain in `raw/` and `parsed/` and are simply never counted.
+
+Because a player's Dota replay folder also contains their public matchmaking replays, a batch upload can place a public replay under `raw/`. This gate is the layer that keeps such a replay out of `stats.json`.
 
 ### Generated statistics
 

@@ -1,7 +1,10 @@
 import { Link, useParams } from "@tanstack/react-router";
+import { useMemo } from "react";
 import { Avatar, Badge, Bar, PlayerAvatar } from "./ui";
 import { ActivityRadar } from "./ActivityRadar";
-import { fmtCount, fmtInt, fmtNum, fmtPct } from "../lib/format";
+import { useMatches } from "../lib/api";
+import { fmtCount, fmtDuration, fmtEpochDate, fmtInt, fmtNum, fmtPct } from "../lib/format";
+import { playerMatchRows, summarize } from "../lib/matches";
 import {
   average,
   bestDuoFor,
@@ -47,6 +50,9 @@ function clamp01(value: number): number {
 function PlayerProfileContent({ id }: { id: string }) {
   const { stats } = useDashboard();
   const player = stats.players[id];
+  const matchesQuery = useMatches();
+  const recentMatches = useMemo(() => playerMatchRows(matchesQuery.data, id), [matchesQuery.data, id]);
+  const recentSummary = useMemo(() => summarize(recentMatches), [recentMatches]);
   const badges = computeBadges(stats, id);
 
   const totalKills = metricValues(stats, "kills").reduce((sum, value) => sum + value, 0);
@@ -195,6 +201,7 @@ function PlayerProfileContent({ id }: { id: string }) {
               <div className="dp-hero-info">
                 <div className="h-name">{heroName(stats, rec.heroId)}</div>
                 <div className="h-sub">
+                  {rec.heroId === heroRecs[0]?.heroId ? "Signature hero · " : ""}
                   {fmtCount(rec.matches, "match")} · {fmtInt(rec.wins)}W–{fmtInt(rec.losses)}L
                 </div>
                 <Bar pct={Number(rec.win_rate) || 0} gold={Number(rec.win_rate) >= 50} />
@@ -224,13 +231,51 @@ function PlayerProfileContent({ id }: { id: string }) {
               <div className="dp-social-label">
                 <span className="s-name">{playerName(stats, other)}</span>
                 <span className="s-sub">
-                  {label} · {fmtInt(rec.matches)} matches
+                  {label} · {fmtInt(rec.matches)} matches · {fmtInt(rec.wins)}W–{fmtInt(rec.losses)}L
                 </span>
               </div>
               <div className={`dp-hero-val ${rec.win_rate >= 50 ? "win" : "loss"}`}>{fmtPct(rec.win_rate)}</div>
             </div>
           ))
         )}
+      </section>
+
+      <section className="dp-section profile-history">
+        <h2 className="dp-title">Recent matches</h2>
+        {matchesQuery.isPending ? <p className="dp-empty">Loading match history...</p> : null}
+        {!matchesQuery.isPending && !matchesQuery.data ? (
+          <p className="dp-empty">Per-match history is not published for this deployment yet.</p>
+        ) : null}
+        {!matchesQuery.isPending && matchesQuery.data && recentMatches.length === 0 ? (
+          <p className="dp-empty">No published matches for this player yet.</p>
+        ) : null}
+        {recentMatches.length > 0 ? (
+          <>
+            <div className="board-badges">
+              <Badge label={fmtCount(recentSummary.total, "published match")} />
+              <Badge label={`${fmtInt(recentSummary.wins)}W–${fmtInt(recentSummary.losses)}L`} />
+            </div>
+            <div className="match-list">
+              {recentMatches.slice(0, 10).map((entry) => {
+                const match = entry.match;
+                const played = entry.players[0];
+                const hero = heroName(stats, played.hero_id);
+                return (
+                  <div className="match-row" key={match.match_id}>
+                    <span className="match-date">{fmtEpochDate(match.start_time)}</span>
+                    <Avatar heroId={Number(played.hero_id) || null} name={hero} size="sm" />
+                    <div className="match-main">
+                      <span className="match-title">{hero}</span>
+                      <span className="match-sub">{fmtDuration(match.duration)} · #{match.match_id}</span>
+                    </div>
+                    <span className="match-kda">{fmtInt(played.kills)} / {fmtInt(played.deaths)} / {fmtInt(played.assists)}</span>
+                    <span className={`match-result ${entry.win ? "win" : "loss"}`}>{entry.win ? "W" : "L"}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </>
+        ) : null}
       </section>
     </>
   );

@@ -128,6 +128,17 @@ test("a match card reveals the K/D/A only when expanded", async ({ page }) => {
   await expect(card.locator(".dp-hero-val").first()).toHaveText(/^\d+\/\d+\/\d+$/);
 });
 
+test("a match card links to its full detail page", async ({ page }) => {
+  await page.setViewportSize(DESKTOP);
+  if (!(await gotoMatches(page))) return;
+
+  const detail = page.locator(".match-card").first().getByRole("link", { name: "View match details" });
+  await expect(detail).toHaveAttribute("href", /\/matches\/[^/]+$/);
+  await detail.click();
+  await expect(page.locator(".match-detail-card")).toBeVisible();
+  await page.screenshot({ path: `${OUT_DIR}/match-detail-desktop.png`, fullPage: true });
+});
+
 test("month navigation is bounded by the published range", async ({ page }) => {
   await page.setViewportSize(DESKTOP);
   if (!(await gotoMatches(page))) return;
@@ -150,7 +161,7 @@ test("the dashboard nav reaches match history", async ({ page }) => {
   await page.goto("/", { waitUntil: "domcontentloaded" });
   await page.waitForSelector("#leaderboards");
 
-  const nav = page.getByRole("navigation", { name: "Sections" });
+  const nav = page.getByRole("navigation", { name: "Primary navigation" });
   await nav.getByRole("link", { name: "History" }).click();
   await expect(page).toHaveURL(/\/matches$/);
   await expect(page.getByRole("heading", { level: 1, name: "Match history" })).toBeVisible();
@@ -166,4 +177,19 @@ test("match history stacks on mobile without overflow", async ({ page }) => {
   );
   expect(overflow, "match history should not scroll horizontally").toBe(0);
   await page.screenshot({ path: `${OUT_DIR}/matches-mobile.png`, fullPage: true });
+});
+
+test("match detail stays readable on mobile", async ({ page }) => {
+  await page.setViewportSize(MOBILE);
+  if (!(await gotoMatches(page))) return;
+
+  await page.locator(".match-card").first().getByRole("link", { name: "View match details" }).click();
+  await expect(page.locator(".match-detail-card")).toBeVisible();
+  await expect(page.locator(".match-detail-comparison-side").first()).toHaveCSS("display", "flex");
+  await page.evaluate(() => window.scrollTo(0, 0));
+  const overflow = await page.evaluate(
+    () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+  );
+  expect(overflow, "match detail should not scroll horizontally").toBe(0);
+  await page.screenshot({ path: `${OUT_DIR}/match-detail-mobile.png`, fullPage: true });
 });

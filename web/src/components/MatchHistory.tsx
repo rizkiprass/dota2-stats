@@ -278,6 +278,9 @@ function MatchCard({ match, stats }: { match: MatchRecord; stats: Stats }) {
         </span>
         <span className="mc-hint">{open ? "Hide K/D/A" : "Show K/D/A"}</span>
       </button>
+      <Link to="/matches/$matchId" params={{ matchId: match.match_id }} className="mc-details-link">
+        View match details
+      </Link>
 
       <div className="mc-lineups">
         <Lineup label="Radiant" side="r" players={radiant} stats={stats} showKda={open} />

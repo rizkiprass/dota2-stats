@@ -56,7 +56,18 @@ test("desktop dashboard renders and captures", async ({ page }) => {
   await gotoDashboard(page);
 
   expect(await horizontalOverflow(page), "desktop should not scroll horizontally").toBe(0);
-  await expect(page.getByRole("navigation", { name: "Sections" }).getByRole("link", { name: "Activity" })).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "Most toxic player" })).toBeVisible();
+  await expect(page.getByText("Overall toxicity index")).toBeVisible();
+  await expect(page.getByText("Not an official Dota Behavior Score.")).toBeVisible();
+  await expect(page.getByRole("navigation", { name: "Primary navigation" }).getByRole("link", { name: "Records" })).toHaveCount(1);
+  await expect(page.getByRole("heading", { name: "Lobby leaders" })).toBeVisible();
+  await page.getByRole("button", { name: "Collapse navigation" }).click();
+  await expect(page.getByRole("button", { name: "Expand navigation" })).toBeVisible();
+  await expect(page.getByRole("navigation", { name: "Primary navigation" }).getByRole("link", { name: "History" })).toBeVisible();
+  await page.waitForTimeout(300);
+  await page.screenshot({ path: `${OUT_DIR}/dashboard-desktop-collapsed.png`, fullPage: true });
+  await page.getByRole("button", { name: "Expand navigation" }).click();
+  await expect(page.getByRole("navigation", { name: "Primary navigation" })).toBeVisible();
   await page.screenshot({ path: `${OUT_DIR}/dashboard-desktop.png`, fullPage: true });
 
   expect(errors.pageErrors, "no uncaught page errors").toEqual([]);
@@ -69,13 +80,20 @@ test("mobile dashboard renders and captures", async ({ page }) => {
   await gotoDashboard(page);
 
   expect(await horizontalOverflow(page), "mobile should not scroll horizontally").toBe(0);
+  await page.getByRole("button", { name: "Open navigation" }).click();
+  await expect(page.getByRole("navigation", { name: "Primary navigation" }).getByRole("link", { name: "History" })).toBeVisible();
+  // Capture the settled drawer rather than an intermediate transition frame.
+  await page.waitForTimeout(300);
+  await page.screenshot({ path: `${OUT_DIR}/dashboard-mobile-nav.png` });
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("button", { name: "Open navigation" })).toBeVisible();
   await page.screenshot({ path: `${OUT_DIR}/dashboard-mobile.png`, fullPage: true });
 
   expect(errors.pageErrors, "no uncaught page errors").toEqual([]);
   expect(errors.consoleErrors, "no console errors").toEqual([]);
 });
 
-test("activity stats render when behavior data is present", async ({ page }) => {
+test("activity stats live on the records page", async ({ page }) => {
   // Heavy: mocks the payload and captures four full-page screenshots; under load
   // the 30s default is not enough. test.slow() triples the timeout.
   test.slow();
@@ -110,17 +128,19 @@ test("activity stats render when behavior data is present", async ({ page }) => 
 
   const errors = watchPage(page);
   await page.setViewportSize(DESKTOP);
-  await gotoDashboard(page);
+  const statsLoaded = page.waitForResponse((r) => r.url().endsWith("/stats.json") && r.status() === 200);
+  await page.goto("/records", { waitUntil: "domcontentloaded" });
+  await statsLoaded;
   await expect(page.getByRole("heading", { name: "Lobby activity" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Highest order rate" })).toBeVisible();
-  await expect(page.getByRole("navigation", { name: "Sections" }).getByRole("link", { name: "Activity" })).toHaveCount(1);
+  await expect(page.getByRole("navigation", { name: "Primary navigation" }).getByRole("link", { name: "Records" })).toHaveClass(/active/);
   await expect(page.getByText("Orders per minute are replay unit orders, not official APM.")).toBeVisible();
-  await page.screenshot({ path: `${OUT_DIR}/activity-dashboard-desktop.png`, fullPage: true });
+  await page.screenshot({ path: `${OUT_DIR}/activity-records-desktop.png`, fullPage: true });
 
   expect(playerId, "mocked behavior data should include a player").toBeTruthy();
   await page.setViewportSize(MOBILE);
-  await expectNoOverflow(page, "activity dashboard should not overflow on mobile");
-  await page.screenshot({ path: `${OUT_DIR}/activity-dashboard-mobile.png`, fullPage: true });
+  await expectNoOverflow(page, "activity records should not overflow on mobile");
+  await page.screenshot({ path: `${OUT_DIR}/activity-records-mobile.png`, fullPage: true });
   await page.setViewportSize(DESKTOP);
   await page.goto(`/player/${playerId}`, { waitUntil: "domcontentloaded" });
   await expect(page.getByText("Orders / min", { exact: true })).toBeVisible();

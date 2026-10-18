@@ -84,6 +84,9 @@ resource "aws_lambda_function" "statistics_aggregator" {
       MIN_TEAMMATE_MATCHES = "2"
       MIN_H2H_MATCHES      = "2"
       LEADERBOARD_LIMIT    = "10"
+      # Private-lobby gate: only lobby_type 1 (Practice) is aggregated. Public
+      # matchmaking (0 Normal, 7 Ranked) and other modes are excluded.
+      ALLOWED_LOBBY_TYPES = "1"
       # Newest matches kept in the lazy per-match payload (stats/matches.json).
       MATCHES_LIMIT = "500"
       # Newest matches summarised into stats.json for the dashboard teaser.

@@ -12,6 +12,8 @@ export interface RadarAxis {
 export interface DuoRef {
   other: string;
   matches: number;
+  wins: number;
+  losses: number;
   win_rate: number;
 }
 
@@ -74,6 +76,8 @@ export function bestDuoFor(stats: Stats, id: string): { best: DuoRef | null; mos
     .map((t) => ({
       other: t.player_a === id ? t.player_b : t.player_a,
       matches: t.matches,
+      wins: t.wins,
+      losses: t.losses,
       win_rate: t.win_rate,
     }));
   const eligible = duos.filter((d) => d.matches >= 3);
@@ -89,6 +93,8 @@ export function rivalriesFor(stats: Stats, id: string): DuoRef[] {
     .map((h) => ({
       other: h.player_a === id ? h.player_b : h.player_a,
       matches: h.matches,
+      wins: h.player_a === id ? h.player_a_wins : h.player_b_wins,
+      losses: h.player_a === id ? h.player_b_wins : h.player_a_wins,
       win_rate: h.player_a === id ? h.player_a_win_rate : h.player_b_win_rate,
     }));
 }

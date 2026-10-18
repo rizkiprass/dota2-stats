@@ -1,6 +1,8 @@
 import { createRootRoute, createRoute, createRouter, lazyRouteComponent } from "@tanstack/react-router";
 import { RootLayout } from "./components/RootLayout";
 import { Dashboard } from "./components/Dashboard";
+import { LeaderboardIndex } from "./components/LeaderboardIndex";
+import { Records } from "./components/Records";
 
 const rootRoute = createRootRoute({ component: RootLayout });
 
@@ -15,6 +17,18 @@ const playerRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/player/$playerId",
   component: lazyRouteComponent(() => import("./components/PlayerProfile"), "PlayerProfile"),
+});
+
+const leaderboardsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/leaderboards",
+  component: LeaderboardIndex,
+});
+
+const recordsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/records",
+  component: Records,
 });
 
 // One generic detail page for every leaderboard category, split out of the
@@ -33,7 +47,13 @@ const matchesRoute = createRoute({
   component: lazyRouteComponent(() => import("./components/MatchHistory"), "MatchHistory"),
 });
 
-const routeTree = rootRoute.addChildren([indexRoute, playerRoute, leaderboardRoute, matchesRoute]);
+const matchDetailRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/matches/$matchId",
+  component: lazyRouteComponent(() => import("./components/MatchDetail"), "MatchDetail"),
+});
+
+const routeTree = rootRoute.addChildren([indexRoute, playerRoute, leaderboardsRoute, recordsRoute, leaderboardRoute, matchesRoute, matchDetailRoute]);
 
 export const router = createRouter({ routeTree, defaultPreload: "intent" });
 

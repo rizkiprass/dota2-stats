@@ -109,6 +109,7 @@ export interface Metadata {
     heroes: number;
     teammates: number;
     head_to_head: number;
+    behavior?: number;
     leaderboard_limit: number;
   };
 }
@@ -153,8 +154,14 @@ export interface BehaviorPlayerRecord {
   pings?: number;
   pings_per_match?: number;
   ping_bursts?: number;
+  ping_bursts_per_match?: number;
   chat_messages?: number;
   chat_messages_per_match?: number;
+  disconnects?: number;
+  abandons?: number;
+  disconnects_or_abandons_per_match?: number;
+  /** Comparative replay-activity proxy, not an official Dota behavior score. */
+  disruptive_score?: number;
   chatwheel?: Record<string, number>;
   orders?: number;
   orders_per_minute?: number;

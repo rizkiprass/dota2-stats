@@ -34,13 +34,17 @@ export function RootLayout() {
 
   return (
     <DashboardContext.Provider value={{ stats }}>
-      <Header stats={stats} />
-      <Outlet />
-      <footer className="site-footer">
-        <div className="wrap">
-          Dota 2 private-lobby statistics · built from replays parsed and aggregated on AWS.
+      <div className="app-shell">
+        <Header stats={stats} />
+        <div className="app-content">
+          <Outlet />
+          <footer className="site-footer">
+            <div className="wrap">
+              Dota 2 private-lobby statistics · built from replays parsed and aggregated on AWS.
+            </div>
+          </footer>
         </div>
-      </footer>
+      </div>
     </DashboardContext.Provider>
   );
 }

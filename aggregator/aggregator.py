@@ -5,6 +5,11 @@ rebuilds the complete historical dashboard payload from every object under the
 ``parsed/`` prefix. Invalid objects and duplicate match IDs are logged and do
 not prevent a new ``stats/stats.json`` from being published.
 
+Only private-lobby matches are aggregated: a parsed match whose ``lobby_type``
+is not in ``ALLOWED_LOBBY_TYPES`` (default ``1`` = Practice) is counted as
+excluded, so a public matchmaking replay that slipped into ``parsed/`` never
+reaches the dashboard.
+
 Two objects are published from one rebuild:
 
 * ``stats/stats.json`` — the aggregate dashboard payload. It carries
@@ -37,7 +42,7 @@ s3 = boto3.client("s3")
 PARSED_PREFIX = "parsed/"
 STATS_KEY = "stats/stats.json"
 MATCHES_KEY = "stats/matches.json"
-SCHEMA_VERSION = "1.5"
+SCHEMA_VERSION = "1.6"
 
 # Optional static-website mirror. When set, the same dashboard payload is also
 # written here so the browser can fetch it same-origin (no CORS, no public data
@@ -46,9 +51,20 @@ DASHBOARD_BUCKET = os.environ.get("DASHBOARD_BUCKET")
 DASHBOARD_STATS_KEY = os.environ.get("DASHBOARD_STATS_KEY", "stats.json")
 DASHBOARD_MATCHES_KEY = os.environ.get("DASHBOARD_MATCHES_KEY", "matches.json")
 MIN_PLAYER_MATCHES = int(os.environ.get("MIN_PLAYER_MATCHES", "5"))
+# Private-lobby gate. Only matches whose lobby_type is in this allowlist are
+# aggregated; 1 = Practice (private lobby). Public matchmaking (0 = Normal,
+# 7 = Ranked), Coop bots, Battle Cup, etc. are excluded. Missing or unreadable
+# lobby_type is also excluded (fail-closed) so parser regressions cannot admit
+# public matches into the private-lobby statistics.
+ALLOWED_LOBBY_TYPES = {
+    int(value)
+    for value in os.environ.get("ALLOWED_LOBBY_TYPES", "1").split(",")
+    if value.strip().lstrip("-").isdigit()
+}
 MIN_HERO_PICKS = int(os.environ.get("MIN_HERO_PICKS", "5"))
 MIN_TEAMMATE_MATCHES = int(os.environ.get("MIN_TEAMMATE_MATCHES", "3"))
 MIN_H2H_MATCHES = int(os.environ.get("MIN_H2H_MATCHES", "3"))
+MIN_BEHAVIOR_MATCHES = int(os.environ.get("MIN_BEHAVIOR_MATCHES", "3"))
 LEADERBOARD_LIMIT = int(os.environ.get("LEADERBOARD_LIMIT", "10"))
 # Newest matches kept in the lazy per-match payload. The dashboard never reads
 # history itself, so only detail pages feel this cap.
@@ -262,6 +278,27 @@ def validate_match(match: Any) -> dict[str, Any]:
     return match
 
 
+def _lobby_type(match: dict[str, Any]) -> int | None:
+    """Normalize ``lobby_type`` to an int, or ``None`` when absent/unreadable."""
+    value = match.get("lobby_type")
+    if _is_number(value):
+        return int(value)
+    if isinstance(value, str) and value.strip().lstrip("-").isdigit():
+        return int(value)
+    return None
+
+
+def _is_private_lobby(match: dict[str, Any]) -> bool:
+    """True when the match belongs in the private-lobby dataset.
+
+    ``lobby_type`` is authoritative (1 = Practice/private lobby). Missing,
+    unreadable, and non-allowlisted values (public matchmaking, ranked, bots)
+    are rejected.
+    """
+    lobby_type = _lobby_type(match)
+    return lobby_type is not None and lobby_type in ALLOWED_LOBBY_TYPES
+
+
 def _new_record() -> dict[str, int]:
     return {"matches": 0, "wins": 0, "kills": 0, "deaths": 0, "assists": 0}
 
@@ -274,12 +311,41 @@ def _new_h2h_record() -> dict[str, int]:
     return {"matches": 0, "player_a_wins": 0, "player_b_wins": 0}
 
 
+def _new_behavior_record() -> dict[str, Any]:
+    return {
+        "matches": 0,
+        "chat_messages": 0,
+        "pings": 0,
+        "ping_bursts": 0,
+        "disconnects": 0,
+        "abandons": 0,
+        "chatwheel": defaultdict(int),
+    }
+
+
 def _add_player_observation(record: dict[str, int], player: dict[str, Any]) -> None:
     record["matches"] += 1
     record["wins"] += int(player["win"])
     record["kills"] += player["kills"]
     record["deaths"] += player["deaths"]
     record["assists"] += player["assists"]
+
+
+def _add_behavior_observation(record: dict[str, Any], player: dict[str, Any]) -> None:
+    """Aggregate count-only replay activity; never retain raw chat content."""
+    record["matches"] += 1
+    behavior = player.get("behavior")
+    if not isinstance(behavior, dict):
+        return
+    for field in ("chat_messages", "pings", "ping_bursts", "disconnects", "abandons"):
+        value = behavior.get(field)
+        if _is_number(value) and value > 0:
+            record[field] += int(value)
+    chatwheel = behavior.get("chatwheel")
+    if isinstance(chatwheel, dict):
+        for key, count in chatwheel.items():
+            if _is_number(count) and count > 0:
+                record["chatwheel"][str(key)] += int(count)
 
 
 def _finalize_player_record(record: dict[str, int]) -> dict[str, Any]:
@@ -298,6 +364,46 @@ def _finalize_player_record(record: dict[str, int]) -> dict[str, Any]:
         "avg_assists": _round(record["assists"] / matches) if matches else 0.0,
         "kda": _round((record["kills"] + record["assists"]) / max(record["deaths"], 1)),
     }
+
+
+def _finalize_behavior_records(records: dict[str, dict[str, Any]]) -> dict[str, dict[str, Any]]:
+    """Publish replay activity and its transparent, comparative proxy score."""
+    finalized = {
+        player_id: {
+            "matches": record["matches"],
+            "chat_messages": record["chat_messages"],
+            "chat_messages_per_match": _round(record["chat_messages"] / record["matches"]) if record["matches"] else 0.0,
+            "pings": record["pings"],
+            "pings_per_match": _round(record["pings"] / record["matches"]) if record["matches"] else 0.0,
+            "ping_bursts": record["ping_bursts"],
+            "ping_bursts_per_match": _round(record["ping_bursts"] / record["matches"]) if record["matches"] else 0.0,
+            "disconnects": record["disconnects"],
+            "abandons": record["abandons"],
+            "disconnects_or_abandons_per_match": _round((record["disconnects"] + record["abandons"]) / record["matches"]) if record["matches"] else 0.0,
+            "chatwheel": dict(sorted(record["chatwheel"].items())),
+        }
+        for player_id, record in sorted(records.items())
+    }
+    eligible = [record for record in finalized.values() if record["matches"] >= MIN_BEHAVIOR_MATCHES]
+    maxima = {
+        metric: max((record[metric] for record in eligible), default=0.0)
+        for metric in ("chat_messages_per_match", "ping_bursts_per_match", "disconnects_or_abandons_per_match")
+    }
+    for record in finalized.values():
+        if record["matches"] < MIN_BEHAVIOR_MATCHES:
+            record["disruptive_score"] = 0.0
+            continue
+        def normalized(metric: str) -> float:
+            maximum = maxima[metric]
+            return record[metric] / maximum if maximum else 0.0
+        record["disruptive_score"] = _round(
+            100 * (
+                0.35 * normalized("chat_messages_per_match")
+                + 0.25 * normalized("ping_bursts_per_match")
+                + 0.40 * normalized("disconnects_or_abandons_per_match")
+            )
+        )
+    return finalized
 
 
 def _finalize_player_hero_record(record: dict[str, int]) -> dict[str, Any]:
@@ -511,9 +617,11 @@ def aggregate_matches(
     player_heroes: defaultdict[str, defaultdict[str, dict[str, int]]] = defaultdict(lambda: defaultdict(_new_record))
     teammates: defaultdict[str, dict[str, int]] = defaultdict(_new_pair_record)
     head_to_head: defaultdict[str, dict[str, int]] = defaultdict(_new_h2h_record)
+    behavior: defaultdict[str, dict[str, Any]] = defaultdict(_new_behavior_record)
     radiant_wins = 0
     total_duration = 0.0
     duplicate_count = 0
+    excluded_lobby_count = 0
     valid_count = 0
     match_summaries: list[dict[str, Any]] = []
 
@@ -524,6 +632,17 @@ def aggregate_matches(
             logger.warning("Skipping duplicate match_id %s", match_id)
             continue
         processed_match_ids.add(match_id)
+        if not _is_private_lobby(match):
+            # Public matchmaking leaked in (e.g. a Turbo replay uploaded from the
+            # Dota replay folder). Kept in raw/parsed, excluded from statistics.
+            excluded_lobby_count += 1
+            logger.info(
+                "Skipping non-lobby match %s (lobby_type=%s not in %s)",
+                match_id,
+                match.get("lobby_type"),
+                sorted(ALLOWED_LOBBY_TYPES),
+            )
+            continue
         valid_count += 1
         match_summaries.append(_match_summary(match))
         total_duration += match["duration"]
@@ -551,6 +670,7 @@ def aggregate_matches(
                 # Display-only label; the latest match's name wins deterministically.
                 player_names[player_id] = name.strip()
             _add_player_observation(players[player_id], player)
+            _add_behavior_observation(behavior[player_id], player)
             _add_player_observation(player_heroes[player_id][hero_id], player)
             (radiant if on_radiant else dire).append((player_id, player))
 
@@ -620,6 +740,7 @@ def aggregate_matches(
         }
         for pair_id, record in sorted(head_to_head.items())
     }
+    finalized_behavior = _finalize_behavior_records(behavior)
     summary = {
         "total_matches": valid_count,
         "total_players": len(finalized_players),
@@ -637,12 +758,14 @@ def aggregate_matches(
         "player_heroes": finalized_player_heroes,
         "teammates": finalized_teammates,
         "head_to_head": finalized_h2h,
+        "behavior": {"players": finalized_behavior},
         "leaderboards": _generate_leaderboards(finalized_players, finalized_heroes, finalized_player_heroes, finalized_teammates, finalized_h2h),
         "recent_matches": _recent_matches(match_summaries),
     }
     return stats, {
         "valid_matches": valid_count,
         "duplicate_matches": duplicate_count,
+        "excluded_non_lobby": excluded_lobby_count,
         "unique_players": len(finalized_players),
         "unique_heroes": len(finalized_heroes),
         "teammate_pairs": len(finalized_teammates),
@@ -683,6 +806,7 @@ def rebuild_statistics(bucket: str) -> dict[str, Any]:
             "heroes": MIN_HERO_PICKS,
             "teammates": MIN_TEAMMATE_MATCHES,
             "head_to_head": MIN_H2H_MATCHES,
+            "behavior": MIN_BEHAVIOR_MATCHES,
             "leaderboard_limit": LEADERBOARD_LIMIT,
         },
     }
@@ -708,6 +832,7 @@ def rebuild_statistics(bucket: str) -> dict[str, Any]:
         parsed_files_found=parsed_file_count,
         invalid_matches=parsed_file_count - len(matches),
         duplicate_matches_skipped=counts["duplicate_matches"],
+        non_lobby_matches_excluded=counts["excluded_non_lobby"],
         unique_players=counts["unique_players"],
         unique_heroes=counts["unique_heroes"],
         teammate_pairs=counts["teammate_pairs"],
