@@ -187,4 +187,6 @@ DASHBOARD_URL="$(tf_output dashboard_custom_url || true)"
 
 echo
 echo "deployed to s3://$BUCKET (distribution $DIST_ID)"
-[[ -n "$DASHBOARD_URL" && "$DASHBOARD_URL" != "null" ]] && echo "url: $DASHBOARD_URL"
+if [[ -n "$DASHBOARD_URL" && "$DASHBOARD_URL" != "null" ]]; then
+  echo "url: $DASHBOARD_URL"
+fi
