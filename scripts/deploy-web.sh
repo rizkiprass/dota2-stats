@@ -190,3 +190,5 @@ echo "deployed to s3://$BUCKET (distribution $DIST_ID)"
 if [[ -n "$DASHBOARD_URL" && "$DASHBOARD_URL" != "null" ]]; then
   echo "url: $DASHBOARD_URL"
 fi
+
+exit 0
