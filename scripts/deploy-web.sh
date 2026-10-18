@@ -26,7 +26,10 @@ WEB_DIR="${WEB_DIR:-$REPO_ROOT/web}"
 TF_DIR="${TF_DIR:-$REPO_ROOT/terraform}"
 BUCKET="${DASHBOARD_BUCKET:-}"
 DIST_ID="${CLOUDFRONT_DISTRIBUTION_ID:-}"
-PROFILE="${AWS_PROFILE_NAME:-pras-sandbox}"
+PROFILE="${AWS_PROFILE_NAME:-}"
+if [[ -z "$PROFILE" && "${CI:-}" != "true" ]]; then
+  PROFILE="pras-sandbox"
+fi
 REGION="${AWS_REGION_NAME:-us-east-1}"
 UPLOAD_API_URL="${VITE_UPLOAD_API_URL:-}"
 DRY_RUN=false
@@ -112,7 +115,7 @@ echo "web dir        : $WEB_DIR"
 echo "bucket         : s3://$BUCKET"
 echo "distribution   : $DIST_ID"
 echo "upload api     : ${UPLOAD_API_URL:-<none: upload button hidden>}"
-echo "profile/region : $PROFILE / $REGION"
+echo "profile/region : ${PROFILE:-<ambient credentials>} / $REGION"
 [[ "$SKIP_BUILD" == true ]] && echo "build          : skipped (using existing $DIST)"
 [[ "$DRY_RUN" == true ]] && echo "mode           : DRY RUN (nothing will be uploaded)"
 echo
@@ -137,8 +140,9 @@ SYNC_ARGS=(
   --exclude "index.html"
   --delete
   --cache-control "public, max-age=31536000, immutable"
-  --profile "$PROFILE" --region "$REGION"
+  --region "$REGION"
 )
+[[ -n "$PROFILE" ]] && SYNC_ARGS+=(--profile "$PROFILE")
 [[ "$DRY_RUN" == true ]] && SYNC_ARGS+=(--dryrun)
 aws "${SYNC_ARGS[@]}"
 
@@ -146,8 +150,9 @@ echo "==> uploading index.html (no-cache)"
 CP_ARGS=(
   s3 cp "$DIST/index.html" "s3://$BUCKET/index.html"
   --cache-control "no-cache"
-  --profile "$PROFILE" --region "$REGION"
+  --region "$REGION"
 )
+[[ -n "$PROFILE" ]] && CP_ARGS+=(--profile "$PROFILE")
 [[ "$DRY_RUN" == true ]] && CP_ARGS+=(--dryrun)
 aws "${CP_ARGS[@]}"
 
@@ -161,18 +166,18 @@ if [[ "$DRY_RUN" == true ]]; then
 fi
 
 echo "==> creating CloudFront invalidation: ${PATHS[*]}"
-INVALIDATION_ID="$(aws cloudfront create-invalidation \
+AWS_ARGS=(--region "$REGION")
+[[ -n "$PROFILE" ]] && AWS_ARGS+=(--profile "$PROFILE")
+INVALIDATION_ID="$(aws "${AWS_ARGS[@]}" cloudfront create-invalidation \
   --distribution-id "$DIST_ID" \
   --paths "${PATHS[@]}" \
-  --profile "$PROFILE" \
   --query 'Invalidation.Id' --output text)"
 echo "    invalidation id: $INVALIDATION_ID"
 
 if [[ "$WAIT" == true ]]; then
   echo "==> waiting for invalidation to complete..."
-  aws cloudfront wait invalidation-completed \
-    --distribution-id "$DIST_ID" --id "$INVALIDATION_ID" \
-    --profile "$PROFILE"
+  aws "${AWS_ARGS[@]}" cloudfront wait invalidation-completed \
+    --distribution-id "$DIST_ID" --id "$INVALIDATION_ID"
   echo "    invalidation completed"
 fi
 

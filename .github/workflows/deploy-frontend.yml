@@ -52,7 +52,6 @@ jobs:
       url: https://dls.rpras.my.id/
     env:
       AWS_REGION_NAME: ${{ vars.AWS_REGION }}
-      AWS_PROFILE_NAME: default
       DASHBOARD_BUCKET: ${{ vars.DASHBOARD_BUCKET }}
       CLOUDFRONT_DISTRIBUTION_ID: ${{ vars.CLOUDFRONT_DISTRIBUTION_ID }}
       VITE_UPLOAD_API_URL: ${{ vars.VITE_UPLOAD_API_URL }}
