@@ -83,6 +83,31 @@ resource "aws_iam_role_policy" "upload_api_s3" {
   })
 }
 
+# Recaps are derived, on-demand data. The OpenCode API key stays in SSM and is
+# never placed in the Lambda environment or the frontend bundle.
+resource "aws_iam_role_policy" "upload_api_recap" {
+  name = "${var.project_name}-upload-api-recap"
+  role = aws_iam_role.upload_api_exec.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid      = "ReadWriteRecaps"
+        Effect   = "Allow"
+        Action   = ["s3:GetObject", "s3:PutObject"]
+        Resource = "${aws_s3_bucket.replay_data.arn}/recaps/*"
+      },
+      {
+        Sid      = "ReadOpenCodeApiKey"
+        Effect   = "Allow"
+        Action   = ["ssm:GetParameter"]
+        Resource = "arn:aws:ssm:${var.aws_region}:${var.account_id}:parameter/${var.project_name}/opencode-api-key"
+      }
+    ]
+  })
+}
+
 resource "aws_iam_role_policy_attachment" "upload_api_logs" {
   role       = aws_iam_role.upload_api_exec.name
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
@@ -98,13 +123,18 @@ resource "aws_lambda_function" "upload_api" {
   source_code_hash = data.archive_file.upload_api.output_base64sha256
   architectures    = ["x86_64"]
   memory_size      = 256
-  timeout          = 15
+  timeout          = 29
 
   environment {
     variables = {
-      REPLAY_BUCKET    = aws_s3_bucket.replay_data.bucket
-      UPLOAD_TOKEN     = var.upload_token
-      MAX_UPLOAD_BYTES = tostring(var.upload_api_max_upload_mb * 1024 * 1024)
+      REPLAY_BUCKET              = aws_s3_bucket.replay_data.bucket
+      UPLOAD_TOKEN               = var.upload_token
+      MAX_UPLOAD_BYTES           = tostring(var.upload_api_max_upload_mb * 1024 * 1024)
+      OPENCODE_API_KEY_PARAMETER = "/${var.project_name}/opencode-api-key"
+      OPENCODE_API_BASE          = "https://opencode.ai/inference/openai/v1"
+      OPENCODE_MODEL             = var.opencode_model
+      RECAP_PROMPT_VERSION       = var.recap_prompt_version
+      RECAP_MAX_TOKENS           = tostring(var.recap_max_tokens)
       # Echo only the dashboard's own origins back, never an arbitrary site.
       ALLOWED_ORIGINS = join(",", compact([
         "https://${aws_cloudfront_distribution.dashboard.domain_name}",
@@ -115,6 +145,7 @@ resource "aws_lambda_function" "upload_api" {
 
   depends_on = [
     aws_iam_role_policy.upload_api_s3,
+    aws_iam_role_policy.upload_api_recap,
     aws_iam_role_policy_attachment.upload_api_logs,
     aws_cloudwatch_log_group.upload_api,
   ]
@@ -131,6 +162,7 @@ resource "aws_apigatewayv2_integration" "upload" {
   integration_type       = "AWS_PROXY"
   integration_uri        = aws_lambda_function.upload_api.invoke_arn
   payload_format_version = "2.0"
+  timeout_milliseconds   = 29000
 }
 
 # One catch-all route: the Lambda dispatches on method + path and owns the CORS

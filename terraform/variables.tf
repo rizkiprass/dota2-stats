@@ -110,3 +110,21 @@ variable "upload_api_max_upload_mb" {
   type        = number
   default     = 512
 }
+
+variable "opencode_model" {
+  description = "OpenCode inference model ID used for on-demand match recaps."
+  type        = string
+  default     = "glm-5.3-flash-free"
+}
+
+variable "recap_prompt_version" {
+  description = "Cache namespace for generated recaps. Change it to regenerate every match."
+  type        = string
+  default     = "1"
+}
+
+variable "recap_max_tokens" {
+  description = "Maximum completion tokens requested for one match recap."
+  type        = number
+  default     = 400
+}

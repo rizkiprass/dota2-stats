@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { Link, useParams } from "@tanstack/react-router";
+import { MatchRecap } from "./MatchRecap";
 import { Avatar, Badge, Icon, PlayerName, type IconName } from "./ui";
 import { fmtDuration, fmtInt, fmtNum, fmtPct } from "../lib/format";
 import { heroName } from "../lib/derived";
@@ -100,6 +101,8 @@ function MatchDetailContent({ match }: { match: MatchRecord }) {
         <div className="match-detail-kpi"><span>Match pace</span><strong>{fmtNum(totalKills / minutes, 1)} <small>kills/min</small></strong></div>
         <div className="match-detail-kpi"><span>Duration</span><strong>{fmtDuration(match.duration)}</strong></div>
       </section>
+
+      <MatchRecap matchId={match.match_id} />
 
       <article className="match-detail-card">
         <section className="match-detail-comparison" aria-labelledby="team-comparison-title">
