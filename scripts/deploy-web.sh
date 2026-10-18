@@ -26,9 +26,10 @@ WEB_DIR="${WEB_DIR:-$REPO_ROOT/web}"
 TF_DIR="${TF_DIR:-$REPO_ROOT/terraform}"
 BUCKET="${DASHBOARD_BUCKET:-}"
 DIST_ID="${CLOUDFRONT_DISTRIBUTION_ID:-}"
-PROFILE="${AWS_PROFILE_NAME:-}"
-if [[ -z "$PROFILE" && "${CI:-}" != "true" ]]; then
-  PROFILE="pras-sandbox"
+if [[ "${CI:-}" == "true" ]]; then
+  PROFILE=""
+else
+  PROFILE="${AWS_PROFILE_NAME:-pras-sandbox}"
 fi
 REGION="${AWS_REGION_NAME:-us-east-1}"
 UPLOAD_API_URL="${VITE_UPLOAD_API_URL:-}"
