@@ -65,6 +65,9 @@ jobs:
       - name: Install frontend dependencies
         run: npm ci
         working-directory: web
+      - name: Install Playwright browser
+        run: npx playwright install --with-deps chromium
+        working-directory: web
       - name: Validate deployment configuration
         run: |
           test -n "$AWS_REGION_NAME"
