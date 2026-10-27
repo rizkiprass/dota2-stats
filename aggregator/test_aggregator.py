@@ -91,6 +91,24 @@ class LobbyGateTests(unittest.TestCase):
         self.assertEqual({s["match_id"] for s in summaries}, {"1", "3"})
 
 
+class WinRateConfidenceTests(unittest.TestCase):
+    def test_sustained_record_outranks_tiny_perfect_sample(self):
+        perfect_start = agg._wilson_lower_bound(2, 2)
+        sustained_record = agg._wilson_lower_bound(12, 16)
+
+        self.assertLess(perfect_start, sustained_record)
+        self.assertAlmostEqual(perfect_start, 34.24, places=2)
+        self.assertAlmostEqual(sustained_record, 50.5, places=1)
+
+    def test_player_record_publishes_raw_and_confidence_win_rates(self):
+        record = agg._finalize_player_record(
+            {"matches": 2, "wins": 2, "kills": 0, "deaths": 0, "assists": 0}
+        )
+
+        self.assertEqual(record["win_rate"], 100.0)
+        self.assertLess(record["win_rate_confidence"], record["win_rate"])
+
+
 class BehaviorAggregationTests(unittest.TestCase):
     def test_publishes_count_only_activity_and_proxy_score(self):
         matches = []

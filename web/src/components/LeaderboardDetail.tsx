@@ -108,7 +108,7 @@ function BoardContent({ category, spec }: { category: string; spec: CategorySpec
       ? filtered
           .slice()
           .sort(
-            (a, b) => sampleOf(b, spec) - sampleOf(a, spec) || spec.metric(b) - spec.metric(a),
+            (a, b) => sampleOf(b, spec) - sampleOf(a, spec) || (spec.rankingMetric ?? spec.metric)(b) - (spec.rankingMetric ?? spec.metric)(a),
           )
       : filtered;
   }, [all, spec, stats, minSample, query, sortBySample]);
@@ -127,11 +127,32 @@ function BoardContent({ category, spec }: { category: string; spec: CategorySpec
 
   return (
     <>
-      <div className="board-head">
-        <p className="board-eyebrow">Leaderboard</p>
-        <h1 className="board-title">{spec.title}</h1>
-        <p className="board-blurb">{spec.blurb}</p>
-      </div>
+        <div className="board-head">
+          <p className="board-eyebrow">Leaderboard</p>
+          <h1 className="board-title">{spec.title}</h1>
+          <p className="board-blurb">{spec.blurb}</p>
+          {category === "highest_win_rate" ? (
+            <section className="proven-winrate-explainer" aria-labelledby="proven-winrate-explainer-title">
+              <div>
+                <h2 id="proven-winrate-explainer-title">Why match count matters</h2>
+                <p>Raw win rate stays visible. The ranking asks which record is more likely to hold up as more matches are played.</p>
+              </div>
+              <div className="proven-winrate-examples">
+                <div className="proven-winrate-row">
+                  <div className="proven-winrate-label"><strong>2–0 start</strong><span>100% raw win rate</span></div>
+                  <div className="proven-winrate-meter"><i className="early" style={{ width: "34%" }} /></div>
+                  <span className="proven-winrate-evidence">Small sample</span>
+                </div>
+                <div className="proven-winrate-row">
+                  <div className="proven-winrate-label"><strong>11–5 record</strong><span>69% raw win rate</span></div>
+                  <div className="proven-winrate-meter"><i className="proven" style={{ width: "44%" }} /></div>
+                  <span className="proven-winrate-evidence">More proven</span>
+                </div>
+              </div>
+              <small>A conservative 95% confidence estimate powers the ranking, so early streaks do not automatically become the lobby lead.</small>
+            </section>
+          ) : null}
+        </div>
 
       <div className="dp-kpis board-kpis">
         <div className="dp-kpi">

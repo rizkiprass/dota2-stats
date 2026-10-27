@@ -17,6 +17,8 @@ export interface PlayerRecord {
   wins: number;
   losses: number;
   win_rate: number;
+  /** Conservative 95% win-rate estimate used for the proven win-rate ranking. */
+  win_rate_confidence?: number;
   kills: number;
   deaths: number;
   assists: number;
@@ -80,6 +82,7 @@ export interface LeaderboardEntry {
   wins?: number;
   losses?: number;
   win_rate?: number;
+  win_rate_confidence?: number;
   kills?: number;
   deaths?: number;
   assists?: number;

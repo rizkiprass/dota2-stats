@@ -42,7 +42,7 @@ s3 = boto3.client("s3")
 PARSED_PREFIX = "parsed/"
 STATS_KEY = "stats/stats.json"
 MATCHES_KEY = "stats/matches.json"
-SCHEMA_VERSION = "1.8"
+SCHEMA_VERSION = "1.9"
 
 # Optional static-website mirror. When set, the same dashboard payload is also
 # written here so the browser can fetch it same-origin (no CORS, no public data
@@ -229,6 +229,23 @@ def _round(value: float) -> float:
 
 def _rate(numerator: int | float, denominator: int | float) -> float:
     return _round((numerator / denominator) * 100) if denominator else 0.0
+
+
+def _wilson_lower_bound(wins: int, matches: int, z: float = 1.96) -> float:
+    """Return a conservative 95% win-rate estimate on the dashboard scale.
+
+    The Wilson lower bound naturally discounts tiny samples without imposing a
+    hard cutoff: an undefeated player still has a 100% displayed win rate, but
+    needs more games before outranking a sustained record.
+    """
+    if matches <= 0:
+        return 0.0
+    proportion = wins / matches
+    z_squared = z * z
+    denominator = 1 + z_squared / matches
+    centre = proportion + z_squared / (2 * matches)
+    spread = z * math.sqrt((proportion * (1 - proportion) + z_squared / (4 * matches)) / matches)
+    return _round(((centre - spread) / denominator) * 100)
 
 
 def _player_id(player: dict[str, Any]) -> str | None:
@@ -514,6 +531,10 @@ def _finalize_player_record(record: dict[str, int]) -> dict[str, Any]:
         "wins": wins,
         "losses": matches - wins,
         "win_rate": _rate(wins, matches),
+        # A 2–0 record is a perfect raw win rate, but it is not as reliable as
+        # a 12–4 record. Publish the conservative lower bound used exclusively
+        # to rank the player win-rate board; the raw percentage stays visible.
+        "win_rate_confidence": _wilson_lower_bound(wins, matches),
         "kills": record["kills"],
         "deaths": record["deaths"],
         "assists": record["assists"],
@@ -758,7 +779,7 @@ def _generate_leaderboards(
     ]
     return {
         "most_matches": _leaderboard(eligible_players, "matches"),
-        "highest_win_rate": _leaderboard(eligible_players, "win_rate"),
+        "highest_win_rate": _leaderboard(eligible_players, "win_rate_confidence"),
         "most_kills": _leaderboard(eligible_players, "kills"),
         "best_kda": _leaderboard(eligible_players, "kda"),
         "most_assists": _leaderboard(eligible_players, "assists"),

@@ -15,6 +15,8 @@ export interface CategorySpec {
   blurb: string;
   family: CategoryFamily;
   metric: (entry: LeaderboardEntry) => number;
+  /** Ranking metric when it differs from the displayed primary metric. */
+  rankingMetric?: (entry: LeaderboardEntry) => number;
   format: (value: number) => string;
   metricKey: MetricKey;
   /** Short label for the metric column and the summary strip. */
@@ -38,10 +40,11 @@ export const CATEGORIES: Record<string, CategorySpec> = {
     sample: "matches",
   },
   highest_win_rate: {
-    title: "Highest Win Rate",
-    blurb: "Players ranked by the share of their matches they won.",
+    title: "Best proven win rate",
+    blurb: "Players ranked by a confidence-adjusted win rate, so more matches make a result more reliable.",
     family: "player",
     metric: (e) => Number(e.win_rate) || 0,
+    rankingMetric: (e) => Number(e.win_rate_confidence ?? e.win_rate) || 0,
     format: fmtPct,
     metricKey: "win_rate",
     shortLabel: "Win rate",
@@ -150,6 +153,7 @@ function playerEntries(stats: Stats): LeaderboardEntry[] {
     wins: player.wins,
     losses: player.losses,
     win_rate: player.win_rate,
+    win_rate_confidence: player.win_rate_confidence,
     kills: player.kills,
     deaths: player.deaths,
     assists: player.assists,
@@ -212,7 +216,8 @@ export function buildRanked(stats: Stats, category: string): LeaderboardEntry[] 
         : spec.family === "duo"
           ? duoEntries(stats)
           : rivalryEntries(stats);
-  return rows.sort((a, b) => spec.metric(b) - spec.metric(a) || a.id.localeCompare(b.id));
+  const rankingMetric = spec.rankingMetric ?? spec.metric;
+  return rows.sort((a, b) => rankingMetric(b) - rankingMetric(a) || a.id.localeCompare(b.id));
 }
 
 export function sampleOf(entry: LeaderboardEntry, spec: CategorySpec): number {

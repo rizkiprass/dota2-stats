@@ -288,34 +288,43 @@ function MostToxicPlayer({ stats }: { stats: Stats }) {
 
 function HighestWinRatePlayer({ stats }: { stats: Stats }) {
   const [sort, setSort] = useState("desc");
+  const minimumMatches = stats.metadata.thresholds?.players ?? 5;
   const candidates = Object.entries(stats.players)
     .map(([id, record]) => ({ id, ...record }))
-    .filter((player) => player.matches >= 2)
+    .filter((player) => player.matches >= minimumMatches)
     .sort((a, b) =>
-      b.win_rate - a.win_rate
+      (b.win_rate_confidence ?? b.win_rate) - (a.win_rate_confidence ?? a.win_rate)
       || b.matches - a.matches
       || a.id.localeCompare(b.id),
     );
   const player = candidates[0];
   const winRate = useCountUp(player?.win_rate ?? 0);
+  const provenScore = useCountUp(player?.win_rate_confidence ?? player?.win_rate ?? 0);
   if (!player) return null;
-  const lobbyAverage = candidates.reduce((total, candidate) => total + candidate.win_rate, 0) / candidates.length;
+  const totalCandidateWins = candidates.reduce((total, candidate) => total + candidate.wins, 0);
+  const totalCandidateMatches = candidates.reduce((total, candidate) => total + candidate.matches, 0);
+  const lobbyAverage = totalCandidateMatches ? (totalCandidateWins / totalCandidateMatches) * 100 : 0;
   const recentResults = stats.player_recent_results?.[player.id] ?? [];
   const art = heroPortraitUrl(playerTopHero(stats, player.id));
   const ranked = candidates.map((candidate, index) => ({ ...candidate, rank: index + 1 }));
-  const rows = (sort === "asc" ? [...ranked].sort((a, b) => a.win_rate - b.win_rate || a.rank - b.rank) : ranked).slice(0, 5);
+  const rankingValue = (candidate: typeof candidates[number]) => candidate.win_rate_confidence ?? candidate.win_rate;
+  const rows = (sort === "asc" ? [...ranked].sort((a, b) => rankingValue(a) - rankingValue(b) || a.rank - b.rank) : ranked).slice(0, 5);
   return (
     <article className="card winrate-feature" aria-labelledby="winrate-heading">
       <header className="winrate-header">
         <div>
           <p className="winrate-kicker"><Icon name="trophy" /> Lobby Leader</p>
           <h2 id="winrate-heading">
-            <Link to="/leaderboard/$category" params={{ category: "highest_win_rate" }} className="winrate-detail-link" aria-label="Highest Win Rate">
-              <span>Highest <span>Win Rate</span></span>
+            <Link to="/leaderboard/$category" params={{ category: "highest_win_rate" }} className="winrate-detail-link" aria-label="Best proven win rate">
+              <span>Best <span>proven win rate</span></span>
               <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m9 5 7 7-7 7" /></svg>
             </Link>
           </h2>
-          <p className="winrate-context">Among players with at least 2 matches in this lobby</p>
+          <p className="winrate-context">Ranks strong records, not just perfect starts · minimum {fmtInt(minimumMatches)} matches</p>
+          <Link to="/leaderboard/$category" params={{ category: "highest_win_rate" }} className="winrate-explainer-link">
+            How is this ranked?
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m9 5 7 7-7 7" /></svg>
+          </Link>
         </div>
           <span className="winrate-sample">{fmtInt(player.matches)} matches</span>
       </header>
@@ -335,7 +344,7 @@ function HighestWinRatePlayer({ stats }: { stats: Stats }) {
       </div>
       <div className="winrate-stats">
         <section className="winrate-metric" aria-label="Match Win Rate">
-          <h3><Icon name="trophy" /> Match Win Rate</h3>
+          <h3><Icon name="trophy" /> Match win rate</h3>
         <div className="winrate-score">
           <strong>{fmtPct(winRate)}</strong>
           <span>{fmtInt(player.wins)} / {fmtInt(player.matches)} wins</span>
@@ -343,7 +352,7 @@ function HighestWinRatePlayer({ stats }: { stats: Stats }) {
         <div className="winrate-gauge" aria-label={`${fmtPct(player.win_rate)} win rate`}>
           <i style={{ width: `${Math.max(0, Math.min(100, player.win_rate))}%` }} />
         </div>
-        <span className="winrate-average">Lobby avg {fmtPct(lobbyAverage)}</span>
+        <span className="winrate-average">Proven score {fmtPct(provenScore)} · lobby avg {fmtPct(lobbyAverage)}</span>
         </section>
         <section className="qualifying-feature" aria-label="Qualifying Players">
         <h3><Icon name="users" /> Qualifying Players</h3>
@@ -356,8 +365,8 @@ function HighestWinRatePlayer({ stats }: { stats: Stats }) {
         <header className="winrate-ranking-header">
           <h3 id="winrate-ranking-heading"><Icon name="layers" /> Player Win Rate Ranking</h3>
           <select className="board-select" aria-label="Sort player win rate" value={sort} onChange={(event) => setSort(event.target.value)}>
-            <option value="desc">Win rate (high to low)</option>
-            <option value="asc">Win rate (low to high)</option>
+            <option value="desc">Proven score (high to low)</option>
+            <option value="asc">Proven score (low to high)</option>
           </select>
         </header>
         <ol className="winrate-ranking-list">
