@@ -193,3 +193,24 @@ test("match detail stays readable on mobile", async ({ page }) => {
   expect(overflow, "match detail should not scroll horizontally").toBe(0);
   await page.screenshot({ path: `${OUT_DIR}/match-detail-mobile.png`, fullPage: true });
 });
+
+test("match detail shows six final item slots plus the neutral item", async ({ page }) => {
+  await page.route("**/matches.json", async (route) => {
+    const response = await route.fetch();
+    const payload = await response.json();
+    const first = payload.matches[0];
+    first.players[0].final_items = ["blink", null, "manta", null, null, "silver_edge"];
+    first.players[0].neutral_item = "giant_maul";
+    await route.fulfill({ response, json: payload });
+  });
+  await page.setViewportSize(DESKTOP);
+  if (!(await gotoMatches(page))) return;
+
+  await page.locator("article.match-card").first().getByRole("link", { name: "View match details" }).click();
+  const items = page.locator(".match-detail-items").first();
+  await expect(items.locator(".match-item")).toHaveCount(7);
+  await expect(items.locator(".match-item-empty")).toHaveCount(3);
+  await expect(items.locator(".match-item-neutral")).toHaveCount(1);
+  await expect(items.locator("img[alt='Manta']")).toHaveCount(1);
+  await expect(items.locator("img[alt='Giant Maul']")).toHaveCount(1);
+});

@@ -1290,7 +1290,8 @@ html { scroll-behavior: smooth; }
 .match-detail-items { flex: 0 0 100%; display: flex; flex-wrap: wrap; gap: 4px; padding-left: 45px; }
 .match-item { position: relative; display: inline-flex; align-items: center; justify-content: center; min-width: 32px; height: 24px; border-radius: 4px; background: var(--panel-3); overflow: hidden; }
 .match-item img { display: block; height: 24px; width: auto; }
-.match-item b { position: absolute; right: 1px; bottom: 0; padding: 0 3px; border-radius: 3px 0 0 0; background: rgba(0, 0, 0, 0.72); color: #fff; font-size: 9px; font-weight: 800; line-height: 12px; }
+.match-item-empty { width: 32px; border: 1px dashed var(--match-border); background: transparent; }
+.match-item-neutral { margin-left: 6px; border-radius: 12px; box-shadow: 0 0 0 1px var(--accent-2); }
 .match-item-fallback { padding: 0 6px; color: var(--match-muted); font-size: 10px; white-space: nowrap; }
 .match-detail-player-metrics { display: grid; grid-template-columns: repeat(4, auto); gap: 9px; text-align: right; font-size: 11px; font-variant-numeric: tabular-nums; }
 .match-detail-player-metrics span { display: grid; gap: 2px; color: var(--match-text); white-space: nowrap; }

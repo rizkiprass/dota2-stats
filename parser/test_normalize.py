@@ -160,5 +160,47 @@ class ItemPurchaseNormalizationTests(unittest.TestCase):
         self.assertEqual(players[22]["items"], [{"item": "blink", "time": 900}])
 
 
+class FinalInventoryNormalizationTests(unittest.TestCase):
+    def _normalize(self, match_info_players):
+        def interval(slot: int, unit: str, hero_id: int) -> str:
+            return json.dumps({"type": "interval", "slot": slot, "time": 300, "hero_id": hero_id, "unit": unit})
+
+        events = [
+            json.dumps({"type": "player_slot", "key": "0", "value": 0}),
+            json.dumps({"type": "player_slot", "key": "1", "value": 128}),
+            interval(0, "CDOTA_Unit_Hero_AntiMage", 1),
+            interval(1, "CDOTA_Unit_Hero_Zuus", 22),
+            _event("epilogue", {"gameInfo_": {"dota_": {"matchId_": 5, "gameWinner_": 2, "endTime_": 500}}, "playbackTime_": 300}),
+        ]
+        if match_info_players is not None:
+            events.append(_event("match_info", {"lobbyType_": 1, "players_": match_info_players}))
+        players = normalize_events("\n".join(events), "fallback")["players"]
+        return {player["hero_id"]: player for player in players}
+
+    def test_decodes_main_slots_and_neutral_by_player_slot(self):
+        players = self._normalize(
+            [
+                {"playerSlot_": 128, "item0_": 116, "item1_": 0, "item2_": 147, "item3_": 0, "item4_": 0, "item5_": 249, "item6_": 48, "item9_": 1864},
+                {"playerSlot_": 0, "item0_": 139, "item1_": 0, "item2_": 0, "item3_": 0, "item4_": 0, "item5_": 0, "item9_": 0},
+            ]
+        )
+
+        self.assertEqual(players[22]["final_items"], ["black_king_bar", None, "manta", None, None, "silver_edge"])
+        self.assertEqual(players[22]["neutral_item"], "conjurers_catalyst")
+        self.assertEqual(players[1]["final_items"], ["butterfly", None, None, None, None, None])
+        self.assertIsNone(players[1]["neutral_item"])
+
+    def test_unknown_item_id_becomes_empty_slot(self):
+        players = self._normalize([{"playerSlot_": 0, "item0_": 99999999, "item1_": 116}])
+
+        self.assertEqual(players[1]["final_items"][:2], [None, "black_king_bar"])
+
+    def test_missing_match_info_leaves_inventory_empty(self):
+        players = self._normalize(None)
+
+        self.assertEqual(players[1]["final_items"], [])
+        self.assertIsNone(players[1]["neutral_item"])
+
+
 if __name__ == "__main__":
     unittest.main()

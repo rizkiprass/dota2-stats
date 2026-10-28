@@ -41,8 +41,13 @@ import json
 import re
 from typing import Any, Iterable, Optional
 
+try:
+    from .item_ids import ITEM_NAMES
+except ImportError:  # Lambda imports this module as a top-level script
+    from item_ids import ITEM_NAMES
+
 STEAM64_BASE = 76561197960265728
-SCHEMA_VERSION = 4
+SCHEMA_VERSION = 5
 PING_BURST_WINDOW_SECONDS = 5
 PING_BURST_MINIMUM = 3
 
@@ -77,6 +82,33 @@ def _find(obj: Any, *candidates: str) -> Any:
         elif isinstance(current, list):
             stack.extend(current)
     return None
+
+
+def _final_inventories(match_info: Any) -> dict[int, dict[str, Any]]:
+    """End-of-game inventory per player_slot from ``match_info``.
+
+    ``item0_``..``item5_`` are the six main slots, ``item9_`` is the neutral
+    slot (``item6_``..``item8_`` are the backpack and are ignored). Item ids
+    are decoded with ``ITEM_NAMES``; empty or unknown ids become ``None``.
+    """
+    inventories: dict[int, dict[str, Any]] = {}
+    players = [p for group in _find_all_dicts(match_info or {}, "players") for p in group]
+    for player in players:
+        if not isinstance(player, dict):
+            continue
+        slot = _find(player, "playerSlot", "player_slot")
+        if not isinstance(slot, int):
+            continue
+
+        def name(field: str) -> Optional[str]:
+            item_id = _find(player, field)
+            return ITEM_NAMES.get(item_id) if isinstance(item_id, int) else None
+
+        inventories[slot] = {
+            "final_items": [name(f"item{index}") for index in range(6)],
+            "neutral_item": name("item9"),
+        }
+    return inventories
 
 
 def _find_all_dicts(obj: Any, *candidates: str) -> list:
@@ -393,6 +425,8 @@ def normalize_events(raw_output: str, match_id_hint: str) -> dict:
         if hero_name:
             hero_name_to_info[hero_name.lower()] = pi
 
+    final_inventories = _final_inventories(match_info)
+
     players = []
     player_slots: list[int] = []
     slot_teams: dict[int, str] = {}
@@ -411,6 +445,8 @@ def normalize_events(raw_output: str, match_id_hint: str) -> dict:
             info = hero_name_to_info.get(candidate_name.lower())
             if info:
                 break
+
+        final_inventory = final_inventories.get(player_slot_value) or {"final_items": [], "neutral_item": None}
 
         steam_id = _find(info, "steamid", "steam_id") if info else None
         player_name = _decode_protobuf_string(_find(info, "playerName", "player_name")) if info else None
@@ -432,6 +468,8 @@ def normalize_events(raw_output: str, match_id_hint: str) -> dict:
                 "assists": interval.get("assists"),
                 "win": win,
                 "items": sorted(items, key=lambda purchase: purchase["time"]),
+                "final_items": final_inventory["final_items"],
+                "neutral_item": final_inventory["neutral_item"],
                 "gold": interval.get("gold"),
                 "xp": interval.get("xp"),
                 "last_hits": interval.get("lh"),

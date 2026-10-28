@@ -156,15 +156,20 @@ class PlayerRecentResultsTests(unittest.TestCase):
 
 
 class MatchItemsTests(unittest.TestCase):
-    def test_publishes_player_items_and_defaults_to_empty(self):
+    def test_publishes_final_inventory_and_defaults_to_empty(self):
         match = _match("1", 1)
+        match["players"][0]["final_items"] = ["blink", None, "manta", None, None, None]
+        match["players"][0]["neutral_item"] = "giant_maul"
         match["players"][0]["items"] = [{"item": "blink", "time": 900}]
 
         _, _, summaries = agg.aggregate_matches([("parsed/1.json", match)])
         players = summaries[0]["players"]
 
-        self.assertEqual(players[0]["items"], [{"item": "blink", "time": 900}])
-        self.assertEqual(players[1]["items"], [])
+        self.assertEqual(players[0]["final_items"], ["blink", None, "manta", None, None, None])
+        self.assertEqual(players[0]["neutral_item"], "giant_maul")
+        self.assertNotIn("items", players[0])
+        self.assertEqual(players[1]["final_items"], [])
+        self.assertIsNone(players[1]["neutral_item"])
 
 
 if __name__ == "__main__":

@@ -50,6 +50,6 @@ COPY --from=java-build /build/parser/target/*.jar ${PARSER_JAR}
 COPY requirements.txt ${LAMBDA_TASK_ROOT}/requirements.txt
 RUN pip install --no-cache-dir -r ${LAMBDA_TASK_ROOT}/requirements.txt
 
-COPY handler.py normalize.py ${LAMBDA_TASK_ROOT}/
+COPY handler.py normalize.py item_ids.py ${LAMBDA_TASK_ROOT}/
 
 CMD ["handler.lambda_handler"]

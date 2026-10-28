@@ -131,8 +131,10 @@ export interface MatchPlayerRecord {
   kills: number;
   deaths: number;
   assists: number;
-  /** Purchases in chronological order; absent or empty for replays parsed before items were tracked. */
-  items?: Array<{ item: string; time: number }>;
+  /** End-of-game main inventory (six slots, null when empty); absent or empty for replays parsed before inventories were tracked. */
+  final_items?: Array<string | null>;
+  /** End-of-game neutral item, if any. */
+  neutral_item?: string | null;
 }
 
 export interface MatchRecord {

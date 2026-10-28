@@ -3,7 +3,7 @@ import { Link, useParams } from "@tanstack/react-router";
 import { Avatar, Badge, Icon, PlayerName, type IconName } from "./ui";
 import { fmtDuration, fmtInt, fmtNum, fmtPct } from "../lib/format";
 import { heroName } from "../lib/derived";
-import { groupPurchases, itemImageUrl, itemLabel } from "../lib/items";
+import { itemImageUrl, itemLabel } from "../lib/items";
 import { useDashboard } from "../lib/dashboard-context";
 import { useMatches } from "../lib/api";
 import { formatDayLabel, formatTime } from "../lib/match-calendar";
@@ -62,30 +62,32 @@ export function MatchDetail() {
   );
 }
 
-function PlayerItems({ items }: { items: MatchPlayerRecord["items"] }) {
-  const purchases = groupPurchases(items);
-  if (purchases.length === 0) return null;
+function ItemSlot({ item, neutral = false }: { item: string | null | undefined; neutral?: boolean }) {
+  const kind = neutral ? "match-item match-item-neutral" : "match-item";
+  if (!item) return <span className={`${kind} match-item-empty`} aria-hidden="true" />;
+  const label = itemLabel(item);
   return (
-    <div className="match-detail-items" aria-label="Purchased items">
-      {purchases.map(({ item, count, firstTime }) => {
-        const label = itemLabel(item);
-        const minute = Math.floor(firstTime / 60);
-        return (
-          <span className="match-item" key={item} title={`${label} · ${minute < 0 ? "pre-game" : `${minute}m`}${count > 1 ? ` · bought ×${count}` : ""}`}>
-            <img
-              src={itemImageUrl(item)}
-              alt={label}
-              loading="lazy"
-              onError={(event) => {
-                event.currentTarget.style.display = "none";
-                event.currentTarget.nextElementSibling?.removeAttribute("hidden");
-              }}
-            />
-            <small className="match-item-fallback" hidden>{label}</small>
-            {count > 1 ? <b>×{count}</b> : null}
-          </span>
-        );
-      })}
+    <span className={kind} title={neutral ? `${label} · neutral` : label}>
+      <img
+        src={itemImageUrl(item)}
+        alt={label}
+        loading="lazy"
+        onError={(event) => {
+          event.currentTarget.style.display = "none";
+          event.currentTarget.nextElementSibling?.removeAttribute("hidden");
+        }}
+      />
+      <small className="match-item-fallback" hidden>{label}</small>
+    </span>
+  );
+}
+
+function PlayerItems({ items, neutral }: { items: MatchPlayerRecord["final_items"]; neutral: MatchPlayerRecord["neutral_item"] }) {
+  if (!items || items.length === 0) return null;
+  return (
+    <div className="match-detail-items" aria-label="Final items">
+      {Array.from({ length: 6 }, (_, index) => <ItemSlot item={items[index]} key={index} />)}
+      <ItemSlot item={neutral} neutral />
     </div>
   );
 }
@@ -183,7 +185,7 @@ function MatchDetailContent({ match }: { match: MatchRecord }) {
               <Avatar heroId={Number(player.hero_id) || null} name={hero} />
               <div className="dp-hero-info"><div className="h-name">{player.account_id ? <PlayerName id={player.account_id} /> : player.player_name ?? "Anonymous"}</div><div className="h-sub">{hero}</div></div>
               <div className="match-detail-player-metrics"><span><b>K/D/A</b>{fmtInt(player.kills)}/{fmtInt(player.deaths)}/{fmtInt(player.assists)}</span><span><b>KDA</b>{fmtNum(kda(player))}</span><span><b>Kill</b>{fmtPct(((Number(player.kills) || 0) / Math.max(sideStats.kills, 1)) * 100)}</span><span><b>Assist</b>{fmtPct(((Number(player.assists) || 0) / Math.max(sideStats.assists, 1)) * 100)}</span></div>
-              <PlayerItems items={player.items} />
+              <PlayerItems items={player.final_items} neutral={player.neutral_item} />
             </div>
           );
         })}

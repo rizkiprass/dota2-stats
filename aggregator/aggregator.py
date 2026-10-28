@@ -618,7 +618,8 @@ def _match_summary(match: dict[str, Any]) -> dict[str, Any]:
             "kills": player["kills"],
             "deaths": player["deaths"],
             "assists": player["assists"],
-            "items": player.get("items") or [],
+            "final_items": player.get("final_items") or [],
+            "neutral_item": player.get("neutral_item"),
         })
     start_time = match.get("start_time")
     return {
