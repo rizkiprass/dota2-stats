@@ -124,8 +124,8 @@ function PlayerProfileContent({ id }: { id: string }) {
 
       {badges.length > 0 && (
         <div className="dp-badges">
-          {badges.map(([label, tone]) => (
-            <Badge key={label} label={label} tone={tone} />
+          {badges.map(([label, tone, description]) => (
+            <Badge key={label} label={label} tone={tone} description={description} />
           ))}
         </div>
       )}

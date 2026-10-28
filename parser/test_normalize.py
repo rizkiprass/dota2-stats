@@ -126,5 +126,39 @@ class ReplayTelemetryNormalizationTests(unittest.TestCase):
         self.assertIn(player["role"], {"carry", "support", "offlane", "unknown", "mid"})
 
 
+class ItemPurchaseNormalizationTests(unittest.TestCase):
+    def test_attaches_chronological_purchases_to_the_matching_player(self):
+        def interval(slot: int, unit: str, hero_id: int) -> str:
+            return json.dumps({"type": "interval", "slot": slot, "time": 300, "hero_id": hero_id, "unit": unit})
+
+        def purchase(hero: str, item: str, time: int) -> str:
+            return json.dumps({"type": "DOTA_COMBATLOG_PURCHASE", "time": time, "targetname": hero, "valuename": item})
+
+        raw = "\n".join(
+            [
+                json.dumps({"type": "player_slot", "key": "0", "value": 0}),
+                json.dumps({"type": "player_slot", "key": "1", "value": 128}),
+                interval(0, "CDOTA_Unit_Hero_AntiMage", 1),
+                interval(1, "CDOTA_Unit_Hero_Zuus", 22),
+                purchase("npc_dota_hero_antimage", "item_power_treads", 600),
+                purchase("npc_dota_hero_antimage", "item_tango", -30),
+                purchase("npc_dota_hero_zuus", "item_blink", 900),
+                purchase("npc_dota_hero_antimage", "modifier_not_an_item", 10),
+                _event(
+                    "epilogue",
+                    {"gameInfo_": {"dota_": {"matchId_": 5, "gameWinner_": 2, "endTime_": 500}}, "playbackTime_": 300},
+                ),
+            ]
+        )
+
+        players = {player["hero_id"]: player for player in normalize_events(raw, "fallback")["players"]}
+
+        self.assertEqual(
+            players[1]["items"],
+            [{"item": "tango", "time": -30}, {"item": "power_treads", "time": 600}],
+        )
+        self.assertEqual(players[22]["items"], [{"item": "blink", "time": 900}])
+
+
 if __name__ == "__main__":
     unittest.main()

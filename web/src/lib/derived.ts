@@ -101,18 +101,41 @@ export function rivalriesFor(stats: Stats, id: string): DuoRef[] {
 
 export type BadgeTone = "b1" | "b2" | "b3";
 
-export function computeBadges(stats: Stats, id: string): Array<[string, BadgeTone]> {
+const badgesDef = [
+  ["Veteran", "b2", "Most matches played in the lobby."],
+  ["Sharpshooter", "b1", "KDA of 4.0 or higher."],
+  ["Rock Solid", "b3", "Win rate of 60% or higher."],
+  ["Duo King", "b2", "Best duo (3+ matches together) wins 60% or more."],
+  ["Hero Pool Master", "b1", "Played 8 or more different heroes."],
+  ["Nemesis", "b3", "Wins 30% or less against a rival over 3+ matches."]
+] satisfies Array<[string, BadgeTone, string]>;
+
+export function computeBadges(stats: Stats, id: string): Array<[string, BadgeTone, string]> {
   const player: PlayerRecord | undefined = stats.players[id];
   if (!player) return [];
-  const badges: Array<[string, BadgeTone]> = [];
+  const badges: Array<[string, BadgeTone, string]> = [];
   const maxMatches = Math.max(...lobbyIds(stats).map((pid) => Number(stats.players[pid].matches) || 0), 0);
-  if (maxMatches > 0 && Number(player.matches) >= maxMatches) badges.push(["Veteran", "b2"]);
-  if (Number(player.kda) >= 4) badges.push(["Sharpshooter", "b1"]);
-  if (Number(player.win_rate) >= 60) badges.push(["Rock Solid", "b3"]);
+
+  if (maxMatches > 0 && Number(player.matches) >= maxMatches)
+    badges.push([...badgesDef[0]]);
+
+  if (Number(player.kda) >= 4)
+    badges.push([...badgesDef[1]]);
+
+  if (Number(player.win_rate) >= 60)
+    badges.push([...badgesDef[2]]);
+
   const duo = bestDuoFor(stats, id).best;
-  if (duo && duo.win_rate >= 60) badges.push(["Duo King", "b2"]);
-  if (heroPoolSize(stats, id) >= 8) badges.push(["Hero Pool Master", "b1"]);
+
+  if (duo && duo.win_rate >= 60)
+    badges.push([...badgesDef[3]]);
+
+  if (heroPoolSize(stats, id) >= 8)
+    badges.push([...badgesDef[4]]);
+
   const rivals = rivalriesFor(stats, id).filter((r) => r.matches >= 3);
-  if (rivals.length && Math.min(...rivals.map((r) => r.win_rate)) <= 30) badges.push(["Nemesis", "b3"]);
+  if (rivals.length && Math.min(...rivals.map((r) => r.win_rate)) <= 30)
+    badges.push([...badgesDef[5]]);
+
   return badges;
 }
