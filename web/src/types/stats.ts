@@ -131,6 +131,8 @@ export interface MatchPlayerRecord {
   kills: number;
   deaths: number;
   assists: number;
+  /** Purchases in chronological order; absent or empty for replays parsed before items were tracked. */
+  items?: Array<{ item: string; time: number }>;
 }
 
 export interface MatchRecord {

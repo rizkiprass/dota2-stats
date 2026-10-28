@@ -155,5 +155,17 @@ class PlayerRecentResultsTests(unittest.TestCase):
         self.assertEqual(stats["player_recent_results"]["1000"], ["L", "W", "W", "L"])
 
 
+class MatchItemsTests(unittest.TestCase):
+    def test_publishes_player_items_and_defaults_to_empty(self):
+        match = _match("1", 1)
+        match["players"][0]["items"] = [{"item": "blink", "time": 900}]
+
+        _, _, summaries = agg.aggregate_matches([("parsed/1.json", match)])
+        players = summaries[0]["players"]
+
+        self.assertEqual(players[0]["items"], [{"item": "blink", "time": 900}])
+        self.assertEqual(players[1]["items"], [])
+
+
 if __name__ == "__main__":
     unittest.main()

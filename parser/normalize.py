@@ -42,7 +42,7 @@ import re
 from typing import Any, Iterable, Optional
 
 STEAM64_BASE = 76561197960265728
-SCHEMA_VERSION = 3
+SCHEMA_VERSION = 4
 PING_BURST_WINDOW_SECONDS = 5
 PING_BURST_MINIMUM = 3
 
@@ -271,6 +271,7 @@ def normalize_events(raw_output: str, match_id_hint: str) -> dict:
     lane_votes_by_slot: dict[int, dict[str, int]] = {}
     farm_snapshot_by_slot: dict[int, dict] = {}  # slot -> latest interval <= 10 min
     behavior_by_slot: dict[int, dict[str, Any]] = {}
+    purchases_by_hero: dict[str, list[dict[str, Any]]] = {}  # lowercase hero combat-log name -> purchases
 
     def behavior_for(slot: Any) -> Optional[dict[str, Any]]:
         try:
@@ -340,6 +341,14 @@ def normalize_events(raw_output: str, match_id_hint: str) -> dict:
                 time_ = e.get("time")
                 if isinstance(time_, (int, float)):
                     behavior["pings"].append(float(time_))
+        elif etype == "DOTA_COMBATLOG_PURCHASE":
+            hero = e.get("targetname")
+            item = e.get("valuename")
+            if isinstance(hero, str) and isinstance(item, str) and item.startswith("item_"):
+                time_ = e.get("time")
+                purchases_by_hero.setdefault(hero.lower(), []).append(
+                    {"item": item[len("item_"):], "time": int(time_) if isinstance(time_, (int, float)) else 0}
+                )
         elif isinstance(etype, str):
             behavior = behavior_for(e.get("player1"))
             if behavior is None:
@@ -396,7 +405,9 @@ def normalize_events(raw_output: str, match_id_hint: str) -> dict:
 
         unit = interval.get("unit")
         info = None
+        items: list[dict[str, Any]] = []
         for candidate_name in _hero_combat_log_names(unit or ""):
+            items = items or purchases_by_hero.get(candidate_name.lower(), [])
             info = hero_name_to_info.get(candidate_name.lower())
             if info:
                 break
@@ -420,6 +431,7 @@ def normalize_events(raw_output: str, match_id_hint: str) -> dict:
                 "deaths": interval.get("deaths"),
                 "assists": interval.get("assists"),
                 "win": win,
+                "items": sorted(items, key=lambda purchase: purchase["time"]),
                 "gold": interval.get("gold"),
                 "xp": interval.get("xp"),
                 "last_hits": interval.get("lh"),

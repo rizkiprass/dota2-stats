@@ -97,8 +97,14 @@ export function useCountUp(target: number, duration = 900): number {
   return value;
 }
 
-export function Badge({ label, tone }: { label: string; tone?: "b1" | "b2" | "b3" }) {
-  return <span className={`badge${tone ? ` ${tone}` : ""}`}>{label}</span>;
+export function Badge({ label, tone, description }: { label: string; tone?: "b1" | "b2" | "b3"; description?: string }) {
+  const className = `badge${tone ? ` ${tone}` : ""}`;
+  if (!description) return <span className={className}>{label}</span>;
+  return (
+    <span className={className} data-tip={description} tabIndex={0} aria-label={`${label}: ${description}`}>
+      {label}
+    </span>
+  );
 }
 
 export function SectionTitle({ children }: { children: ReactNode }) {
