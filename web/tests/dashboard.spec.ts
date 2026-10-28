@@ -113,13 +113,14 @@ test("combined win rate card ranks eligible players and sorts without changing t
       wins: index === 6 ? 1 : Math.max(0, 4 - index),
       losses: index === 6 ? 0 : Math.min(4, index),
       win_rate: index === 6 ? 100 : Math.max(0, 100 - index * 25),
+      win_rate_confidence: index === 6 ? 100 : Math.max(0, 100 - index * 25),
     }]));
     stats.player_recent_results = { "1": ["W", "W", "W", "W"] };
     await route.fulfill({ response, json: stats });
   });
   await page.setViewportSize(DESKTOP);
   await gotoDashboard(page);
-  const card = page.getByRole("article", { name: "Highest Win Rate" });
+  const card = page.getByRole("article", { name: "Best proven win rate" });
   await expect(card).toHaveCount(1);
   await expect(card.getByRole("region", { name: "Qualifying Players" }).locator("strong")).toHaveText("6");
   await expect(card.getByText("Lobby avg 41.67%")).toBeVisible();
@@ -138,9 +139,9 @@ test("combined win rate card ranks eligible players and sorts without changing t
   await page.setViewportSize(DESKTOP);
   await card.getByRole("combobox").selectOption("desc");
   await card.screenshot({ path: `${OUT_DIR}/winrate-desktop.png` });
-  await card.getByRole("link", { name: "Highest Win Rate", exact: true }).click();
+  await card.getByRole("link", { name: "Best proven win rate", exact: true }).click();
   await expect(page).toHaveURL(/\/leaderboard\/highest_win_rate$/);
-  await expect(page.locator(".board-title")).toHaveText("Highest Win Rate");
+  await expect(page.locator(".board-title")).toHaveText("Best proven win rate");
 });
 
 test("win rate spotlight is omitted when no players qualify", async ({ page }) => {
@@ -151,7 +152,7 @@ test("win rate spotlight is omitted when no players qualify", async ({ page }) =
     await route.fulfill({ response, json: stats });
   });
   await gotoDashboard(page);
-  await expect(page.getByRole("article", { name: "Highest Win Rate" })).toHaveCount(0);
+  await expect(page.getByRole("article", { name: "Best proven win rate" })).toHaveCount(0);
 });
 
 test("activity stats live on the records page", async ({ page }) => {

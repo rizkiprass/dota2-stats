@@ -40,9 +40,9 @@ test("dashboard leaderboard cards link to their detail page", async ({ page }) =
   // EMPTY boards render a static title instead of a dead link.
   await expect(page.locator("#leaderboards .lb-hd-static")).toHaveCount(1);
 
-  await page.locator("#leaderboards .lb", { hasText: "Highest Win Rate" }).locator(".lb-hd-link").click();
+  await page.locator("#leaderboards .lb", { hasText: "Best proven win rate" }).locator(".lb-hd-link").click();
   await expect(page).toHaveURL(/\/leaderboard\/highest_win_rate$/);
-  await expect(page.locator(".board-title")).toHaveText("Highest Win Rate");
+  await expect(page.locator(".board-title")).toHaveText("Best proven win rate");
 });
 
 test("all leaderboards and records have dedicated routes", async ({ page }) => {

@@ -116,7 +116,7 @@ test("a match card reveals the K/D/A only when expanded", async ({ page }) => {
   await page.setViewportSize(DESKTOP);
   if (!(await gotoMatches(page))) return;
 
-  const card = page.locator(".match-card").first();
+  const card = page.locator("article.match-card").first();
   const head = card.locator(".mc-head");
   await expect(head).toHaveAttribute("aria-expanded", "false");
   expect(await card.locator(".dp-hero-val").count(), "K/D/A starts hidden").toBe(0);
