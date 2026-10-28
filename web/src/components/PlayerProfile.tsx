@@ -1,6 +1,6 @@
 import { Link, useParams } from "@tanstack/react-router";
-import { useMemo } from "react";
-import { Avatar, Badge, Bar, PlayerAvatar } from "./ui";
+import { useEffect, useMemo, useState } from "react";
+import { Avatar, Badge, Bar, Icon, PlayerAvatar, PlayerName } from "./ui";
 import { ActivityRadar } from "./ActivityRadar";
 import { useMatches } from "../lib/api";
 import { fmtCount, fmtDuration, fmtEpochDate, fmtInt, fmtNum, fmtPct } from "../lib/format";
@@ -23,6 +23,7 @@ import {
 } from "../lib/derived";
 import { useDashboard } from "../lib/dashboard-context";
 import { PlayerActivity } from "./Behavior";
+import { heroPortraitUrl } from "../lib/heroes";
 
 export function PlayerProfile() {
   const { stats } = useDashboard();
@@ -43,6 +44,69 @@ export function PlayerProfile() {
   );
 }
 
+type HeroRec = { heroId: number; matches: number; wins: number; losses: number; win_rate: number };
+
+function HeroCard({ rec, name, signature }: { rec: HeroRec; name: string; signature: boolean }) {
+  const url = heroPortraitUrl(rec.heroId);
+  return (
+    <div className="hero-card">
+      {url ? <img src={url} alt="" loading="lazy" decoding="async" /> : null}
+      <div className="hc-body">
+        <div className="hc-top">
+          <span className="h-name">{name}</span>
+          <span className={`hp-val ${Number(rec.win_rate) >= 50 ? "win" : "loss"}`}>{fmtPct(rec.win_rate)}</span>
+        </div>
+        <div className="h-sub" style={{ display: "flex", justifyContent: "space-between" }}>
+          <span>
+            {fmtCount(rec.matches, "match")} · {fmtInt(rec.wins)}W–{fmtInt(rec.losses)}L
+          </span>
+          {signature ? <span className="hc-signature">Signature Hero</span> : null}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function HeroPoolDialog({
+  heroes,
+  onClose,
+}: {
+  heroes: Array<{ rec: HeroRec; name: string; signature: boolean }>;
+  onClose: () => void;
+}) {
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+    };
+    document.addEventListener("keydown", onKeyDown);
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.removeEventListener("keydown", onKeyDown);
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [onClose]);
+
+  return (
+    <div className="role-modal-overlay" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
+      <section className="role-modal hero-pool-dialog" role="dialog" aria-modal="true" aria-labelledby="hero-pool-title">
+        <header className="role-modal-header">
+          <div>
+            <h2 id="hero-pool-title">All heroes played</h2>
+            <span>{heroes.length} heroes</span>
+          </div>
+          <button type="button" className="role-modal-close" onClick={onClose} aria-label="Close hero pool"><Icon name="close" /></button>
+        </header>
+        <div className="hero-pool-grid">
+          {heroes.map(({ rec, name, signature }) => (
+            <HeroCard key={rec.heroId} rec={rec} name={name} signature={signature} />
+          ))}
+        </div>
+      </section>
+    </div>
+  );
+}
+
 function clamp01(value: number): number {
   return Math.max(0, Math.min(1, value));
 }
@@ -54,6 +118,7 @@ function PlayerProfileContent({ id }: { id: string }) {
   const recentMatches = useMemo(() => playerMatchRows(matchesQuery.data, id), [matchesQuery.data, id]);
   const recentSummary = useMemo(() => summarize(recentMatches), [recentMatches]);
   const badges = computeBadges(stats, id);
+  const [showAllHeroes, setShowAllHeroes] = useState(false);
 
   const totalKills = metricValues(stats, "kills").reduce((sum, value) => sum + value, 0);
   const killsShare = totalKills ? (Number(player.kills) / totalKills) * 100 : 0;
@@ -195,20 +260,22 @@ function PlayerProfileContent({ id }: { id: string }) {
         {heroRecs.length === 0 ? (
           <p className="dp-empty">No hero data yet.</p>
         ) : (
-          heroRecs.slice(0, 5).map((rec) => (
-            <div className="dp-hero-row" key={rec.heroId}>
-              <Avatar heroId={rec.heroId} name={heroName(stats, rec.heroId)} />
-              <div className="dp-hero-info">
-                <div className="h-name">{heroName(stats, rec.heroId)}</div>
-                <div className="h-sub">
-                  {rec.heroId === heroRecs[0]?.heroId ? "Signature hero · " : ""}
-                  {fmtCount(rec.matches, "match")} · {fmtInt(rec.wins)}W–{fmtInt(rec.losses)}L
-                </div>
-                <Bar pct={Number(rec.win_rate) || 0} gold={Number(rec.win_rate) >= 50} />
-              </div>
-              <div className="dp-hero-val">{fmtPct(rec.win_rate)}</div>
-            </div>
-          ))
+          <div className="hero-pool-grid">
+            {heroRecs.slice(0, 5).map((rec) => (
+              <HeroCard key={rec.heroId} rec={rec} name={heroName(stats, rec.heroId)} signature={rec.heroId === heroRecs[0]?.heroId} />
+            ))}
+          </div>
+        )}
+        {heroRecs.length > 5 && (
+          <button type="button" className="hero-pool-more" onClick={() => setShowAllHeroes(true)}>
+            Show all {heroRecs.length} heroes
+          </button>
+        )}
+        {showAllHeroes && (
+          <HeroPoolDialog
+            heroes={heroRecs.map((rec) => ({ rec, name: heroName(stats, rec.heroId), signature: rec.heroId === heroRecs[0]?.heroId }))}
+            onClose={() => setShowAllHeroes(false)}
+          />
         )}
         {qualified.length > 0 && (
           <div className="dp-badges">
@@ -229,7 +296,7 @@ function PlayerProfileContent({ id }: { id: string }) {
             <div className="dp-social-row" key={`${label}-${other}`}>
               <PlayerAvatar id={other} />
               <div className="dp-social-label">
-                <span className="s-name">{playerName(stats, other)}</span>
+                <PlayerName id={other} className="s-name" />
                 <span className="s-sub">
                   {label} · {fmtInt(rec.matches)} matches · {fmtInt(rec.wins)}W–{fmtInt(rec.losses)}L
                 </span>
@@ -261,7 +328,7 @@ function PlayerProfileContent({ id }: { id: string }) {
                 const played = entry.players[0];
                 const hero = heroName(stats, played.hero_id);
                 return (
-                  <div className="match-row" key={match.match_id}>
+                  <Link to="/matches/$matchId" params={{ matchId: match.match_id }} className="match-row" key={match.match_id}>
                     <span className="match-date">{fmtEpochDate(match.start_time)}</span>
                     <Avatar heroId={Number(played.hero_id) || null} name={hero} size="sm" />
                     <div className="match-main">
@@ -270,7 +337,7 @@ function PlayerProfileContent({ id }: { id: string }) {
                     </div>
                     <span className="match-kda">{fmtInt(played.kills)} / {fmtInt(played.deaths)} / {fmtInt(played.assists)}</span>
                     <span className={`match-result ${entry.win ? "win" : "loss"}`}>{entry.win ? "W" : "L"}</span>
-                  </div>
+                  </Link>
                 );
               })}
             </div>
