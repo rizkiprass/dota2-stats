@@ -986,6 +986,17 @@ html { scroll-behavior: smooth; }
 .badge.b1 { background: var(--accent-soft); color: var(--accent); border-color: transparent; }
 .badge.b2 { background: var(--accent-2-soft); color: var(--accent-2); border-color: transparent; }
 .badge.b3 { background: var(--positive-soft); color: var(--positive); border-color: transparent; }
+.badge[data-tip] { position: relative; cursor: help; }
+.badge[data-tip]:hover::after,
+.badge[data-tip]:focus-visible::after {
+  content: attr(data-tip);
+  position: absolute; z-index: 20; left: 50%; bottom: calc(100% + 8px); transform: translateX(-50%);
+  width: max-content; max-width: 220px; padding: 7px 10px;
+  border: 1px solid var(--border-strong); border-radius: var(--radius-sm);
+  background: var(--panel-2); color: var(--text-2);
+  font-size: 11.5px; font-weight: 600; line-height: 1.35; text-align: center; white-space: normal;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35); pointer-events: none;
+}
 
 .dp-summary { display: flex; align-items: baseline; gap: 10px; margin-top: 18px; }
 .dp-summary .big { font-size: 30px; font-weight: 800; letter-spacing: -0.8px; font-variant-numeric: tabular-nums; }
@@ -1133,13 +1144,35 @@ html { scroll-behavior: smooth; }
 /* Match history page (calendar + lobby list)                          */
 /* ------------------------------------------------------------------ */
 
-.mh-page { max-width: 1100px; margin: 0 auto; padding: 8px 0 20px; }
+.mh-page { padding: 8px 0 20px; }
 .mh-card { padding: 20px 22px; }
 .mh-month { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-bottom: 16px; }
 .mh-month-label { font-family: var(--font-display); font-size: 16px; font-weight: 700; letter-spacing: -0.3px; margin: 0; }
 .board-toggle:disabled { opacity: 0.4; cursor: not-allowed; }
 .board-toggle:disabled:hover { color: var(--text-2); border-color: var(--border-strong); }
-.mh-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 26px; align-items: start; }
+.mh-split { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); gap: 16px; align-items: start; }
+.mh-cal-card, .mh-list-card { min-width: 0; }
+.mh-cal-card:hover, .mh-list-card:hover { transform: none; }
+.mh-latest { margin-top: 18px; }
+.mh-latest .mh-day { margin: 0 0 8px; }
+.mh-latest-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.mh-latest-row + .mh-latest-row { margin-top: 6px; }
+.mh-latest-list { display: flex; flex-direction: column; gap: 8px; }
+.mh-latest-card { padding: 10px 12px; }
+.mh-latest .mc-details-link { margin: 0; }
+.mh-list-head { display: flex; flex-direction: column; gap: 10px; margin-bottom: 14px; }
+.mh-list-head .board-badges { margin: 0; }
+/* Desktop: the page itself never scrolls; only the match list does. */
+@media (min-width: 901px) {
+  .app-content:has(.mh-fit) { display: flex; flex-direction: column; height: 100dvh; overflow: hidden; }
+  .app-content:has(.mh-fit) .site-footer { margin-top: 8px; padding: 12px 0 16px; }
+  .mh-fit { flex: 1 1 auto; min-height: 0; width: 100%; display: flex; flex-direction: column; }
+  .mh-fit .mh-page { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; padding-bottom: 12px; }
+  .mh-fit .mh-split { flex: 1 1 auto; min-height: 0; align-items: stretch; }
+  .mh-fit .mh-cal-card { overflow-y: auto; }
+  .mh-fit .mh-list-card { display: flex; flex-direction: column; overflow: hidden; }
+  .mh-fit .mh-list { flex: 1 1 auto; min-height: 0; overflow-y: auto; padding-right: 6px; }
+}
 
 .cal { width: 100%; border-collapse: separate; border-spacing: 4px; table-layout: fixed; }
 .cal th { color: var(--muted); font-size: 11.5px; font-weight: 600; text-align: center; padding-bottom: 2px; }
@@ -1250,10 +1283,15 @@ html { scroll-behavior: smooth; }
 .match-detail-side-title { display: flex; align-items: center; gap: 7px; margin: 0 0 7px; font-family: var(--font-display); font-size: 14px; font-weight: 700; }
 .match-detail-side-title.r { color: var(--match-radiant); }
 .match-detail-side-title.d { color: var(--match-dire); }
-.match-detail-player { justify-content: space-between; padding: 8px 0; border-top: 1px solid var(--match-border); }
+.match-detail-player { flex-wrap: wrap; justify-content: space-between; padding: 8px 0; border-top: 1px solid var(--match-border); }
 .match-detail-side-title + .match-detail-player { border-top: 0; }
 .match-detail-player .h-name { color: var(--match-text); }
 .match-detail-player .h-sub { color: var(--match-muted); }
+.match-detail-items { flex: 0 0 100%; display: flex; flex-wrap: wrap; gap: 4px; padding-left: 45px; }
+.match-item { position: relative; display: inline-flex; align-items: center; justify-content: center; min-width: 32px; height: 24px; border-radius: 4px; background: var(--panel-3); overflow: hidden; }
+.match-item img { display: block; height: 24px; width: auto; }
+.match-item b { position: absolute; right: 1px; bottom: 0; padding: 0 3px; border-radius: 3px 0 0 0; background: rgba(0, 0, 0, 0.72); color: #fff; font-size: 9px; font-weight: 800; line-height: 12px; }
+.match-item-fallback { padding: 0 6px; color: var(--match-muted); font-size: 10px; white-space: nowrap; }
 .match-detail-player-metrics { display: grid; grid-template-columns: repeat(4, auto); gap: 9px; text-align: right; font-size: 11px; font-variant-numeric: tabular-nums; }
 .match-detail-player-metrics span { display: grid; gap: 2px; color: var(--match-text); white-space: nowrap; }
 .match-detail-player-metrics b { color: var(--match-muted); font-size: 9px; font-weight: 700; }
@@ -1453,7 +1491,7 @@ html { scroll-behavior: smooth; }
   .role-highlights { grid-template-columns: 1fr; }
   .activity-board-grid { grid-template-columns: 1fr; }
   .hero-dist { grid-template-columns: 1fr; gap: 18px; }
-  .mh-grid { grid-template-columns: minmax(0, 1fr); gap: 22px; }
+  .mh-split { grid-template-columns: minmax(0, 1fr); }
   /* Narrow: the lineups take their own row so the date and result keep theirs. */
   .recent-row { grid-template-columns: minmax(0, 1fr) auto; row-gap: 8px; }
   .recent-when { grid-column: 1; grid-row: 1; }

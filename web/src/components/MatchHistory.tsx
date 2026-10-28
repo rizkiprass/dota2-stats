@@ -61,14 +61,9 @@ export function MatchHistory() {
   const unavailable = isError || !data;
 
   return (
-    <main className="wrap">
+    <main className="wrap mh-fit">
       <div className="mh-page">
-        <Link to="/" className="back-link">
-          ← Back to dashboard
-        </Link>
-
         <div className="board-head">
-          <p className="board-eyebrow">Lobby</p>
           <h1 className="board-title">Match history</h1>
           <p className="board-blurb">
             Every published lobby, grouped by the day it was played in your own time zone.
@@ -103,62 +98,71 @@ export function MatchHistory() {
         ) : null}
 
         {!isPending && data && data.matches.length > 0 ? (
-          <div className="card mh-card">
-            <div className="mh-month">
-              <button
-                type="button"
-                className="board-toggle"
-                onClick={() => setPicked(addMonths(cursor, -1))}
-                disabled={!canPrev}
-                aria-label="Previous month"
-              >
-                ← Prev
-              </button>
-              <h2 className="mh-month-label">{month.label}</h2>
-              <button
-                type="button"
-                className="board-toggle"
-                onClick={() => setPicked(addMonths(cursor, 1))}
-                disabled={!canNext}
-                aria-label="Next month"
-              >
-                Next →
-              </button>
-            </div>
-
-            <div className="mh-grid">
-              <div className="mh-calendar">
-                <table className="cal" aria-label={`Matches in ${month.label}`}>
-                  <thead>
-                    <tr>
-                      {headings.map((heading) => (
-                        <th key={heading} scope="col">
-                          {heading}
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {month.weeks.map((week) => (
-                      <tr key={week[0].key}>
-                        {week.map((day) => (
-                          <td key={day.key}>
-                            <DayCell
-                              day={day}
-                              selected={selectedDay === day.key}
-                              onSelect={() =>
-                                setSelectedDay((previous) => (previous === day.key ? null : day.key))
-                              }
-                            />
-                          </td>
-                        ))}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+          <div className="mh-split">
+            <section className="card mh-card mh-cal-card">
+              <div className="mh-month">
+                <button
+                  type="button"
+                  className="board-toggle"
+                  onClick={() => setPicked(addMonths(cursor, -1))}
+                  disabled={!canPrev}
+                  aria-label="Previous month"
+                >
+                  ← Prev
+                </button>
+                <h2 className="mh-month-label">{month.label}</h2>
+                <button
+                  type="button"
+                  className="board-toggle"
+                  onClick={() => setPicked(addMonths(cursor, 1))}
+                  disabled={!canNext}
+                  aria-label="Next month"
+                >
+                  Next →
+                </button>
               </div>
 
-              <div className="mh-list">
+              <table className="cal" aria-label={`Matches in ${month.label}`}>
+                <thead>
+                  <tr>
+                    {headings.map((heading) => (
+                      <th key={heading} scope="col">
+                        {heading}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {month.weeks.map((week) => (
+                    <tr key={week[0].key}>
+                      {week.map((day) => (
+                        <td key={day.key}>
+                          <DayCell
+                            day={day}
+                            selected={selectedDay === day.key}
+                            onSelect={() =>
+                              setSelectedDay((previous) => (previous === day.key ? null : day.key))
+                            }
+                          />
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+
+              <LatestMatches matches={data.matches.slice(0, LATEST_COUNT)} />
+
+              {cover.truncated ? (
+                <p className="mh-coverage">
+                  Showing the newest {fmtInt(data.matches.length)} of {fmtInt(data.match_count)} matches.
+                  The published payload is capped, so older days are missing from this calendar.
+                </p>
+              ) : null}
+            </section>
+
+            <section className="card mh-card mh-list-card">
+              <div className="mh-list-head">
                 <div className="board-badges">
                   <Badge label={fmtCount(month.matches.length, "match")} />
                   <Badge label={`${fmtInt(month.activeDays)} active day${month.activeDays === 1 ? "" : "s"}`} />
@@ -173,7 +177,9 @@ export function MatchHistory() {
                     </button>
                   </div>
                 ) : null}
+              </div>
 
+              <div className="mh-list">
                 {groups.length === 0 ? (
                   <p className="dp-empty">No matches recorded in this month.</p>
                 ) : (
@@ -187,14 +193,7 @@ export function MatchHistory() {
                   ))
                 )}
               </div>
-            </div>
-
-            {cover.truncated ? (
-              <p className="mh-coverage">
-                Showing the newest {fmtInt(data.matches.length)} of {fmtInt(data.match_count)} matches.
-                The published payload is capped, so older days are missing from this calendar.
-              </p>
-            ) : null}
+            </section>
           </div>
         ) : null}
       </div>
@@ -240,6 +239,60 @@ function DayCell({
       <span className="cal-num">{day.day}</span>
       <span className="cal-count">{day.matches.length}</span>
     </button>
+  );
+}
+
+const LATEST_COUNT = 4;
+
+function LatestMatches({ matches }: { matches: MatchRecord[] }) {
+  return (
+    <div className="mh-latest">
+      <h3 className="mh-day">Latest matches</h3>
+      <div className="mh-latest-list">
+        {matches.map((match) => (
+          <LatestMatchRow key={match.match_id} match={match} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function LatestMatchRow({ match }: { match: MatchRecord }) {
+  const kills = (team: string) =>
+    match.players
+      .filter((player) => player.team === team)
+      .reduce((sum, player) => sum + (Number(player.kills) || 0), 0);
+  const radiantKills = kills("radiant");
+  const direKills = kills("dire");
+  const totalKills = radiantKills + direKills;
+  const radiantShare = totalKills > 0 ? (radiantKills / totalKills) * 100 : 50;
+
+  return (
+    <div className="match-card mh-latest-card">
+      <div className="mh-latest-row">
+        <span className="mc-meta">
+          {formatDayLabel(match.start_time)} · {formatTime(match.start_time)} · {fmtDuration(match.duration)}
+        </span>
+        <span className={`badge${match.radiant_win ? " b1" : " b2"}`}>
+          {match.radiant_win ? "Radiant win" : "Dire win"}
+        </span>
+      </div>
+      <div className="mh-latest-row">
+        <span className="mc-verdict">
+          <span className="splitbar" aria-hidden="true">
+            <i className="r" style={{ width: `${radiantShare}%` }} />
+            <i className="d" style={{ width: `${100 - radiantShare}%` }} />
+          </span>
+          <span className="mc-score">
+            {fmtInt(radiantKills)}–{fmtInt(direKills)}
+            <span className="mc-score-label"> kills</span>
+          </span>
+        </span>
+        <Link to="/matches/$matchId" params={{ matchId: match.match_id }} className="mc-details-link">
+          View match details
+        </Link>
+      </div>
+    </div>
   );
 }
 
