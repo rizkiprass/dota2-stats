@@ -1,6 +1,6 @@
 import { Link, useParams } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { Avatar, Badge, Bar, Icon, PlayerAvatar, PlayerName } from "./ui";
+import { Avatar, Badge, Bar, HeroLink, Icon, Pager, PlayerAvatar, PlayerName, usePagination } from "./ui";
 import { ActivityRadar } from "./ActivityRadar";
 import { useMatches } from "../lib/api";
 import { fmtCount, fmtDuration, fmtEpochDate, fmtInt, fmtNum, fmtPct } from "../lib/format";
@@ -49,7 +49,7 @@ type HeroRec = { heroId: number; matches: number; wins: number; losses: number; 
 function HeroCard({ rec, name, signature }: { rec: HeroRec; name: string; signature: boolean }) {
   const url = heroPortraitUrl(rec.heroId);
   return (
-    <div className="hero-card">
+    <HeroLink id={rec.heroId} name={name} className="hero-card">
       {url ? <img src={url} alt="" loading="lazy" decoding="async" /> : null}
       <div className="hc-body">
         <div className="hc-top">
@@ -63,7 +63,7 @@ function HeroCard({ rec, name, signature }: { rec: HeroRec; name: string; signat
           {signature ? <span className="hc-signature">Signature Hero</span> : null}
         </div>
       </div>
-    </div>
+    </HeroLink>
   );
 }
 
@@ -111,12 +111,15 @@ function clamp01(value: number): number {
   return Math.max(0, Math.min(1, value));
 }
 
+const MATCHES_PER_PAGE = 10;
+
 function PlayerProfileContent({ id }: { id: string }) {
   const { stats } = useDashboard();
   const player = stats.players[id];
   const matchesQuery = useMatches();
   const recentMatches = useMemo(() => playerMatchRows(matchesQuery.data, id), [matchesQuery.data, id]);
   const recentSummary = useMemo(() => summarize(recentMatches), [recentMatches]);
+  const matchPages = usePagination(recentMatches, MATCHES_PER_PAGE);
   const badges = computeBadges(stats, id);
   const [showAllHeroes, setShowAllHeroes] = useState(false);
 
@@ -261,7 +264,7 @@ function PlayerProfileContent({ id }: { id: string }) {
           <p className="dp-empty">No hero data yet.</p>
         ) : (
           <div className="hero-pool-grid">
-            {heroRecs.slice(0, 5).map((rec) => (
+            {heroRecs.slice(0, 8).map((rec) => (
               <HeroCard key={rec.heroId} rec={rec} name={heroName(stats, rec.heroId)} signature={rec.heroId === heroRecs[0]?.heroId} />
             ))}
           </div>
@@ -279,9 +282,13 @@ function PlayerProfileContent({ id }: { id: string }) {
         )}
         {qualified.length > 0 && (
           <div className="dp-badges">
-            <Badge tone="b3" label={`Best: ${heroName(stats, bestHero.heroId)} · ${fmtPct(bestHero.win_rate)}`} />
+            <HeroLink id={bestHero.heroId} name={heroName(stats, bestHero.heroId)}>
+              <Badge tone="b3" label={`Best: ${heroName(stats, bestHero.heroId)} · ${fmtPct(bestHero.win_rate)}`} />
+            </HeroLink>
             {worstHero.heroId !== bestHero.heroId && (
-              <Badge label={`Toughest: ${heroName(stats, worstHero.heroId)} · ${fmtPct(worstHero.win_rate)}`} />
+              <HeroLink id={worstHero.heroId} name={heroName(stats, worstHero.heroId)}>
+                <Badge label={`Toughest: ${heroName(stats, worstHero.heroId)} · ${fmtPct(worstHero.win_rate)}`} />
+              </HeroLink>
             )}
           </div>
         )}
@@ -323,24 +330,35 @@ function PlayerProfileContent({ id }: { id: string }) {
               <Badge label={`${fmtInt(recentSummary.wins)}W–${fmtInt(recentSummary.losses)}L`} />
             </div>
             <div className="match-list">
-              {recentMatches.slice(0, 10).map((entry) => {
+              {matchPages.pageItems.map((entry) => {
                 const match = entry.match;
                 const played = entry.players[0];
                 const hero = heroName(stats, played.hero_id);
                 return (
-                  <Link to="/matches/$matchId" params={{ matchId: match.match_id }} className="match-row" key={match.match_id}>
-                    <span className="match-date">{fmtEpochDate(match.start_time)}</span>
-                    <Avatar heroId={Number(played.hero_id) || null} name={hero} size="sm" />
+                  <div className="match-row" key={match.match_id}>
+                    <Link to="/matches/$matchId" params={{ matchId: match.match_id }} className="match-date">
+                      {fmtEpochDate(match.start_time)}
+                    </Link>
+                    <HeroLink id={played.hero_id} name={hero}>
+                      <Avatar heroId={Number(played.hero_id) || null} name={hero} size="sm" />
+                    </HeroLink>
                     <div className="match-main">
-                      <span className="match-title">{hero}</span>
-                      <span className="match-sub">{fmtDuration(match.duration)} · #{match.match_id}</span>
+                      <span className="match-title">
+                        <HeroLink id={played.hero_id} name={hero}>
+                          {hero}
+                        </HeroLink>
+                      </span>
+                      <Link to="/matches/$matchId" params={{ matchId: match.match_id }} className="match-sub">
+                        {fmtDuration(match.duration)} · #{match.match_id}
+                      </Link>
                     </div>
                     <span className="match-kda">{fmtInt(played.kills)} / {fmtInt(played.deaths)} / {fmtInt(played.assists)}</span>
                     <span className={`match-result ${entry.win ? "win" : "loss"}`}>{entry.win ? "W" : "L"}</span>
-                  </Link>
+                  </div>
                 );
               })}
             </div>
+            <Pager {...matchPages} label="Recent matches pages" />
           </>
         ) : null}
       </section>

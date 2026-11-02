@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
-import { Avatar, AvatarPair, Bar, PlayerAvatar, PlayerName, useCountUp } from "./ui";
+import { Avatar, AvatarPair, Bar, HeroLink, PlayerAvatar, PlayerName, useCountUp } from "./ui";
 import { heroName, playerName } from "../lib/derived";
 import { useDashboard } from "../lib/dashboard-context";
 import { CATEGORIES } from "../lib/leaderboard";
@@ -27,12 +27,16 @@ function Row({
 
   let avatarNode: ReactNode;
   let nameNode: ReactNode;
-  let sub: string | null = null;
+  let sub: ReactNode = null;
 
   if (entry.player_id !== undefined && entry.hero_id !== undefined) {
     avatarNode = <PlayerAvatar id={entry.player_id} />;
     nameNode = <PlayerName id={entry.player_id} />;
-    sub = heroName(stats, entry.hero_id);
+    sub = (
+      <HeroLink id={entry.hero_id} name={heroName(stats, entry.hero_id)}>
+        {heroName(stats, entry.hero_id)}
+      </HeroLink>
+    );
   } else if (entry.player_a !== undefined && entry.player_b !== undefined) {
     avatarNode = <AvatarPair a={entry.player_a} b={entry.player_b} />;
     nameNode = <PlayerName id={entry.player_a} />;
@@ -40,8 +44,16 @@ function Row({
     sub = `${prep} ${playerName(stats, entry.player_b)}`;
   } else if (entry.hero_id !== undefined) {
     const label = entry.hero_name ?? `Hero ${entry.hero_id}`;
-    avatarNode = <Avatar heroId={entry.hero_id} name={label} />;
-    nameNode = <>{label}</>;
+    avatarNode = (
+      <HeroLink id={entry.hero_id} name={label}>
+        <Avatar heroId={entry.hero_id} name={label} />
+      </HeroLink>
+    );
+    nameNode = (
+      <HeroLink id={entry.hero_id} name={label}>
+        {label}
+      </HeroLink>
+    );
   } else {
     avatarNode = <PlayerAvatar id={entry.id} />;
     nameNode = <PlayerName id={entry.id} />;

@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { Link, useParams } from "@tanstack/react-router";
-import { Avatar, Badge, Icon, PlayerName, type IconName } from "./ui";
+import { Avatar, Badge, HeroLink, Icon, PlayerName, type IconName } from "./ui";
 import { fmtDuration, fmtInt, fmtNum, fmtPct } from "../lib/format";
 import { heroName } from "../lib/derived";
 import { itemImageUrl, itemLabel } from "../lib/items";
@@ -157,8 +157,8 @@ function MatchDetailContent({ match }: { match: MatchRecord }) {
               return (
                 <div className="match-detail-award" key={award.label}>
                   <span className="match-detail-award-icon"><Icon name={award.icon} /></span>
-                  <Avatar heroId={Number(award.player.hero_id) || null} name={hero} />
-                  <span><b>{award.label}</b><strong>{award.player.player_name ?? hero}</strong><small>{hero} · {award.value(award.player)}</small></span>
+                  <HeroLink id={award.player.hero_id} name={hero}><Avatar heroId={Number(award.player.hero_id) || null} name={hero} /></HeroLink>
+                  <span><b>{award.label}</b><strong>{award.player.player_name ?? hero}</strong><small><HeroLink id={award.player.hero_id} name={hero}>{hero}</HeroLink> · {award.value(award.player)}</small></span>
                 </div>
               );
             })}
@@ -182,8 +182,8 @@ function MatchDetailContent({ match }: { match: MatchRecord }) {
           const hero = player.hero_name ?? heroName(stats, player.hero_id);
           return (
             <div className="dp-hero-row match-detail-player" key={`${player.account_id ?? "anon"}-${index}`}>
-              <Avatar heroId={Number(player.hero_id) || null} name={hero} />
-              <div className="dp-hero-info"><div className="h-name">{player.account_id ? <PlayerName id={player.account_id} /> : player.player_name ?? "Anonymous"}</div><div className="h-sub">{hero}</div></div>
+              <HeroLink id={player.hero_id} name={hero}><Avatar heroId={Number(player.hero_id) || null} name={hero} /></HeroLink>
+              <div className="dp-hero-info"><div className="h-name">{player.account_id ? <PlayerName id={player.account_id} /> : player.player_name ?? "Anonymous"}</div><div className="h-sub"><HeroLink id={player.hero_id} name={hero}>{hero}</HeroLink></div></div>
               <div className="match-detail-player-metrics"><span><b>K/D/A</b>{fmtInt(player.kills)}/{fmtInt(player.deaths)}/{fmtInt(player.assists)}</span><span><b>KDA</b>{fmtNum(kda(player))}</span><span><b>Kill</b>{fmtPct(((Number(player.kills) || 0) / Math.max(sideStats.kills, 1)) * 100)}</span><span><b>Assist</b>{fmtPct(((Number(player.assists) || 0) / Math.max(sideStats.assists, 1)) * 100)}</span></div>
               <PlayerItems items={player.final_items} neutral={player.neutral_item} />
             </div>

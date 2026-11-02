@@ -112,20 +112,20 @@ test("days with matches are marked and filter the list", async ({ page }) => {
   expect(await page.locator(".match-card").count()).toBe(cardsBefore);
 });
 
-test("a match card reveals the K/D/A only when expanded", async ({ page }) => {
+test("a match card shows the K/D/A by default and can hide it", async ({ page }) => {
   await page.setViewportSize(DESKTOP);
   if (!(await gotoMatches(page))) return;
 
   const card = page.locator("article.match-card").first();
   const head = card.locator(".mc-head");
-  await expect(head).toHaveAttribute("aria-expanded", "false");
-  expect(await card.locator(".dp-hero-val").count(), "K/D/A starts hidden").toBe(0);
+  await expect(head).toHaveAttribute("aria-expanded", "true");
   expect(await card.locator(".mc-side").first().locator(".dp-hero-row").count(), "five heroes per side").toBe(5);
+  expect(await card.locator(".dp-hero-val").count(), "ten players with K/D/A shown").toBe(10);
+  await expect(card.locator(".dp-hero-val").first()).toHaveText(/^\d+\/\d+\/\d+$/);
 
   await head.click();
-  await expect(head).toHaveAttribute("aria-expanded", "true");
-  expect(await card.locator(".dp-hero-val").count(), "ten players once expanded").toBe(10);
-  await expect(card.locator(".dp-hero-val").first()).toHaveText(/^\d+\/\d+\/\d+$/);
+  await expect(head).toHaveAttribute("aria-expanded", "false");
+  expect(await card.locator(".dp-hero-val").count(), "K/D/A hidden after toggling").toBe(0);
 });
 
 test("a match card links to its full detail page", async ({ page }) => {
@@ -211,6 +211,6 @@ test("match detail shows six final item slots plus the neutral item", async ({ p
   await expect(items.locator(".match-item")).toHaveCount(7);
   await expect(items.locator(".match-item-empty")).toHaveCount(3);
   await expect(items.locator(".match-item-neutral")).toHaveCount(1);
-  await expect(items.locator("img[alt='Manta']")).toHaveCount(1);
-  await expect(items.locator("img[alt='Giant Maul']")).toHaveCount(1);
+  await expect(items.locator("img[alt='Manta Style']")).toHaveCount(1);
+  await expect(items.locator("img[alt=\"Giant's Maul\"]")).toHaveCount(1);
 });

@@ -1,4 +1,4 @@
-import { Avatar, Badge } from "./ui";
+import { Avatar, Badge, HeroLink } from "./ui";
 import { fmtCount, fmtInt, fmtNum, fmtPct } from "../lib/format";
 import { useDashboard } from "../lib/dashboard-context";
 import {
@@ -78,7 +78,13 @@ export function HeroDistribution() {
               <li className="hd-legend-row" key={slice.key}>
                 <span className="hd-swatch" style={{ background: `var(${slice.tint})` }} aria-hidden="true" />
                 <span className="hd-legend-name">
-                  {slice.isOther ? `${fmtInt(slice.heroCount)} other heroes` : slice.name}
+                  {slice.isOther ? (
+                    `${fmtInt(slice.heroCount)} other heroes`
+                  ) : (
+                    <HeroLink id={slice.key} name={slice.name}>
+                      {slice.name}
+                    </HeroLink>
+                  )}
                 </span>
                 <span className="hd-legend-val">
                   {fmtInt(slice.picks)} · {fmtPct(slice.share)}
@@ -105,9 +111,15 @@ export function HeroDistribution() {
                 const name = heroLabel(hero);
                 return (
                   <div className="dp-hero-row" key={hero.hero_id}>
-                    <Avatar heroId={hero.hero_id} name={name} />
+                    <HeroLink id={hero.hero_id} name={name}>
+                      <Avatar heroId={hero.hero_id} name={name} />
+                    </HeroLink>
                     <div className="dp-hero-info">
-                      <div className="h-name">{name}</div>
+                      <div className="h-name">
+                        <HeroLink id={hero.hero_id} name={name}>
+                          {name}
+                        </HeroLink>
+                      </div>
                       <div className="h-sub">
                         picked by both teams in {fmtCount(hero.contested, "match")}
                       </div>

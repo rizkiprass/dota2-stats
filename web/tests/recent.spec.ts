@@ -216,11 +216,14 @@ test("a portrait links to its player and names them in the tooltip", async ({ pa
   expect(await links.count(), "every known player is a link, none anonymous").toBe(expected.length);
 
   for (let index = 0; index < expected.length; index += 1) {
-    const link = links.nth(index);
+    const tile = links.nth(index);
     const { accountId, playerName, hero } = expected[index];
-    await expect(link).toHaveAttribute("href", `/player/${accountId}`);
-    await expect(link).toHaveAttribute("title", `${playerName} — ${hero}`);
-    await expect(link.locator(".recent-player-name")).toHaveText(playerName);
+    await expect(tile).toHaveAttribute("title", `${playerName} — ${hero}`);
+    // The name opens the player; the portrait opens the hero (sibling anchors, never nested).
+    const nameLink = tile.locator("a.recent-player-name");
+    await expect(nameLink).toHaveAttribute("href", `/player/${accountId}`);
+    await expect(nameLink).toHaveText(playerName);
+    await expect(tile.locator("a.hero-link")).toHaveAttribute("href", /\/hero\/\d+/);
   }
 });
 

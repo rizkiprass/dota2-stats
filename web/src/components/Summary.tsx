@@ -1,6 +1,6 @@
 import { useEffect, useState, type CSSProperties } from "react";
 import { Link } from "@tanstack/react-router";
-import { Tile, Icon, PlayerAvatar, PlayerName, useCountUp } from "./ui";
+import { Tile, Icon, HeroLink, PlayerAvatar, PlayerName, useCountUp } from "./ui";
 import { fmtDuration, fmtInt, fmtNum, fmtPct } from "../lib/format";
 import { heroCropUrl, heroPortraitUrl } from "../lib/heroes";
 import { playerTopHero } from "../lib/derived";
@@ -19,10 +19,11 @@ function HeroTiles({ stats }: { stats: Stats }) {
         const url = heroCropUrl(hero.hero_id);
         const style = { "--tile-accent": `var(${TINTS[i % TINTS.length]})` } as CSSProperties;
         return (
-          <div
+          <HeroLink
+            id={hero.hero_id}
             className="stat-tile"
             key={hero.hero_id}
-            title={`${hero.hero_name} · ${fmtInt(hero.picks)} picks · ${fmtPct(hero.win_rate)} win rate`}
+            name={hero.hero_name ?? undefined}
           >
             <div className="st-val">{fmtInt(hero.picks)}</div>
             <div className="st-bar">
@@ -31,7 +32,7 @@ function HeroTiles({ stats }: { stats: Stats }) {
             <div className="st-img" style={style}>
               {url ? <img src={url} alt={hero.hero_name ?? ""} loading="lazy" decoding="async" /> : null}
             </div>
-          </div>
+          </HeroLink>
         );
       })}
     </div>
@@ -146,7 +147,11 @@ function SpotLightHero({ stats }: { stats: Stats }) {
       {art ? <div className="spotlight-art" style={{ backgroundImage: `url(${art})` }} aria-hidden="true" /> : null}
       <div className="spotlight-body">
         <p className="spotlight-eyebrow">Most picked hero</p>
-        <h3 className="spotlight-name">{hero.hero_name ?? `Hero ${hero.hero_id}`}</h3>
+        <h3 className="spotlight-name">
+          <HeroLink id={hero.hero_id} name={hero.hero_name ?? undefined}>
+            {hero.hero_name ?? `Hero ${hero.hero_id}`}
+          </HeroLink>
+        </h3>
         <div className="spotlight-stats">
           <div className="spotlight-stat">
             <span className="sv">{fmtInt(Math.round(picks))}</span>

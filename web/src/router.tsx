@@ -53,7 +53,13 @@ const matchDetailRoute = createRoute({
   component: lazyRouteComponent(() => import("./components/MatchDetail"), "MatchDetail"),
 });
 
-const routeTree = rootRoute.addChildren([indexRoute, playerRoute, leaderboardsRoute, recordsRoute, leaderboardRoute, matchesRoute, matchDetailRoute]);
+const heroRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/hero/$heroId",
+  component: lazyRouteComponent(() => import("./components/HeroDetail"), "HeroDetail"),
+});
+
+const routeTree = rootRoute.addChildren([indexRoute, playerRoute, heroRoute, leaderboardsRoute, recordsRoute, leaderboardRoute, matchesRoute, matchDetailRoute]);
 
 export const router = createRouter({ routeTree, defaultPreload: "intent" });
 
