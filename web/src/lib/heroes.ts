@@ -21,6 +21,12 @@ export function heroPortraitUrl(heroId: number | string | null | undefined): str
   return slug ? `${HERO_CDN}/${slug}.png` : null;
 }
 
+export function heroRenderShowcaseUrl(heroId: number | string | null | undefined): string | null {
+  const slug = heroSlug(heroId)
+  if (!slug) return null
+  return `https://cdn.steamstatic.com/apps/dota2/videos/dota_react/heroes/renders/${slug}.webm`
+}
+
 // Deterministic avatar tint token from a seed string.
 const AVATAR_TINTS = ["--av1", "--av2", "--av3", "--av4", "--av5", "--av6"];
 
