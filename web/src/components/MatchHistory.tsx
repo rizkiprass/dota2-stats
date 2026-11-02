@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { Avatar, Badge, PlayerName } from "./ui";
+import { Avatar, Badge, HeroLink, PlayerName } from "./ui";
 import { fmtCount, fmtDuration, fmtInt } from "../lib/format";
 import { heroName } from "../lib/derived";
 import { useDashboard } from "../lib/dashboard-context";
@@ -297,7 +297,7 @@ function LatestMatchRow({ match }: { match: MatchRecord }) {
 }
 
 function MatchCard({ match, stats }: { match: MatchRecord; stats: Stats }) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(true);
 
   const radiant = match.players.filter((player) => player.team === "radiant");
   const dire = match.players.filter((player) => player.team === "dire");
@@ -366,7 +366,9 @@ function Lineup({
         const hero = player.hero_name ?? heroName(stats, player.hero_id);
         return (
           <div className="dp-hero-row" key={`${player.account_id ?? "anon"}-${index}`}>
-            <Avatar heroId={Number(player.hero_id) || null} name={hero} />
+            <HeroLink id={player.hero_id} name={hero}>
+              <Avatar heroId={Number(player.hero_id) || null} name={hero} />
+            </HeroLink>
             <div className="dp-hero-info">
               <div className="h-name">
                 {player.account_id ? (
@@ -375,7 +377,11 @@ function Lineup({
                   player.player_name ?? "Anonymous"
                 )}
               </div>
-              <div className="h-sub">{hero}</div>
+              <div className="h-sub">
+                <HeroLink id={player.hero_id} name={hero}>
+                  {hero}
+                </HeroLink>
+              </div>
             </div>
             {showKda ? (
               <div className="dp-hero-val">

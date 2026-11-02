@@ -1,6 +1,6 @@
 import { useMemo, useState, type ReactNode } from "react";
 import { Link, useParams } from "@tanstack/react-router";
-import { Avatar, AvatarPair, Bar, Badge, PlayerAvatar, PlayerName } from "./ui";
+import { Avatar, AvatarPair, Bar, Badge, HeroLink, PlayerAvatar, PlayerName } from "./ui";
 import { fmtCount, fmtDuration, fmtEpochDate, fmtInt, fmtNum, fmtPct } from "../lib/format";
 import { heroName, playerName } from "../lib/derived";
 import { useDashboard } from "../lib/dashboard-context";
@@ -345,9 +345,15 @@ function EntityCell({
     const label = entry.hero_name ?? heroName(stats, entry.hero_id);
     return (
       <span className="pcell">
-        <Avatar heroId={entry.hero_id} name={label} />
+        <HeroLink id={entry.hero_id} name={label}>
+          <Avatar heroId={entry.hero_id} name={label} />
+        </HeroLink>
         <span className="pinfo">
-          <span className="pname">{label}</span>
+          <span className="pname">
+            <HeroLink id={entry.hero_id} name={label}>
+              {label}
+            </HeroLink>
+          </span>
         </span>
       </span>
     );
@@ -517,9 +523,15 @@ function PlayerFocus({ playerId }: { playerId: string }) {
       <div className="board-focus-rows">
         {highlights.topHeroId !== null ? (
           <div className="dp-hero-row">
-            <Avatar heroId={highlights.topHeroId} name={heroName(stats, highlights.topHeroId)} />
+            <HeroLink id={highlights.topHeroId} name={heroName(stats, highlights.topHeroId)}>
+              <Avatar heroId={highlights.topHeroId} name={heroName(stats, highlights.topHeroId)} />
+            </HeroLink>
             <div className="dp-hero-info">
-              <div className="h-name">{heroName(stats, highlights.topHeroId)}</div>
+              <div className="h-name">
+                <HeroLink id={highlights.topHeroId} name={heroName(stats, highlights.topHeroId)}>
+                  {heroName(stats, highlights.topHeroId)}
+                </HeroLink>
+              </div>
               <div className="h-sub">Signature hero · {fmtCount(highlights.topHeroMatches, "match")}</div>
             </div>
             <div className="dp-hero-val">Top hero</div>
@@ -567,9 +579,15 @@ function HeroFocus({ heroId }: { heroId: number }) {
   return (
     <div className="board-focus">
       <div className="dp-head">
-        <Avatar heroId={heroId} name={heroName(stats, heroId)} size="lg" />
+        <HeroLink id={heroId} name={heroName(stats, heroId)}>
+          <Avatar heroId={heroId} name={heroName(stats, heroId)} size="lg" />
+        </HeroLink>
         <div>
-          <h3 className="dp-name">{heroName(stats, heroId)}</h3>
+          <h3 className="dp-name">
+            <HeroLink id={heroId} name={heroName(stats, heroId)}>
+              {heroName(stats, heroId)}
+            </HeroLink>
+          </h3>
           <div className="dp-id">
             Picked by {fmtCount(users.length, "player")}
           </div>
@@ -837,12 +855,9 @@ function MatchHistoryBlock({
                 {combos.map((combo) => (
                   <span className="match-combo" key={combo.heroIds.join("+")}>
                     {combo.heroIds.map((heroId, index) => (
-                      <Avatar
-                        key={`${heroId}-${index}`}
-                        heroId={Number(heroId) || null}
-                        name={combo.labels[index]}
-                        size="sm"
-                      />
+                      <HeroLink key={`${heroId}-${index}`} id={heroId} name={combo.labels[index]}>
+                        <Avatar heroId={Number(heroId) || null} name={combo.labels[index]} size="sm" />
+                      </HeroLink>
                     ))}
                     <span className="match-combo-meta">
                       {combo.matches}× · {fmtPct((combo.wins / combo.matches) * 100)}
@@ -881,16 +896,22 @@ function MatchHistoryRow({
       <span className="match-date">{fmtEpochDate(entry.match.start_time)}</span>
       <span className="match-heroes">
         {entry.players.map((player, index) => (
-          <Avatar
-            key={`${player.account_id ?? "anon"}-${index}`}
-            heroId={Number(player.hero_id) || null}
-            name={heroLabels[index]}
-            size="sm"
-          />
+          <HeroLink key={`${player.account_id ?? "anon"}-${index}`} id={player.hero_id} name={heroLabels[index]}>
+            <Avatar heroId={Number(player.hero_id) || null} name={heroLabels[index]} size="sm" />
+          </HeroLink>
         ))}
       </span>
       <span className="match-main">
-        <span className="match-title">{heroLabels.join(` ${joiner} `)}</span>
+        <span className="match-title">
+          {entry.players.map((player, index) => (
+            <span key={`${player.account_id ?? "anon"}-${index}`}>
+              {index > 0 ? ` ${joiner} ` : null}
+              <HeroLink id={player.hero_id} name={heroLabels[index]}>
+                {heroLabels[index]}
+              </HeroLink>
+            </span>
+          ))}
+        </span>
         <span className="match-sub">{sub}</span>
       </span>
       <span className="match-kda">

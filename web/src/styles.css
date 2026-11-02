@@ -3235,7 +3235,7 @@ html {
   display: flex;
   align-items: center;
   gap: 11px;
-  padding: 9px 0;
+  padding: 9px 10px;
   border-top: 1px solid var(--border);
   transition: background-color 180ms ease;
 }
@@ -6505,4 +6505,64 @@ a.match-row:hover {
 
 .hero-pool-dialog .hero-pool-grid {
   margin-top: 18px;
+}
+
+/* Hero links wrap avatars and names without changing their look. */
+a.hero-link {
+  color: inherit;
+  text-decoration: none;
+}
+
+a.hero-link:hover .h-name,
+a.hero-link:hover .ht-name,
+a.hero-link:hover .match-title,
+a.hero-link:hover .hc-top .h-name {
+  text-decoration: underline;
+}
+
+.hd-item {
+  width: 44px;
+  height: 32px;
+  object-fit: cover;
+  border-radius: 6px;
+  flex: none;
+}
+
+/* Match rows are no longer one big link; keep the date and id looking like text. */
+a.match-date,
+a.match-sub {
+  color: inherit;
+  text-decoration: none;
+}
+
+a.match-date:hover,
+a.match-sub:hover {
+  text-decoration: underline;
+}
+
+a.match-sub {
+  color: var(--muted);
+}
+
+/* Lineup hero names tint to the accent on hover, like player names. */
+.mc-side .h-sub a.hero-link {
+  transition: color 120ms ease;
+}
+
+.mc-side .h-sub a.hero-link:hover {
+  color: var(--accent);
+}
+
+.hd-pager {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.hd-pager-label {
+  color: var(--muted);
+  font-size: 12.5px;
+  font-variant-numeric: tabular-nums;
 }

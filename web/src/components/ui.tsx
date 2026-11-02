@@ -1,7 +1,7 @@
 import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
 import { heroCropUrl, tintFor } from "../lib/heroes";
-import { initials } from "../lib/format";
+import { fmtInt, initials } from "../lib/format";
 import { playerName, playerTopHero } from "../lib/derived";
 import { useDashboard } from "../lib/dashboard-context";
 
@@ -211,6 +211,87 @@ export function PlayerName({
       title={`View ${name}'s details`}
     >
       {children ?? name}
+    </Link>
+  );
+}
+
+/* ---------------- pagination ---------------- */
+
+export interface Pagination<T> {
+  pageItems: T[];
+  /** Zero-based page, clamped to the available range. */
+  page: number;
+  pageCount: number;
+  setPage: (page: number) => void;
+}
+
+/** Client-side paging over an in-memory list; the page clamps when the list shrinks. */
+export function usePagination<T>(items: T[], pageSize: number): Pagination<T> {
+  const [requested, setPage] = useState(0);
+  const pageCount = Math.max(1, Math.ceil(items.length / pageSize));
+  const page = Math.min(requested, pageCount - 1);
+  return { pageItems: items.slice(page * pageSize, (page + 1) * pageSize), page, pageCount, setPage };
+}
+
+/** Prev/Next controls for `usePagination`; renders nothing for a single page. */
+export function Pager({
+  page,
+  pageCount,
+  setPage,
+  label,
+}: Pick<Pagination<unknown>, "page" | "pageCount" | "setPage"> & { label: string }) {
+  if (pageCount <= 1) return null;
+  return (
+    <nav className="hd-pager" aria-label={label}>
+      <button
+        type="button"
+        className="board-toggle"
+        onClick={() => setPage(page - 1)}
+        disabled={page === 0}
+        aria-label="Previous page"
+      >
+        ← Prev
+      </button>
+      <span className="hd-pager-label" aria-live="polite">
+        Page {fmtInt(page + 1)} of {fmtInt(pageCount)}
+      </span>
+      <button
+        type="button"
+        className="board-toggle"
+        onClick={() => setPage(page + 1)}
+        disabled={page >= pageCount - 1}
+        aria-label="Next page"
+      >
+        Next →
+      </button>
+    </nav>
+  );
+}
+
+/** Wraps any hero display so it opens that hero's detail page. */
+export function HeroLink({
+  id,
+  name,
+  className = "",
+  style,
+  children,
+}: {
+  id: number | string | null | undefined;
+  name?: string;
+  className?: string;
+  style?: CSSProperties;
+  children: ReactNode;
+}) {
+  if (id === null || id === undefined || id === "") return <>{children}</>;
+  return (
+    <Link
+      to="/hero/$heroId"
+      params={{ heroId: String(id) }}
+      className={`${className} hero-link`.trim()}
+      style={style}
+      title={name ? `View ${name}'s details` : undefined}
+    >
+      {children}
     </Link>
   );
 }

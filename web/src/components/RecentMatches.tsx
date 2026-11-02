@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { Avatar } from "./ui";
+import { Avatar, HeroLink } from "./ui";
 import { fmtDuration, fmtInt } from "../lib/format";
 import { heroName, playerName } from "../lib/derived";
 import { formatDayLabel, formatTime } from "../lib/match-calendar";
@@ -159,25 +159,31 @@ function RecentLineup({
 function HeroPortrait({ entry }: { entry: PortraitEntry }) {
   const label = entry.name ?? entry.hero;
   const title = entry.name ? `${entry.name} — ${entry.hero}` : entry.hero;
-  const content = (
-    <>
+  const avatar = (
+    <HeroLink id={entry.heroId} name={entry.hero}>
       <Avatar heroId={entry.heroId} name={label} size="sm" />
-      <span className="recent-player-name">{label}</span>
-    </>
+    </HeroLink>
   );
 
   if (!entry.accountId) {
-    return <span className="recent-hero-plain" title={title}>{content}</span>;
+    return (
+      <span className="recent-hero-plain" title={title}>
+        {avatar}
+        <HeroLink id={entry.heroId} name={entry.hero} className="recent-player-name">
+          {label}
+        </HeroLink>
+      </span>
+    );
   }
 
+  // The portrait opens the hero, the name opens the player; two sibling links
+  // keep the markup free of nested anchors.
   return (
-    <Link
-      to="/player/$playerId"
-      params={{ playerId: entry.accountId }}
-      className="recent-hero-link"
-      title={title}
-    >
-      {content}
-    </Link>
+    <span className="recent-hero-link" title={title}>
+      {avatar}
+      <Link to="/player/$playerId" params={{ playerId: entry.accountId }} className="recent-player-name">
+        {label}
+      </Link>
+    </span>
   );
 }

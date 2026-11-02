@@ -1,5 +1,5 @@
 import type { CSSProperties } from "react";
-import { Bar } from "./ui";
+import { Bar, HeroLink } from "./ui";
 import { HeroDistribution } from "./HeroDistribution";
 import { fmtInt, fmtPct } from "../lib/format";
 import { heroCropUrl } from "../lib/heroes";
@@ -26,7 +26,7 @@ export function Heroes({ stats }: { stats: Stats }) {
                 const name = heroLabel(hero);
                 const style = { "--tile-accent": `var(${heroTint(i)})` } as CSSProperties;
                 return (
-                  <div className="hero-tile" key={hero.hero_id} style={style}>
+                  <HeroLink id={hero.hero_id} name={name} className="hero-tile" key={hero.hero_id} style={style}>
                     <div className="ht-img">
                       {url ? <img src={url} alt={name} loading="lazy" decoding="async" /> : null}
                     </div>
@@ -40,7 +40,7 @@ export function Heroes({ stats }: { stats: Stats }) {
                       </div>
                       <Bar pct={Number(hero.win_rate) || 0} />
                     </div>
-                  </div>
+                  </HeroLink>
                 );
               })}
             </div>

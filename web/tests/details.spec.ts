@@ -148,3 +148,39 @@ test("mobile duo rows keep both player names readable", async ({ page }) => {
   const overflows = await pair.evaluate((element) => element.scrollWidth > element.clientWidth);
   expect(overflows, "pair names should wrap instead of truncating or overflowing").toBeFalsy();
 });
+
+test("player recent matches paginate ten at a time", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.route("**/matches.json", async (route) => {
+    const response = await route.fetch();
+    const payload = (await response.json()) as {
+      matches: Array<{ match_id: string; start_time: number | null }>;
+    };
+    // Clone the first match so each of its players appears 25 times.
+    const [base] = payload.matches;
+    payload.matches = Array.from({ length: 25 }, (_, index) => ({
+      ...base,
+      match_id: `9000${index}`,
+      start_time: (base.start_time ?? 1_700_000_000) - index * 86_400,
+    }));
+    await route.fulfill({ response, json: payload });
+  });
+
+  const statsLoaded = page.waitForResponse((r) => r.url().endsWith("/stats.json") && r.status() === 200);
+  await page.goto("/matches", { waitUntil: "domcontentloaded" });
+  await statsLoaded;
+  await page.locator(".mc-lineups a.player-link").first().click();
+  await expect(page).toHaveURL(/\/player\//);
+
+  const rows = page.locator(".profile-history .match-row");
+  const label = page.locator(".hd-pager-label");
+  await expect(rows).toHaveCount(10);
+  await expect(label).toHaveText("Page 1 of 3");
+  await expect(page.getByRole("button", { name: "Previous page" })).toBeDisabled();
+
+  await page.getByRole("button", { name: "Next page" }).click();
+  await page.getByRole("button", { name: "Next page" }).click();
+  await expect(label).toHaveText("Page 3 of 3");
+  await expect(rows).toHaveCount(5);
+  await expect(page.getByRole("button", { name: "Next page" })).toBeDisabled();
+});
