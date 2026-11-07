@@ -122,6 +122,7 @@ resource "aws_lambda_function" "ai" {
       LANGFUSE_PUBLIC_KEY           = var.langfuse_enabled ? var.langfuse_public_key : ""
       LANGFUSE_SECRET_KEY_PARAMETER = var.langfuse_enabled ? var.langfuse_secret_key_parameter_arn : ""
       LANGFUSE_BASE_URL             = var.langfuse_base_url
+      LANGFUSE_TRACING_ENVIRONMENT  = "production"
       ALLOWED_ORIGINS = join(",", compact([
         "https://${aws_cloudfront_distribution.dashboard.domain_name}",
         var.dashboard_domain == "" ? "" : "https://${var.dashboard_domain}"

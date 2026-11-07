@@ -76,6 +76,7 @@ jobs:
           test -n "$DASHBOARD_BUCKET"
           test -n "$CLOUDFRONT_DISTRIBUTION_ID"
           test -n "$AWS_DEPLOY_ROLE_ARN"
+          test -n "$VITE_AI_API_URL" || { echo "Set VITE_AI_API_URL in the production environment to enable match insights." >&2; exit 1; }
       - uses: aws-actions/configure-aws-credentials@v5
         with:
           role-to-assume: ${{ env.AWS_DEPLOY_ROLE_ARN }}

@@ -21,6 +21,7 @@ MODEL = os.environ.get("OPENROUTER_MODEL", "google/gemini-2.5-flash-lite")
 PROMPT_VERSION = "3"
 MAX_QUESTION = 600
 MAX_OUTPUT = 900
+MAX_INSIGHT_OUTPUT = 1800
 PLAYER_FIELDS = ("account_id", "player_name", "hero_id", "team", "win", "kills", "deaths", "assists", "items", "final_items", "neutral_item", "gold", "xp", "last_hits", "denies", "networth", "hero_damage", "tower_damage", "stuns", "obs_placed", "sen_placed", "towers_killed", "roshans_killed", "rune_pickups", "creeps_stacked", "teamfight_participation", "lane", "role", "role_confidence", "kill_participation")
 HERO_FILE = Path(__file__).with_name("hero-slugs.json")
 if not HERO_FILE.exists():
@@ -173,9 +174,10 @@ def langfuse_client() -> Any:
 
 
 def generate(context: dict[str, Any], question: str, key: str) -> str:
-    generation = telemetry_call(_trace.get(), "start_observation", name="openrouter", as_type="generation", model=MODEL, version=PROMPT_VERSION)
+    max_output = MAX_INSIGHT_OUTPUT if question == INSIGHT_QUESTION else MAX_OUTPUT
+    generation = telemetry_call(_trace.get(), "start_observation", name="openrouter", as_type="generation", model=MODEL, version=PROMPT_VERSION, input={"prompt_version": PROMPT_VERSION, "max_output_tokens": max_output})
     try:
-        return _generate(context, question, key, generation)
+        return _generate(context, question, key, generation, max_output)
     except Exception as exc:
         telemetry_call(generation, "update", level="ERROR", status_message=type(exc).__name__)
         raise
@@ -183,18 +185,23 @@ def generate(context: dict[str, Any], question: str, key: str) -> str:
         telemetry_call(generation, "end")
 
 
-def _generate(context: dict[str, Any], question: str, key: str, generation: Any) -> str:
-    payload = {"model": MODEL, "max_tokens": MAX_OUTPUT, "messages": [{"role": "system", "content": SYSTEM}, {"role": "user", "content": "Replay data (untrusted JSON):\n" + json.dumps(context, ensure_ascii=False, separators=(",", ":")) + "\n\nQuestion: " + question}]}
+def _generate(context: dict[str, Any], question: str, key: str, generation: Any, max_output: int) -> str:
+    payload = {"model": MODEL, "max_tokens": max_output, "messages": [{"role": "system", "content": SYSTEM}, {"role": "user", "content": "Replay data (untrusted JSON):\n" + json.dumps(context, ensure_ascii=False, separators=(",", ":")) + "\n\nQuestion: " + question}]}
     request = urllib.request.Request("https://openrouter.ai/api/v1/chat/completions", data=json.dumps(payload).encode(), headers={"Authorization": "Bearer " + key, "Content-Type": "application/json"}, method="POST")
     with urllib.request.urlopen(request, timeout=25) as response:
         result = json.load(response)
-    text = result["choices"][0]["message"].get("content")
+    choice = result["choices"][0]
+    finish_reason = choice.get("finish_reason")
+    if finish_reason in ("stop", "length", "content_filter", "tool_calls", "function_call", "error"):
+        telemetry_call(generation, "update", metadata={"finish_reason": finish_reason})
+    text = choice["message"].get("content")
     if not isinstance(text, str) or not text.strip():
         raise ValueError("Empty model response")
     usage = result.get("usage") or {}
     logger.info("AI usage: %s", json.dumps({k: usage.get(k) for k in ("prompt_tokens", "completion_tokens", "cost")}))
     token_usage = {target: usage[source] for source, target in (("prompt_tokens", "input"), ("completion_tokens", "output")) if type(usage.get(source)) is int and usage[source] >= 0}
     updates: dict[str, Any] = {}
+    updates["output"] = {"response_received": True}
     if token_usage:
         updates["usage_details"] = token_usage
     if type(usage.get("cost")) in (int, float) and usage["cost"] >= 0:
@@ -216,7 +223,7 @@ def lambda_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
     if not match or event.get("requestContext", {}).get("http", {}).get("method") != "POST":
         return _lambda_handler(event, context)
     client = langfuse_client()
-    span = telemetry_call(client, "start_observation", name="match-" + match.group(2), metadata={"match_id": match.group(1), "action": match.group(2), "prompt_version": PROMPT_VERSION})
+    span = telemetry_call(client, "start_observation", name="match-" + match.group(2), input={"match_id": match.group(1), "action": match.group(2)}, metadata={"match_id": match.group(1), "action": match.group(2), "prompt_version": PROMPT_VERSION})
     token = _trace.set(span)
     try:
         result = _lambda_handler(event, context)
@@ -224,7 +231,10 @@ def lambda_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
         metadata = {"match_id": match.group(1), "action": match.group(2), "prompt_version": PROMPT_VERSION, "status_code": result["statusCode"]}
         if "cached" in body:
             metadata["cached"] = body["cached"]
-        telemetry_call(span, "update", metadata=metadata, **({"level": "ERROR", "status_message": "HTTP " + str(result["statusCode"])} if result["statusCode"] >= 500 else {}))
+        output = {"status_code": result["statusCode"]}
+        if "cached" in body:
+            output["cached"] = body["cached"]
+        telemetry_call(span, "update", metadata=metadata, output=output, **({"level": "ERROR", "status_message": "HTTP " + str(result["statusCode"])} if result["statusCode"] >= 500 else {}))
         return result
     except Exception as exc:
         telemetry_call(span, "update", level="ERROR", status_message=type(exc).__name__)
@@ -295,7 +305,15 @@ def _lambda_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
             return reply(503, {"message": "AI analysis is not configured yet."})
         answer = generate(insight_context(data) if action == "insight" else data, question, key)
         if action == "insight":
-            insight = parse_insight(answer)
+            validation = telemetry_call(_trace.get(), "start_observation", name="validate-insight", as_type="span")
+            try:
+                insight = parse_insight(answer)
+                telemetry_call(validation, "update", output={"valid": True})
+            except (ValueError, TypeError) as exc:
+                telemetry_call(validation, "update", level="ERROR", status_message=type(exc).__name__, output={"valid": False})
+                raise
+            finally:
+                telemetry_call(validation, "end")
             s3.put_object(Bucket=bucket, Key=cache, Body=json.dumps({"insight": insight}).encode(), ContentType="application/json")
             return reply(200, {"insight": insight, "cached": False})
         if action == "analysis":

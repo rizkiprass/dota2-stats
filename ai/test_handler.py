@@ -125,7 +125,7 @@ class AnalysisTests(unittest.TestCase):
         self.addCleanup(handler._trace.reset, token)
         with patch.object(handler.urllib.request, "urlopen", return_value=response):
             self.assertEqual(handler.generate({"private": "replay"}, "private question", "key"), "private answer")
-        self.assertEqual(generation.update.call_args.kwargs, {"usage_details": {"input": 12, "output": 3}, "cost_details": {"total": 0.01}})
+        self.assertEqual(generation.update.call_args.kwargs, {"output": {"response_received": True}, "usage_details": {"input": 12, "output": 3}, "cost_details": {"total": 0.01}})
         self.assertNotIn("private", str(span.mock_calls))
         generation.end.assert_called_once()
 
@@ -135,6 +135,29 @@ class AnalysisTests(unittest.TestCase):
         client.flush.side_effect = RuntimeError("offline")
         with patch.object(handler, "langfuse_client", return_value=client), patch.object(handler, "generate", return_value="answer"):
             self.assertEqual(self.call("chat", {"question": "What happened?"})[0], 200)
+
+    def test_insight_output_limit_and_finish_reason(self):
+        span = MagicMock()
+        generation = span.start_observation.return_value
+        response = MagicMock()
+        response.__enter__.return_value = io.BytesIO(json.dumps({"choices": [{"finish_reason": "length", "message": {"content": "truncated"}}]}).encode())
+        token = handler._trace.set(span)
+        self.addCleanup(handler._trace.reset, token)
+        with patch.object(handler.urllib.request, "urlopen", return_value=response) as urlopen:
+            handler.generate({}, handler.INSIGHT_QUESTION, "key")
+        payload = json.loads(urlopen.call_args.args[0].data)
+        self.assertEqual(payload["max_tokens"], handler.MAX_INSIGHT_OUTPUT)
+        generation.update.assert_any_call(metadata={"finish_reason": "length"})
+
+    def test_invalid_json_records_validation_error(self):
+        client = MagicMock()
+        span = client.start_observation.return_value
+        validation = span.start_observation.return_value
+        with patch.object(handler, "langfuse_client", return_value=client), patch.object(handler, "generate", return_value='{"summary":"cut off'):
+            self.assertEqual(self.call("insight")[0], 503)
+        validation.update.assert_called_once_with(level="ERROR", status_message="JSONDecodeError", output={"valid": False})
+        validation.end.assert_called_once()
+        self.assertFalse(any(key.startswith("ai-cache/") for key in self.s3.objects))
 
     def test_legacy_purchase_zero_is_unknown_but_timeline_zero_is_valid(self):
         self.raw["schema_version"] = 6
