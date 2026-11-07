@@ -16,6 +16,36 @@ variable "openrouter_model" {
   default = "google/gemini-2.5-flash-lite"
 }
 
+variable "langfuse_enabled" {
+  type    = bool
+  default = false
+}
+
+variable "langfuse_public_key" {
+  type    = string
+  default = ""
+}
+
+variable "langfuse_secret_key_parameter_arn" {
+  description = "ARN of an existing SSM SecureString containing the Langfuse secret key."
+  type        = string
+  default     = ""
+}
+
+variable "langfuse_base_url" {
+  type    = string
+  default = "https://cloud.langfuse.com"
+}
+
+resource "aws_lambda_layer_version" "langfuse" {
+  count                    = var.ai_enabled && var.langfuse_enabled ? 1 : 0
+  filename                 = "${path.module}/langfuse-layer.zip"
+  source_code_hash         = filebase64sha256("${path.module}/langfuse-layer.zip")
+  layer_name               = "${var.project_name}-langfuse"
+  compatible_runtimes      = ["python3.13"]
+  compatible_architectures = ["x86_64"]
+}
+
 data "archive_file" "ai" {
   count       = var.ai_enabled ? 1 : 0
   type        = "zip"
@@ -51,7 +81,7 @@ resource "aws_iam_role_policy" "ai" {
       { Effect = "Allow", Action = ["s3:GetObject"], Resource = ["${aws_s3_bucket.replay_data.arn}/parsed/*", "${aws_s3_bucket.replay_data.arn}/ai-cache/*"] },
       { Effect = "Allow", Action = ["s3:ListBucket"], Resource = aws_s3_bucket.replay_data.arn, Condition = { StringLike = { "s3:prefix" = ["parsed/*", "ai-cache/*"] } } },
       { Effect = "Allow", Action = ["s3:PutObject"], Resource = "${aws_s3_bucket.replay_data.arn}/ai-cache/*" },
-      { Effect = "Allow", Action = ["ssm:GetParameter"], Resource = var.openrouter_key_parameter_arn },
+      { Effect = "Allow", Action = ["ssm:GetParameter"], Resource = concat([var.openrouter_key_parameter_arn], var.langfuse_enabled ? [var.langfuse_secret_key_parameter_arn] : []) },
       { Effect = "Allow", Action = ["dynamodb:UpdateItem"], Resource = aws_dynamodb_table.ai_rate[0].arn }
     ]
   })
@@ -73,21 +103,25 @@ resource "aws_dynamodb_table" "ai_rate" {
 }
 
 resource "aws_lambda_function" "ai" {
-  count                          = var.ai_enabled ? 1 : 0
-  function_name                  = "${var.project_name}-ai"
-  role                           = aws_iam_role.ai[0].arn
-  runtime                        = "python3.13"
-  handler                        = "handler.lambda_handler"
-  filename                       = data.archive_file.ai[0].output_path
-  source_code_hash               = data.archive_file.ai[0].output_base64sha256
-  timeout                        = 30
-  memory_size                    = 256
+  count            = var.ai_enabled ? 1 : 0
+  function_name    = "${var.project_name}-ai"
+  role             = aws_iam_role.ai[0].arn
+  runtime          = "python3.13"
+  handler          = "handler.lambda_handler"
+  filename         = data.archive_file.ai[0].output_path
+  source_code_hash = data.archive_file.ai[0].output_base64sha256
+  timeout          = var.langfuse_enabled ? 45 : 30
+  memory_size      = 256
+  layers           = var.langfuse_enabled ? [aws_lambda_layer_version.langfuse[0].arn] : []
   environment {
     variables = {
-      REPLAY_BUCKET            = aws_s3_bucket.replay_data.bucket
-      OPENROUTER_KEY_PARAMETER = var.openrouter_key_parameter_arn
-      OPENROUTER_MODEL         = var.openrouter_model
-      AI_RATE_TABLE            = aws_dynamodb_table.ai_rate[0].name
+      REPLAY_BUCKET                 = aws_s3_bucket.replay_data.bucket
+      OPENROUTER_KEY_PARAMETER      = var.openrouter_key_parameter_arn
+      OPENROUTER_MODEL              = var.openrouter_model
+      AI_RATE_TABLE                 = aws_dynamodb_table.ai_rate[0].name
+      LANGFUSE_PUBLIC_KEY           = var.langfuse_enabled ? var.langfuse_public_key : ""
+      LANGFUSE_SECRET_KEY_PARAMETER = var.langfuse_enabled ? var.langfuse_secret_key_parameter_arn : ""
+      LANGFUSE_BASE_URL             = var.langfuse_base_url
       ALLOWED_ORIGINS = join(",", compact([
         "https://${aws_cloudfront_distribution.dashboard.domain_name}",
         var.dashboard_domain == "" ? "" : "https://${var.dashboard_domain}"
@@ -98,6 +132,10 @@ resource "aws_lambda_function" "ai" {
     precondition {
       condition     = var.openrouter_key_parameter_arn != ""
       error_message = "An existing SSM SecureString ARN is required for AI."
+    }
+    precondition {
+      condition     = !var.langfuse_enabled || (var.langfuse_public_key != "" && var.langfuse_secret_key_parameter_arn != "")
+      error_message = "Langfuse requires a public key and an existing SSM SecureString ARN."
     }
   }
 }

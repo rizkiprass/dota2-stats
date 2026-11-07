@@ -22,6 +22,8 @@ venv/
 # Terraform-generated Lambda deployment archive
 terraform/aggregator.zip
 terraform/upload-api.zip
+terraform/ai-api.zip
+terraform/langfuse-layer.zip
 
 # Saved Terraform plan files (binary, machine-specific)
 *.tfplan

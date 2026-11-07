@@ -4,7 +4,7 @@ import os
 import sys
 import types
 import unittest
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from ai import handler
 
@@ -105,6 +105,36 @@ class AnalysisTests(unittest.TestCase):
         with patch.object(handler, "generate", return_value='{"summary":"incomplete"}'):
             self.assertEqual(self.call("insight")[0], 503)
             self.assertFalse(any(key.startswith("ai-cache/") for key in self.s3.objects))
+
+    def test_telemetry_traces_cache_and_does_not_capture_content(self):
+        client = MagicMock()
+        span = client.start_observation.return_value
+        with patch.object(handler, "langfuse_client", return_value=client), patch.object(handler, "generate", return_value="private answer"):
+            self.call("analysis", {"player_index": 0})
+            self.call("analysis", {"player_index": 0})
+        self.assertEqual(client.flush.call_count, 2)
+        self.assertEqual(span.update.call_args.kwargs["metadata"]["cached"], True)
+        self.assertNotIn("private answer", str(client.mock_calls))
+
+    def test_generation_records_usage_without_prompt_or_answer(self):
+        span = MagicMock()
+        generation = span.start_observation.return_value
+        response = MagicMock()
+        response.__enter__.return_value = io.BytesIO(json.dumps({"choices": [{"message": {"content": "private answer"}}], "usage": {"prompt_tokens": 12, "completion_tokens": 3, "cost": 0.01}}).encode())
+        token = handler._trace.set(span)
+        self.addCleanup(handler._trace.reset, token)
+        with patch.object(handler.urllib.request, "urlopen", return_value=response):
+            self.assertEqual(handler.generate({"private": "replay"}, "private question", "key"), "private answer")
+        self.assertEqual(generation.update.call_args.kwargs, {"usage_details": {"input": 12, "output": 3}, "cost_details": {"total": 0.01}})
+        self.assertNotIn("private", str(span.mock_calls))
+        generation.end.assert_called_once()
+
+    def test_telemetry_failure_does_not_break_analysis(self):
+        client = MagicMock()
+        client.start_observation.side_effect = RuntimeError("offline")
+        client.flush.side_effect = RuntimeError("offline")
+        with patch.object(handler, "langfuse_client", return_value=client), patch.object(handler, "generate", return_value="answer"):
+            self.assertEqual(self.call("chat", {"question": "What happened?"})[0], 200)
 
     def test_legacy_purchase_zero_is_unknown_but_timeline_zero_is_valid(self):
         self.raw["schema_version"] = 6

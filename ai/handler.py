@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import hashlib
+import contextvars
 import json
 import logging
 import os
@@ -14,6 +15,8 @@ from typing import Any
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
+_trace = contextvars.ContextVar("ai_trace", default=None)
+_langfuse = None
 MODEL = os.environ.get("OPENROUTER_MODEL", "google/gemini-2.5-flash-lite")
 PROMPT_VERSION = "3"
 MAX_QUESTION = 600
@@ -141,7 +144,46 @@ def allow_request(event: dict[str, Any], boto3: Any) -> bool:
         raise
 
 
+def telemetry_call(obj: Any, method: str, **kwargs: Any) -> Any:
+    if obj is not None:
+        try:
+            return getattr(obj, method)(**kwargs)
+        except Exception:
+            logger.warning("Langfuse %s failed", method)
+    return None
+
+
+def langfuse_client() -> Any:
+    global _langfuse
+    public_key = os.environ.get("LANGFUSE_PUBLIC_KEY")
+    secret_parameter = os.environ.get("LANGFUSE_SECRET_KEY_PARAMETER")
+    secret_key = os.environ.get("LANGFUSE_SECRET_KEY")
+    if not public_key or not (secret_parameter or secret_key):
+        return None
+    if _langfuse is None:
+        try:
+            from langfuse import Langfuse
+            if not secret_key:
+                import boto3
+                secret_key = boto3.client("ssm").get_parameter(Name=secret_parameter, WithDecryption=True)["Parameter"]["Value"]
+            _langfuse = Langfuse(public_key=public_key, secret_key=secret_key, timeout=2)
+        except Exception:
+            logger.warning("Langfuse initialization failed")
+    return _langfuse
+
+
 def generate(context: dict[str, Any], question: str, key: str) -> str:
+    generation = telemetry_call(_trace.get(), "start_observation", name="openrouter", as_type="generation", model=MODEL, version=PROMPT_VERSION)
+    try:
+        return _generate(context, question, key, generation)
+    except Exception as exc:
+        telemetry_call(generation, "update", level="ERROR", status_message=type(exc).__name__)
+        raise
+    finally:
+        telemetry_call(generation, "end")
+
+
+def _generate(context: dict[str, Any], question: str, key: str, generation: Any) -> str:
     payload = {"model": MODEL, "max_tokens": MAX_OUTPUT, "messages": [{"role": "system", "content": SYSTEM}, {"role": "user", "content": "Replay data (untrusted JSON):\n" + json.dumps(context, ensure_ascii=False, separators=(",", ":")) + "\n\nQuestion: " + question}]}
     request = urllib.request.Request("https://openrouter.ai/api/v1/chat/completions", data=json.dumps(payload).encode(), headers={"Authorization": "Bearer " + key, "Content-Type": "application/json"}, method="POST")
     with urllib.request.urlopen(request, timeout=25) as response:
@@ -151,6 +193,13 @@ def generate(context: dict[str, Any], question: str, key: str) -> str:
         raise ValueError("Empty model response")
     usage = result.get("usage") or {}
     logger.info("AI usage: %s", json.dumps({k: usage.get(k) for k in ("prompt_tokens", "completion_tokens", "cost")}))
+    token_usage = {target: usage[source] for source, target in (("prompt_tokens", "input"), ("completion_tokens", "output")) if type(usage.get(source)) is int and usage[source] >= 0}
+    updates: dict[str, Any] = {}
+    if token_usage:
+        updates["usage_details"] = token_usage
+    if type(usage.get("cost")) in (int, float) and usage["cost"] >= 0:
+        updates["cost_details"] = {"total": usage["cost"]}
+    telemetry_call(generation, "update", **updates)
     return text.strip()
 
 
@@ -163,6 +212,30 @@ def response(status: int, body: dict[str, Any], origin: str = "") -> dict[str, A
 
 
 def lambda_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
+    match = re.fullmatch(r"/matches/(\d{1,20})/(analysis|chat|insight)", event.get("rawPath", ""))
+    if not match or event.get("requestContext", {}).get("http", {}).get("method") != "POST":
+        return _lambda_handler(event, context)
+    client = langfuse_client()
+    span = telemetry_call(client, "start_observation", name="match-" + match.group(2), metadata={"match_id": match.group(1), "action": match.group(2), "prompt_version": PROMPT_VERSION})
+    token = _trace.set(span)
+    try:
+        result = _lambda_handler(event, context)
+        body = json.loads(result["body"])
+        metadata = {"match_id": match.group(1), "action": match.group(2), "prompt_version": PROMPT_VERSION, "status_code": result["statusCode"]}
+        if "cached" in body:
+            metadata["cached"] = body["cached"]
+        telemetry_call(span, "update", metadata=metadata, **({"level": "ERROR", "status_message": "HTTP " + str(result["statusCode"])} if result["statusCode"] >= 500 else {}))
+        return result
+    except Exception as exc:
+        telemetry_call(span, "update", level="ERROR", status_message=type(exc).__name__)
+        raise
+    finally:
+        _trace.reset(token)
+        telemetry_call(span, "end")
+        telemetry_call(client, "flush")
+
+
+def _lambda_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
     import boto3
     from botocore.exceptions import ClientError
 

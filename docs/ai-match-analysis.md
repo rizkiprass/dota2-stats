@@ -22,3 +22,19 @@ Deployment is disabled by default. First create a dedicated OpenRouter key with 
 Build the frontend with `VITE_AI_API_URL` set to Terraform's `ai_api_url` output; for GitHub Actions set the production environment variable of the same name. The API is publicly accessible and has API Gateway throttling and a DynamoDB-backed limit of 10 uncached AI calls per IP per hour. The Lambda shares the account's unreserved concurrency. This is an approximate fairness limit, not a monthly spending cap; the OpenRouter key limit is the spending control. Cached item analyses do not use the AI-call limit. DynamoDB TTL removes expired rate records asynchronously. S3, DynamoDB, Lambda, API Gateway and other AWS charges are separate from OpenRouter.
 
 The API does not publish or serve a general parsed-data browser. It checks the numeric match ID and requires lobby type 1. The API key is retrieved on the server; never provide it to the browser. AI answers can be wrong, and item advice is not a patch-specific guide.
+
+## Optional Langfuse monitoring
+
+Langfuse is disabled by default. Create a Langfuse Cloud project and API keys, and store its secret key in an existing SSM SecureString in the Lambda's region. Use the AWS-managed SSM key or grant the Lambda role permission to decrypt the customer-managed KMS key. The public key is configuration; never put the secret key in Terraform variables, frontend variables, or source control.
+
+Before each deployment that changes the pinned SDK version, build the Python 3.13 x86-64 Lambda layer on a machine with Python, pip, and zip:
+
+```sh
+bash ai/build_langfuse_layer.sh
+```
+
+Set `langfuse_enabled = true`, `langfuse_public_key` and `langfuse_secret_key_parameter_arn` along with the existing AI settings, and review the Terraform plan. Set `langfuse_base_url` to the URL for your Langfuse Cloud region (the default is `https://cloud.langfuse.com`). The build artifact must be available to Terraform when planning and applying. When disabled, no layer or Langfuse credentials are required.
+
+Each analysis, insight or chat POST gets a trace containing the match ID, action, prompt version, HTTP status and cache status when available. Cache misses have a child generation with the model, duration, token counts and OpenRouter cost when provided; cache hits do not call the model. Errors record a sanitized type or status. Prompts, questions, answers, replay data, player names, IP addresses, and API keys are not sent to Langfuse. Match IDs are sent as metadata. Langfuse availability does not intentionally block analysis, but flushing adds latency; the Lambda timeout is extended to 45 seconds when enabled. Langfuse and AWS usage may incur additional charges.
+
+For a local Lambda-style test, install `ai/requirements-langfuse.txt` and set `LANGFUSE_PUBLIC_KEY`, `LANGFUSE_SECRET_KEY`, and optionally `LANGFUSE_BASE_URL` in the shell. The standalone `ai/local_server.py` does not create request traces. After deploying, request an uncached insight and confirm its generation and usage in Langfuse, then repeat it to verify a cache-hit trace without a generation. Do not use actual keys in tests or logs.
