@@ -1,6 +1,14 @@
 terraform {
   required_version = ">= 1.6.0"
 
+  backend "s3" {
+    bucket  = "dta-replay-tfstate-rizkiprass-2026"
+    key     = "dota-replay/terraform.tfstate"
+    region  = "us-east-1"
+    profile = "pras-sandbox"
+    encrypt = true
+  }
+
   required_providers {
     aws = {
       source  = "hashicorp/aws"

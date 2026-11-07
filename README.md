@@ -217,6 +217,31 @@ the AWS CLI:
 Do not run `terraform apply` against a new or empty state unless the existing
 AWS resources have first been imported and the configuration has been audited.
 
+### Resources not managed by Terraform
+
+These resources exist in AWS but are intentionally kept outside the Terraform
+state, so `terraform plan` will neither detect nor reconcile them:
+
+| Resource | Purpose | Notes |
+| --- | --- | --- |
+| IAM role `dota-replay-dashboard-github-deploy` (inline policy `deploy-static-dashboard`) | OIDC deploy role for `.github/workflows/deploy-frontend.yml` | Bootstrap resource created once, before Terraform is involved. Allows `s3:PutObject`/`s3:DeleteObject` on the dashboard bucket, denies overwriting `stats.json`/`matches.json`, and allows `cloudfront:CreateInvalidation` on the dashboard distribution. |
+| CloudWatch log group `/aws/lambda/dota-replay-ai` | AI Lambda logs | Auto-created by Lambda on first invocation with no retention policy, so logs are kept indefinitely. Set retention manually (`aws logs put-retention-policy`) or import it into Terraform to manage it. |
+| SSM parameter `/dota-replay/opencode-api-key` | Unused development credential | Not referenced by any Lambda; verify whether it is still needed before deleting. |
+
+The parser image is tracked by digest: `lambda.tf` resolves `image_tag` through
+the `aws_ecr_image` data source and stores the immutable digest in the Lambda's
+`image_uri`. Pushing a new image to the mutable `latest` tag and running
+`terraform plan` therefore shows the image change instead of silently swapping
+the running code. The ECR repository stays `MUTABLE` so the push workflow can
+keep reusing `latest`.
+
+The Terraform state for this project lives in S3 (bucket
+`dta-replay-tfstate-rizkiprass-2026`, key `dota-replay/terraform.tfstate`,
+versioning and default encryption enabled) via the `backend "s3"` block in
+`main.tf`. Locking is intentionally disabled; avoid running `terraform apply`
+from two machines at once. The bucket is bootstrapped outside Terraform so the
+backend does not depend on itself.
+
 ### 3. Test
 
 ```bash

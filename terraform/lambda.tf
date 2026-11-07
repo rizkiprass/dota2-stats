@@ -8,12 +8,21 @@ resource "aws_cloudwatch_log_group" "replay_parser" {
   retention_in_days = 30
 }
 
+# Resolve the image tag to its immutable digest so a pushed image shows up as a
+# Terraform change even though `image_tag` stays a mutable alias such as
+# "latest". Without this, re-pushing the tag would silently change the running
+# Lambda without appearing in `terraform plan`.
+data "aws_ecr_image" "parser" {
+  repository_name = aws_ecr_repository.parser.name
+  image_tag       = var.image_tag
+}
+
 resource "aws_lambda_function" "replay_parser" {
   function_name = "${var.project_name}-parser"
   role          = aws_iam_role.lambda_exec.arn
 
   package_type = "Image"
-  image_uri    = "${var.account_id}.dkr.ecr.${var.aws_region}.amazonaws.com/${aws_ecr_repository.parser.name}:${var.image_tag}"
+  image_uri    = "${var.account_id}.dkr.ecr.${var.aws_region}.amazonaws.com/${aws_ecr_repository.parser.name}@${data.aws_ecr_image.parser.image_digest}"
 
   architectures = ["x86_64"]
 
