@@ -145,6 +145,10 @@ def allow_request(event: dict[str, Any], boto3: Any) -> bool:
         raise
 
 
+def capture_insight_output() -> bool:
+    return os.environ.get("LANGFUSE_CAPTURE_INSIGHT_OUTPUT", "").lower() == "true"
+
+
 def telemetry_call(obj: Any, method: str, **kwargs: Any) -> Any:
     if obj is not None:
         try:
@@ -234,6 +238,8 @@ def lambda_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
         output = {"status_code": result["statusCode"]}
         if "cached" in body:
             output["cached"] = body["cached"]
+        if match.group(2) == "insight" and result["statusCode"] == 200 and isinstance(body.get("insight"), dict) and capture_insight_output():
+            output["insight"] = body["insight"]
         telemetry_call(span, "update", metadata=metadata, output=output, **({"level": "ERROR", "status_message": "HTTP " + str(result["statusCode"])} if result["statusCode"] >= 500 else {}))
         return result
     except Exception as exc:

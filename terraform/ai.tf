@@ -37,6 +37,12 @@ variable "langfuse_base_url" {
   default = "https://cloud.langfuse.com"
 }
 
+variable "langfuse_capture_insight_output" {
+  description = "Send the validated match insight to Langfuse as trace output. The insight may contain player names and match statistics."
+  type        = bool
+  default     = true
+}
+
 resource "aws_lambda_layer_version" "langfuse" {
   count                    = var.ai_enabled && var.langfuse_enabled ? 1 : 0
   filename                 = "${path.module}/langfuse-layer.zip"
@@ -115,14 +121,15 @@ resource "aws_lambda_function" "ai" {
   layers           = var.langfuse_enabled ? [aws_lambda_layer_version.langfuse[0].arn] : []
   environment {
     variables = {
-      REPLAY_BUCKET                 = aws_s3_bucket.replay_data.bucket
-      OPENROUTER_KEY_PARAMETER      = var.openrouter_key_parameter_arn
-      OPENROUTER_MODEL              = var.openrouter_model
-      AI_RATE_TABLE                 = aws_dynamodb_table.ai_rate[0].name
-      LANGFUSE_PUBLIC_KEY           = var.langfuse_enabled ? var.langfuse_public_key : ""
-      LANGFUSE_SECRET_KEY_PARAMETER = var.langfuse_enabled ? var.langfuse_secret_key_parameter_arn : ""
-      LANGFUSE_BASE_URL             = var.langfuse_base_url
-      LANGFUSE_TRACING_ENVIRONMENT  = "production"
+      REPLAY_BUCKET                   = aws_s3_bucket.replay_data.bucket
+      OPENROUTER_KEY_PARAMETER        = var.openrouter_key_parameter_arn
+      OPENROUTER_MODEL                = var.openrouter_model
+      AI_RATE_TABLE                   = aws_dynamodb_table.ai_rate[0].name
+      LANGFUSE_PUBLIC_KEY             = var.langfuse_enabled ? var.langfuse_public_key : ""
+      LANGFUSE_SECRET_KEY_PARAMETER   = var.langfuse_enabled ? var.langfuse_secret_key_parameter_arn : ""
+      LANGFUSE_BASE_URL               = var.langfuse_base_url
+      LANGFUSE_TRACING_ENVIRONMENT    = "production"
+      LANGFUSE_CAPTURE_INSIGHT_OUTPUT = var.langfuse_enabled && var.langfuse_capture_insight_output ? "true" : "false"
       ALLOWED_ORIGINS = join(",", compact([
         "https://${aws_cloudfront_distribution.dashboard.domain_name}",
         var.dashboard_domain == "" ? "" : "https://${var.dashboard_domain}"

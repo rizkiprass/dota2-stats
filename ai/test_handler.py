@@ -136,6 +136,34 @@ class AnalysisTests(unittest.TestCase):
         with patch.object(handler, "langfuse_client", return_value=client), patch.object(handler, "generate", return_value="answer"):
             self.assertEqual(self.call("chat", {"question": "What happened?"})[0], 200)
 
+    def test_insight_trace_output_captures_validated_insight_when_enabled(self):
+        item = {"category": "economy", "title": "Economy", "text": "Evidence", "time_seconds": 792}
+        model = json.dumps({"summary": "Radiant won.", "winning_factors": [item], "losing_challenges": [item], "improvements": [item], "limitations": "No timeline."})
+        client = MagicMock()
+        span = client.start_observation.return_value
+        with patch.dict(os.environ, {"LANGFUSE_CAPTURE_INSIGHT_OUTPUT": "true"}), patch.object(handler, "langfuse_client", return_value=client), patch.object(handler, "generate", return_value=model):
+            first = self.call("insight")
+            second = self.call("insight")
+        self.assertEqual(first[0], 200)
+        self.assertEqual(second[1]["cached"], True)
+        for call in span.update.call_args_list:
+            output = call.kwargs.get("output", {})
+            if output.get("cached") in (False, True):
+                self.assertEqual(output["insight"]["summary"], "Radiant won.")
+        self.assertEqual(span.update.call_count, 2)
+
+    def test_insight_trace_output_omits_content_by_default(self):
+        item = {"category": "economy", "title": "Economy", "text": "Evidence", "time_seconds": 792}
+        model = json.dumps({"summary": "Radiant won.", "winning_factors": [item], "losing_challenges": [item], "improvements": [item], "limitations": "No timeline."})
+        client = MagicMock()
+        span = client.start_observation.return_value
+        with patch.dict(os.environ, {}, clear=False), patch.object(handler, "langfuse_client", return_value=client), patch.object(handler, "generate", return_value=model):
+            os.environ.pop("LANGFUSE_CAPTURE_INSIGHT_OUTPUT", None)
+            self.assertEqual(self.call("insight")[0], 200)
+        output = span.update.call_args.kwargs["output"]
+        self.assertNotIn("insight", output)
+        self.assertNotIn("Radiant won.", str(span.update.call_args))
+
     def test_insight_output_limit_and_finish_reason(self):
         span = MagicMock()
         generation = span.start_observation.return_value
