@@ -5,4 +5,5 @@ interface ImportMetaEnv {
   /** Base URL of the replay upload API (terraform output upload_api_url).
    *  When empty the "Upload replay" button is hidden entirely. */
   readonly VITE_UPLOAD_API_URL?: string;
+  readonly VITE_AI_API_URL?: string;
 }

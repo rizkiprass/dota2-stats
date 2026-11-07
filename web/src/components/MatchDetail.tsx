@@ -8,6 +8,7 @@ import { useDashboard } from "../lib/dashboard-context";
 import { useMatches } from "../lib/api";
 import { formatDayLabel, formatTime } from "../lib/match-calendar";
 import type { MatchPlayerRecord, MatchRecord } from "../types/stats";
+import { MatchAnalysis } from "./MatchAnalysis";
 
 interface TeamStats {
   kills: number;
@@ -131,6 +132,8 @@ function MatchDetailContent({ match }: { match: MatchRecord }) {
         <div className="match-detail-kpi"><span>Match pace</span><strong>{fmtNum(totalKills / minutes, 1)} <small>kills/min</small></strong></div>
         <div className="match-detail-kpi"><span>Duration</span><strong>{fmtDuration(match.duration)}</strong></div>
       </section>
+
+      <MatchAnalysis key={match.match_id} matchId={match.match_id} radiantWin={match.radiant_win} />
 
       <article className="match-detail-card">
         <section className="match-detail-comparison" aria-labelledby="team-comparison-title">

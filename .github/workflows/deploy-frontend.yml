@@ -56,6 +56,9 @@ jobs:
       DASHBOARD_BUCKET: ${{ vars.DASHBOARD_BUCKET }}
       CLOUDFRONT_DISTRIBUTION_ID: ${{ vars.CLOUDFRONT_DISTRIBUTION_ID }}
       VITE_UPLOAD_API_URL: ${{ vars.VITE_UPLOAD_API_URL }}
+      VITE_AI_API_URL: ${{ vars.VITE_AI_API_URL }}
+      VITE_POSTHOG_KEY: ${{ vars.VITE_POSTHOG_KEY }}
+      VITE_POSTHOG_HOST: ${{ vars.VITE_POSTHOG_HOST }}
       AWS_DEPLOY_ROLE_ARN: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
     steps:
       - uses: actions/checkout@v4

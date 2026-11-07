@@ -47,7 +47,7 @@ except ImportError:  # Lambda imports this module as a top-level script
     from item_ids import ITEM_NAMES
 
 STEAM64_BASE = 76561197960265728
-SCHEMA_VERSION = 5
+SCHEMA_VERSION = 7
 PING_BURST_WINDOW_SECONDS = 5
 PING_BURST_MINIMUM = 3
 
@@ -304,6 +304,8 @@ def normalize_events(raw_output: str, match_id_hint: str) -> dict:
     farm_snapshot_by_slot: dict[int, dict] = {}  # slot -> latest interval <= 10 min
     behavior_by_slot: dict[int, dict[str, Any]] = {}
     purchases_by_hero: dict[str, list[dict[str, Any]]] = {}  # lowercase hero combat-log name -> purchases
+    minute_snapshots: dict[int, dict[int, dict[str, Any]]] = {}
+    timeline_events: list[dict[str, Any]] = []
 
     def behavior_for(slot: Any) -> Optional[dict[str, Any]]:
         try:
@@ -346,6 +348,8 @@ def normalize_events(raw_output: str, match_id_hint: str) -> dict:
             if slot is None:
                 continue
             time_ = e.get("time") or 0
+            if isinstance(slot, int) and isinstance(time_, (int, float)) and time_ >= 0 and int(time_) % 60 == 0:
+                minute_snapshots.setdefault(int(time_), {})[slot] = {key: e.get(key) for key in ("networth", "xp", "lh", "hero_damage", "tower_damage")}
             prev = latest_interval_by_slot.get(slot)
             if prev is None or (prev.get("time") or 0) <= time_:
                 latest_interval_by_slot[slot] = e
@@ -360,6 +364,12 @@ def normalize_events(raw_output: str, match_id_hint: str) -> dict:
                     or (farm_snapshot_by_slot[slot].get("time") or 0) <= time_
                 ):
                     farm_snapshot_by_slot[slot] = e
+        elif etype == "DOTA_COMBATLOG_DEATH" and e.get("targethero") is True and not e.get("targetillusion"):
+            if isinstance(e.get("time"), (int, float)) and e["time"] >= 0:
+                timeline_events.append({"type": "hero_death", "time": e["time"], "target": e.get("targetname"), "attacker": e.get("attackername"), "attacker_hero": e.get("attackerhero")})
+        elif etype == "DOTA_COMBATLOG_TEAM_BUILDING_KILL":
+            if isinstance(e.get("time"), (int, float)) and e["time"] >= 0:
+                timeline_events.append({"type": "building_destroyed", "time": e["time"], "target": e.get("targetname")})
         elif etype in {"chat", "chatwheel", "pings"}:
             behavior = behavior_for(e.get("slot"))
             if behavior is None:
@@ -379,7 +389,7 @@ def normalize_events(raw_output: str, match_id_hint: str) -> dict:
             if isinstance(hero, str) and isinstance(item, str) and item.startswith("item_"):
                 time_ = e.get("time")
                 purchases_by_hero.setdefault(hero.lower(), []).append(
-                    {"item": item[len("item_"):], "time": int(time_) if isinstance(time_, (int, float)) else 0}
+                    {"item": item[len("item_"):], "time": int(time_) if isinstance(time_, (int, float)) else None}
                 )
         elif isinstance(etype, str):
             behavior = behavior_for(e.get("player1"))
@@ -467,7 +477,7 @@ def normalize_events(raw_output: str, match_id_hint: str) -> dict:
                 "deaths": interval.get("deaths"),
                 "assists": interval.get("assists"),
                 "win": win,
-                "items": sorted(items, key=lambda purchase: purchase["time"]),
+                "items": sorted(items, key=lambda purchase: (purchase["time"] is None, purchase["time"] if purchase["time"] is not None else 0)),
                 "final_items": final_inventory["final_items"],
                 "neutral_item": final_inventory["neutral_item"],
                 "gold": interval.get("gold"),
@@ -512,6 +522,23 @@ def normalize_events(raw_output: str, match_id_hint: str) -> dict:
             if team_total else None
         )
 
+    timeline_snapshots = []
+    for timestamp, snapshots in sorted(minute_snapshots.items()):
+        teams = {}
+        for team in ("radiant", "dire"):
+            slots = [slot for slot, slot_team in slot_teams.items() if slot_team == team]
+            entries = [snapshots.get(slot) for slot in slots]
+            if len(slots) != 5 or any(entry is None for entry in entries):
+                continue
+            metrics = {}
+            for metric in ("networth", "xp", "lh", "hero_damage", "tower_damage"):
+                values = [entry.get(metric) for entry in entries]
+                if all(isinstance(value, (int, float)) for value in values):
+                    metrics[metric] = sum(values)
+            teams[team] = metrics
+        if len(teams) == 2:
+            timeline_snapshots.append({"time": timestamp, **teams})
+
     return {
         "schema_version": SCHEMA_VERSION,
         "match_id": str(match_id) if match_id is not None else match_id_hint,
@@ -520,5 +547,6 @@ def normalize_events(raw_output: str, match_id_hint: str) -> dict:
         "start_time": start_time,
         "game_mode": game_mode,
         "lobby_type": lobby_type,
+        "timeline": {"snapshots": timeline_snapshots, "events": sorted(timeline_events, key=lambda item: item["time"])},
         "players": players,
     }

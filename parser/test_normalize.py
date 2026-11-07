@@ -80,6 +80,23 @@ class BehaviorNormalizationTests(unittest.TestCase):
 
 
 class ReplayTelemetryNormalizationTests(unittest.TestCase):
+    def test_timeline_aggregates_complete_teams_and_excludes_chat_and_illusions(self):
+        events = []
+        for slot in range(10):
+            events.append({"type": "player_slot", "key": str(slot), "value": slot if slot < 5 else 128 + slot - 5})
+            events.append({"type": "interval", "slot": slot, "time": 60, "hero_id": slot + 1, "unit": "CDOTA_Unit_Hero_Axe", "networth": 1000 + slot})
+        events.extend([
+            {"type": "DOTA_COMBATLOG_DEATH", "time": 61, "targethero": True, "targetillusion": False, "targetname": "npc_dota_hero_axe"},
+            {"type": "DOTA_COMBATLOG_DEATH", "time": 62, "targethero": True, "targetillusion": True},
+            {"type": "DOTA_COMBATLOG_TEAM_BUILDING_KILL", "time": 65, "targetname": "npc_dota_goodguys_tower1_mid"},
+            {"type": "chat", "slot": 0, "key": "private message"},
+        ])
+        result = normalize_events("\n".join(map(json.dumps, events)), "123")
+        self.assertEqual(result["timeline"]["snapshots"][0]["radiant"]["networth"], 5010)
+        self.assertEqual(result["timeline"]["snapshots"][0]["dire"]["networth"], 5035)
+        self.assertEqual([event["type"] for event in result["timeline"]["events"]], ["hero_death", "building_destroyed"])
+        self.assertNotIn("private message", json.dumps(result))
+
     def test_persists_latest_telemetry_and_schema_version(self):
         raw = "\n".join(
             [
@@ -142,6 +159,8 @@ class ItemPurchaseNormalizationTests(unittest.TestCase):
                 interval(1, "CDOTA_Unit_Hero_Zuus", 22),
                 purchase("npc_dota_hero_antimage", "item_power_treads", 600),
                 purchase("npc_dota_hero_antimage", "item_tango", -30),
+                json.dumps({"type": "DOTA_COMBATLOG_PURCHASE", "targetname": "npc_dota_hero_antimage", "valuename": "item_branches"}),
+                purchase("npc_dota_hero_antimage", "item_blink", 0),
                 purchase("npc_dota_hero_zuus", "item_blink", 900),
                 purchase("npc_dota_hero_antimage", "modifier_not_an_item", 10),
                 _event(
@@ -155,7 +174,7 @@ class ItemPurchaseNormalizationTests(unittest.TestCase):
 
         self.assertEqual(
             players[1]["items"],
-            [{"item": "tango", "time": -30}, {"item": "power_treads", "time": 600}],
+            [{"item": "tango", "time": -30}, {"item": "blink", "time": 0}, {"item": "power_treads", "time": 600}, {"item": "branches", "time": None}],
         )
         self.assertEqual(players[22]["items"], [{"item": "blink", "time": 900}])
 

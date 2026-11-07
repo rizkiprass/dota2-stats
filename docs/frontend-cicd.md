@@ -34,9 +34,36 @@ Create the following environment variables:
 | `DASHBOARD_BUCKET` | Terraform output `dashboard_bucket_name` |
 | `CLOUDFRONT_DISTRIBUTION_ID` | Terraform output `dashboard_cloudfront_distribution_id` |
 | `VITE_UPLOAD_API_URL` | Terraform output `upload_api_url` |
+| `VITE_POSTHOG_KEY` | PostHog project token (optional; enables analytics with the host) |
+| `VITE_POSTHOG_HOST` | PostHog ingestion host for the project, e.g. `https://us.i.posthog.com` |
 
 These are environment variables rather than secrets because none grants access
 by itself. The workflow obtains short-lived AWS credentials through OIDC.
+
+## Visitor analytics
+
+Create a PostHog project and copy its **project token** and ingestion host from
+the project settings into the production environment variables above. The token
+is public and embedded in the frontend: never use a personal API key. Both
+values must be set when building; otherwise analytics is disabled. Local
+development is excluded. For a local production build, set the same variables
+in `web/.env.production.local` or export them before `scripts/deploy-web.sh`.
+
+The SDK records the initial page view and subsequent History API navigation,
+including TanStack Router routes. Click autocapture, pageleave events, dead-click
+capture, and session recording are disabled. Visitor identity is a browser-based
+estimate, not an exact count of people. Page URLs are sent to PostHog; avoid
+putting credentials or other sensitive information in URLs. Tracking can be
+blocked by browser settings or extensions.
+
+In PostHog, set the project time zone to Asia/Jakarta, then use Web Analytics or
+an insight for `$pageview` to create a dashboard with total pageviews, unique
+visitors, and a breakdown by pathname. Set the range to the last 24 hours and
+the interval to hourly for traffic by hour. Dynamic paths such as
+`/matches/<id>` are separate URLs; group them by route pattern in a custom
+insight if a combined total is needed. Check a real production visit and client
+navigation in PostHog's activity view after deployment. Data begins at setup;
+retention and usage limits depend on the PostHog plan.
 
 ## AWS OIDC Role
 

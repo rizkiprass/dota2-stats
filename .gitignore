@@ -33,6 +33,7 @@ terraform/upload-api.zip
 # Frontend build tooling
 node_modules/
 web/dist/
+web/.env*.local
 web/stats.json
 web/matches.json
 
