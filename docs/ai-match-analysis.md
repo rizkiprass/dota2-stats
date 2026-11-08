@@ -6,7 +6,11 @@ The insight prompt includes a deterministic `facts` block computed in Python fro
 
 The match page displays a compact Match insight with an expandable review of the winning team, the losing team's challenges, and suggestions. Insights are cached in the replay bucket under `ai-cache/`, keyed by replay data, model and prompt version. The older item-analysis and standalone question API endpoints remain available, but are not shown in the match page. Missing parsed fields remain missing.
 
+The insight-specific prompt asks for an explanation of the observed evidence and actionable, conditional suggestions rather than isolated statistics. It distinguishes full-match totals from timestamped evidence and does not treat a correlation as proof of a cause or invent teamfight details. The existing JSON sections and 500-character item limit remain in place. Prompt version changes invalidate the insight cache, so the updated review is generated on the next request.
+
 Parser schema 6 adds minute snapshots of team economy and damage, plus hero-death and building-destruction combat-log events. Reprocessing the replay is required to populate those fields; older files remain usable with a more limited analysis. Hero death event totals can differ from the scoreboard, building events can include non-towers, and the data does not itself identify teamfights or causality. The API includes these limitations and count comparison in the model context. Purchase events and patch-specific item advice remain subject to the limitations above.
+
+The AI context only forwards building events with recognizable tower targets: combat-log building kills can also include units such as Underlord portals. A tower event identifies a destroyed tower and time, not its killer or the state of other structures. Other building events remain in the parsed replay but are not used as AI evidence.
 
 ## Local development
 

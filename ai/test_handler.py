@@ -175,7 +175,17 @@ class AnalysisTests(unittest.TestCase):
             handler.generate({}, handler.INSIGHT_QUESTION, "key")
         payload = json.loads(urlopen.call_args.args[0].data)
         self.assertEqual(payload["max_tokens"], handler.MAX_INSIGHT_OUTPUT)
+        self.assertEqual(payload["messages"][0]["content"], handler.INSIGHT_SYSTEM)
         generation.update.assert_any_call(metadata={"finish_reason": "length"})
+
+    def test_other_questions_keep_their_system_prompt(self):
+        response = MagicMock()
+        response.__enter__.return_value = io.BytesIO(json.dumps({"choices": [{"message": {"content": "Answer"}}]}).encode())
+        with patch.object(handler.urllib.request, "urlopen", return_value=response) as urlopen:
+            handler.generate({}, "What happened?", "key")
+        payload = json.loads(urlopen.call_args.args[0].data)
+        self.assertEqual(payload["messages"][0]["content"], handler.SYSTEM)
+        self.assertEqual(payload["max_tokens"], handler.MAX_OUTPUT)
 
     def test_invalid_json_records_validation_error(self):
         client = MagicMock()
@@ -216,6 +226,16 @@ class AnalysisTests(unittest.TestCase):
         self.raw["schema_version"] = 7
         self.assertEqual(handler.match_context(self.raw, "123")["players"][0]["items"][0]["time"], 0)
 
+    def test_timeline_excludes_non_tower_building_events(self):
+        self.raw["timeline"] = {"events": [
+            {"type": "building_destroyed", "time": 10, "target": "npc_dota_unit_underlord_portal"},
+            {"type": "building_destroyed", "time": 20, "target": "npc_dota_goodguys_tower1_bot"},
+            {"type": "hero_death", "time": 30, "target": "npc_dota_hero_axe"},
+        ]}
+        context = handler.match_context(self.raw, "123")
+        self.assertEqual([event["time"] for event in context["timeline"]["events"]], [20, 30])
+        self.assertTrue(handler.match_facts(context)["data_availability"]["building_events"])
+
     def _team_match(self):
         return {
             "match_id": "123",
@@ -249,6 +269,21 @@ class AnalysisTests(unittest.TestCase):
         self.assertFalse(availability["death_events"])
         self.assertFalse(availability["building_events"])
         self.assertFalse(availability["teamfight_timeline"])
+
+    def test_networth_leader_comparison_and_zero_denominator(self):
+        match = self._team_match()
+        match["players"][1]["networth"] = 40244
+        match["players"][2]["networth"] = 23520
+        match["players"][3]["networth"] = 0
+        context = handler.match_context(match, "123")
+        comparison = handler.match_facts(context)["networth_leader_comparison"]
+        self.assertEqual(comparison["radiant_minus_dire"], 16724)
+        self.assertEqual(comparison["dire_as_percent_of_radiant"], 58.4)
+        self.assertEqual(handler.evaluation_reference(context)["facts"]["networth_leader_comparison"], comparison)
+        match["players"][0]["networth"] = 0
+        match["players"][1]["networth"] = 0
+        comparison = handler.match_facts(handler.match_context(match, "123"))["networth_leader_comparison"]
+        self.assertNotIn("dire_as_percent_of_radiant", comparison)
 
     def test_match_facts_omits_partial_team_sums(self):
         match = self._team_match()
