@@ -181,11 +181,30 @@ class AnalysisTests(unittest.TestCase):
         client = MagicMock()
         span = client.start_observation.return_value
         validation = span.start_observation.return_value
-        with patch.object(handler, "langfuse_client", return_value=client), patch.object(handler, "generate", return_value='{"summary":"cut off'):
+        with patch.object(handler, "langfuse_client", return_value=client), patch.object(handler, "generate", return_value='{"summary":"cut off') as generate:
             self.assertEqual(self.call("insight")[0], 503)
-        validation.update.assert_called_once_with(level="ERROR", status_message="JSONDecodeError", output={"valid": False})
-        validation.end.assert_called_once()
+        # The invalid reply is validated, retried once, then rejected.
+        self.assertEqual(generate.call_count, 2)
+        self.assertEqual(validation.update.call_count, 2)
+        validation.update.assert_called_with(level="ERROR", status_message="JSONDecodeError", output={"valid": False})
+        self.assertEqual(validation.end.call_count, 2)
         self.assertFalse(any(key.startswith("ai-cache/") for key in self.s3.objects))
+
+    def test_insight_retries_once_and_recovers(self):
+        item = {"category": "economy", "title": "Economy", "text": "Evidence", "time_seconds": 792}
+        good = json.dumps({"summary": "Radiant won.", "winning_factors": [item], "losing_challenges": [item], "improvements": [item], "limitations": "No timeline."})
+        with patch.object(handler, "generate", side_effect=['{"summary":"cut off', good]) as generate:
+            status, result = self.call("insight")
+        self.assertEqual(status, 200)
+        self.assertFalse(result["cached"])
+        self.assertEqual(result["insight"]["summary"], "Radiant won.")
+        self.assertEqual(generate.call_count, 2)
+        self.assertTrue(any(key.startswith("ai-cache/") for key in self.s3.objects))
+
+    def test_incomplete_insight_names_the_missing_section(self):
+        with self.assertRaises(ValueError) as raised:
+            handler.parse_insight(json.dumps({"summary": "S", "limitations": "L", "winning_factors": [], "losing_challenges": [], "improvements": []}))
+        self.assertIn("winning_factors", str(raised.exception))
 
     def test_legacy_purchase_zero_is_unknown_but_timeline_zero_is_valid(self):
         self.raw["schema_version"] = 6
@@ -196,6 +215,64 @@ class AnalysisTests(unittest.TestCase):
         self.assertEqual(result["timeline"]["snapshots"][0]["time"], 0)
         self.raw["schema_version"] = 7
         self.assertEqual(handler.match_context(self.raw, "123")["players"][0]["items"][0]["time"], 0)
+
+    def _team_match(self):
+        return {
+            "match_id": "123",
+            "lobby_type": 1,
+            "duration": 1800,
+            "radiant_win": False,
+            "players": [
+                {"player_name": "R1", "team": "radiant", "hero_id": 109, "account_id": "111", "steam_id": "999", "role": "carry", "lane": "safelane", "kills": 0, "deaths": 6, "assists": 2, "last_hits": 193, "hero_damage": 15750, "tower_damage": 344, "networth": 21072, "towers_killed": 0, "roshans_killed": 0},
+                {"player_name": "R2", "team": "radiant", "hero_id": 108, "kills": 3, "deaths": 5, "assists": 5, "last_hits": 201, "hero_damage": 46545, "tower_damage": 25, "networth": 28040, "towers_killed": 1, "roshans_killed": 0},
+                {"player_name": "D1", "team": "dire", "hero_id": 36, "kills": 7, "deaths": 2, "assists": 7, "last_hits": 123, "hero_damage": 15246, "tower_damage": 4344, "networth": 28428, "towers_killed": 1, "roshans_killed": 0},
+                {"player_name": "D2", "team": "dire", "hero_id": 12, "kills": 3, "deaths": 2, "assists": 6, "last_hits": 244, "hero_damage": 16481, "tower_damage": 14660, "networth": 35977, "towers_killed": 2, "roshans_killed": 2},
+            ],
+        }
+
+    def test_match_facts_separate_team_totals_and_objectives(self):
+        facts = handler.match_facts(handler.match_context(self._team_match(), "123"))
+        self.assertEqual(facts["winner"], "dire")
+        self.assertEqual(facts["team_totals"]["radiant"]["deaths"], 11)
+        self.assertEqual(facts["team_totals"]["dire"]["deaths"], 4)
+        self.assertEqual(facts["team_totals"]["radiant"]["hero_damage"], 62295)
+        self.assertEqual(facts["team_totals"]["dire"]["hero_damage"], 31727)
+        self.assertEqual(facts["team_totals"]["radiant"]["towers_killed"], 1)
+        self.assertEqual(facts["team_totals"]["dire"]["towers_killed"], 3)
+        self.assertEqual(facts["team_totals"]["dire"]["roshans_killed"], 2)
+        self.assertEqual(facts["leaders"]["dire"]["hero_damage"]["player_name"], "D2")
+
+    def test_match_facts_flags_missing_evidence(self):
+        facts = handler.match_facts(handler.match_context(self._team_match(), "123"))
+        availability = facts["data_availability"]
+        self.assertFalse(availability["minute_snapshots"])
+        self.assertFalse(availability["death_events"])
+        self.assertFalse(availability["building_events"])
+        self.assertFalse(availability["teamfight_timeline"])
+
+    def test_match_facts_omits_partial_team_sums(self):
+        match = self._team_match()
+        del match["players"][0]["hero_damage"]
+        facts = handler.match_facts(handler.match_context(match, "123"))
+        self.assertNotIn("hero_damage", facts["team_totals"]["radiant"])
+
+    def test_insight_context_includes_facts_without_recompute_fields(self):
+        context = handler.insight_context(handler.match_context(self._team_match(), "123"))
+        self.assertEqual(context["facts"]["team_totals"]["dire"]["towers_killed"], 3)
+        self.assertIn("players", context)
+
+    def test_evaluation_reference_carries_objectives_and_roles_but_no_identity(self):
+        reference = handler.evaluation_reference(handler.match_context(self._team_match(), "123"))
+        totals = reference["facts"]["team_totals"]
+        self.assertEqual(totals["dire"]["towers_killed"], 3)
+        self.assertEqual(totals["dire"]["roshans_killed"], 2)
+        self.assertEqual(totals["radiant"]["deaths"], 11)
+        self.assertTrue(reference["role_is_a_heuristic"])
+        self.assertEqual(reference["players"][0]["role"], "carry")
+        self.assertEqual(reference["players"][0]["lane"], "safelane")
+        serialized = json.dumps(reference)
+        self.assertNotIn("account_id", serialized)
+        self.assertNotIn("steam_id", serialized)
 
 
 if __name__ == "__main__":
