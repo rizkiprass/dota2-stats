@@ -211,6 +211,146 @@ class AnalysisTests(unittest.TestCase):
         self.assertEqual(generate.call_count, 2)
         self.assertTrue(any(key.startswith("ai-cache/") for key in self.s3.objects))
 
+    def _insight(self, text="Dire finished with 142,427 net worth against Radiant's 83,372.", improvement="Review the replay of each death to find avoidable situations.", time_seconds=None):
+        item = {"category": "economy", "title": "Economy", "text": text, "time_seconds": time_seconds}
+        advice = {"category": "death", "title": "Deaths", "text": improvement, "time_seconds": None}
+        return {"summary": "Dire won.", "winning_factors": [item], "losing_challenges": [item], "improvements": [advice], "limitations": "No timeline, so fights and early-game state are unavailable."}
+
+    def test_unsupported_claims_flags_the_reviewed_trace_wording(self):
+        cases = {
+            "This economic lead allowed Dire to maintain pressure throughout the game.": ["causal", "persistence"],
+            "Radiant accumulated 33 deaths, indicating consistent losses in engagements.": ["fights"],
+            "Radiant struggled to find impact.": ["fights"],
+            "Radiant lost all their towers.": ["all_towers"],
+            "This deficit hindered Radiant's ability to contest objectives.": ["causal"],
+            "Improve efficiency in the early and mid-game.": ["phase"],
+        }
+        for text, expected in cases.items():
+            with self.subTest(text=text):
+                self.assertEqual(handler.unsupported_claims(self._insight(text)), expected)
+
+    def test_unsupported_claims_allows_supported_comparisons_and_advice(self):
+        self.assertEqual(handler.unsupported_claims(self._insight()), [])
+        # Phases are acceptable with a cited timestamp, fights only as advice,
+        # and the limitations text is never checked.
+        self.assertEqual(handler.unsupported_claims(self._insight("Radiant trailed at the mid-game snapshot.", time_seconds=900)), [])
+        self.assertEqual(handler.unsupported_claims(self._insight(improvement="Review engagements where '4' died.")), [])
+        self.assertEqual(handler.unsupported_claims(self._insight("Dire killed 9 towers; Radiant killed 0.")), [])
+
+    def test_objective_credits_list_every_credited_player(self):
+        facts = handler.match_facts(handler.match_context(self._team_match(), "123"))
+        credits = facts["objective_credits"]
+        self.assertEqual([(m["player_name"], m["towers_killed"]) for m in credits["radiant"]], [("R2", 1)])
+        self.assertEqual([(m["player_name"], m["towers_killed"], m["roshans_killed"]) for m in credits["dire"]], [("D1", 1, 0), ("D2", 2, 2)])
+        reference = handler.evaluation_reference(handler.match_context(self._team_match(), "123"))
+        self.assertEqual(reference["facts"]["objective_credits"], credits)
+
+    def test_objective_credit_mismatch_is_flagged(self):
+        facts = handler.match_facts(handler.match_context(self._team_match(), "123"))
+        wrong = ["Dire destroyed 3 towers, including 1 by D2 and 1 by D1.", "D2 destroyed 1 tower.", "D2 (3 towers) led the pushes.", "D1 took 2 towers."]
+        for text in wrong:
+            with self.subTest(text=text):
+                self.assertEqual(handler.unsupported_claims(self._insight(text), facts), ["objective_credit"])
+        wrong.append("Dire destroyed 3 towers, including 1 by D2 and 1 by D1. Dire also took the Roshan kill.")
+        right = ["Dire destroyed 3 towers, including 2 by D2 and 1 by D1. Dire also took the Roshan kill.", "Dire destroyed 3 towers, including 2 by D2 and 1 by D1.", "D2 destroyed 2 towers and took 2 Roshans.", "R1 had 0 towers."]
+        for text in right:
+            with self.subTest(text=text):
+                self.assertEqual(handler.unsupported_claims(self._insight(text), facts), [])
+        self.assertEqual(handler.unsupported_claims(self._insight(wrong[0])), [])
+
+    def test_self_computed_event_windows_are_flagged(self):
+        flagged = [
+            "The most intense period of Radiant hero deaths was between 457 and 475 seconds, with 5 deaths recorded.",
+            "Radiant lost 4 heroes within a 30-second window.",
+            "The busiest stretch for deaths was early.",
+        ]
+        for text in flagged:
+            with self.subTest(text=text):
+                self.assertIn("event_window", handler.unsupported_claims(self._insight(text, time_seconds=475)))
+        for text in ("At 1440 seconds, Dire's net worth was 138983 against Radiant's 83022.", "Spirit Breaker died at 464 seconds."):
+            with self.subTest(text=text):
+                self.assertEqual(handler.unsupported_claims(self._insight(text, time_seconds=464)), [])
+
+    def test_team_tower_count_must_match_team_totals(self):
+        facts = handler.match_facts(handler.match_context(self._team_match(), "123"))
+        wrong = ["Radiant only destroyed 2 of Dire's towers.", "Dire destroyed 9 towers.", "Radiant destroyed no towers.", "Dire's players took 4 towers."]
+        for text in wrong:
+            with self.subTest(text=text):
+                self.assertEqual(handler.unsupported_claims(self._insight(text), facts), ["objective_credit"])
+        right = ["Radiant destroyed 1 tower.", "Dire destroyed 3 towers while Radiant destroyed 1 of Dire's towers.", "Dire destroyed all 3 of Radiant's towers."]
+        for text in right:
+            with self.subTest(text=text):
+                self.assertEqual(handler.unsupported_claims(self._insight(text), facts), [])
+
+    def test_request_uses_flash_model_with_minimal_reasoning(self):
+        response = MagicMock()
+        response.__enter__.return_value = io.BytesIO(json.dumps({"choices": [{"message": {"content": "x"}}]}).encode())
+        with patch.object(handler.urllib.request, "urlopen", return_value=response) as urlopen:
+            handler.generate({}, handler.INSIGHT_QUESTION, "key")
+        payload = json.loads(urlopen.call_args.args[0].data)
+        self.assertEqual(payload["model"], "google/gemini-2.5-flash")
+        self.assertEqual(payload["reasoning"], {"effort": "minimal"})
+        self.assertEqual(payload["max_tokens"], handler.MAX_INSIGHT_OUTPUT)
+
+    def test_flagged_insight_is_retried_with_feedback(self):
+        flagged = json.dumps(self._insight("The lead allowed Dire to dominate throughout."))
+        clean = json.dumps(self._insight())
+        client = MagicMock()
+        validation = client.start_observation.return_value.start_observation.return_value
+        with patch.object(handler, "langfuse_client", return_value=client), patch.object(handler, "generate", side_effect=[flagged, clean]) as generate:
+            status, result = self.call("insight")
+        self.assertEqual(status, 200)
+        self.assertEqual(result["insight"]["winning_factors"][0]["text"], self._insight()["winning_factors"][0]["text"])
+        self.assertEqual(generate.call_count, 2)
+        retry_question = generate.call_args_list[1].args[1]
+        self.assertTrue(retry_question.startswith(handler.INSIGHT_QUESTION))
+        self.assertIn("causal wording", retry_question)
+        self.assertIn("throughout", retry_question)
+        validation.update.assert_any_call(output={"valid": True, "content_flags": ["causal", "persistence"]}, level="WARNING")
+        self.assertNotIn("dominate", str(client.mock_calls))
+
+    def test_flagged_insight_skips_retry_when_time_budget_is_spent(self):
+        flagged = json.dumps(self._insight("The lead allowed Dire to dominate throughout."))
+        clock = iter([0, 20, 20, 20])
+        with patch.object(handler, "_clock", side_effect=lambda: next(clock)), patch.object(handler, "generate", return_value=flagged) as generate:
+            status, result = self.call("insight")
+        self.assertEqual(status, 200)
+        self.assertEqual(generate.call_count, 1)
+        self.assertEqual(result["insight"]["winning_factors"][0]["text"], "The lead allowed Dire to dominate throughout.")
+
+    def test_each_model_call_is_capped_by_the_remaining_budget(self):
+        flagged = json.dumps(self._insight("The lead allowed Dire to dominate throughout."))
+        clean = json.dumps(self._insight())
+        clock = iter([0, 0, 5, 5, 5, 5])
+        with patch.object(handler, "_clock", side_effect=lambda: next(clock)), patch.object(handler, "generate", side_effect=[flagged, clean]) as generate:
+            self.assertEqual(self.call("insight")[0], 200)
+        self.assertEqual([call.kwargs["timeout"] for call in generate.call_args_list], [25, 21])
+
+    def test_flagged_retry_returns_least_flagged_answer(self):
+        worse = json.dumps(self._insight("The lead allowed Dire to dominate throughout the engagements."))
+        better = json.dumps(self._insight("The lead allowed more items."))
+        with patch.object(handler, "generate", side_effect=[worse, better]) as generate:
+            status, result = self.call("insight")
+        self.assertEqual(status, 200)
+        self.assertEqual(result["insight"]["winning_factors"][0]["text"], "The lead allowed more items.")
+        self.assertEqual(generate.call_count, 2)
+
+    def test_flagged_answer_is_kept_when_retry_is_malformed(self):
+        flagged = json.dumps(self._insight("Dire dominated throughout."))
+        with patch.object(handler, "generate", side_effect=[flagged, '{"summary":"cut off']):
+            status, result = self.call("insight")
+        self.assertEqual(status, 200)
+        self.assertEqual(result["insight"]["winning_factors"][0]["text"], "Dire dominated throughout.")
+
+    def test_retry_question_keeps_insight_prompt_and_limit(self):
+        response = MagicMock()
+        response.__enter__.return_value = io.BytesIO(json.dumps({"choices": [{"message": {"content": "x"}}]}).encode())
+        with patch.object(handler.urllib.request, "urlopen", return_value=response) as urlopen:
+            handler.generate({}, handler.INSIGHT_QUESTION + handler.claim_feedback(["causal"]), "key")
+        payload = json.loads(urlopen.call_args.args[0].data)
+        self.assertEqual(payload["messages"][0]["content"], handler.INSIGHT_SYSTEM)
+        self.assertEqual(payload["max_tokens"], handler.MAX_INSIGHT_OUTPUT)
+
     def test_incomplete_insight_names_the_missing_section(self):
         with self.assertRaises(ValueError) as raised:
             handler.parse_insight(json.dumps({"summary": "S", "limitations": "L", "winning_factors": [], "losing_challenges": [], "improvements": []}))

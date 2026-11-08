@@ -13,7 +13,7 @@ variable "openrouter_key_parameter_arn" {
 
 variable "openrouter_model" {
   type    = string
-  default = "google/gemini-2.5-flash-lite"
+  default = "google/gemini-2.5-flash"
 }
 
 variable "langfuse_enabled" {
