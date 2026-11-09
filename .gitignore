@@ -73,3 +73,4 @@ web/playwright-report/
 
 .zed/
 .vscode/
+.replays/
