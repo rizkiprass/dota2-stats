@@ -466,7 +466,7 @@ function RoleDetailModal({ role, stats, onClose }: { role: RoleCardConfig; stats
         <div className="role-modal-why">
           <strong>Why this player is best</strong>
           <p>{scoring?.description ?? "This player has the highest weighted role score among qualifying players in this lobby."}</p>
-          <span>{scoring?.eligible_players ?? ranking.length} qualifying players · minimum {scoring?.minimum_matches ?? 2} matches</span>
+          <span>{scoring?.eligible_players ?? ranking.length} qualifying players · minimum {scoring?.minimum_matches ?? 5} matches</span>
         </div>
 
         <section className="role-modal-section" aria-labelledby="role-breakdown-title">

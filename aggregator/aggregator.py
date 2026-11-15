@@ -65,7 +65,7 @@ MIN_HERO_PICKS = int(os.environ.get("MIN_HERO_PICKS", "5"))
 MIN_TEAMMATE_MATCHES = int(os.environ.get("MIN_TEAMMATE_MATCHES", "3"))
 MIN_H2H_MATCHES = int(os.environ.get("MIN_H2H_MATCHES", "3"))
 MIN_BEHAVIOR_MATCHES = int(os.environ.get("MIN_BEHAVIOR_MATCHES", "3"))
-MIN_ROLE_MATCHES = int(os.environ.get("MIN_ROLE_MATCHES", "2"))
+MIN_ROLE_MATCHES = int(os.environ.get("MIN_ROLE_MATCHES", "5"))
 LEADERBOARD_LIMIT = int(os.environ.get("LEADERBOARD_LIMIT", "10"))
 # Newest matches kept in the lazy per-match payload. The dashboard never reads
 # history itself, so only detail pages feel this cap.
