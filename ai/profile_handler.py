@@ -128,8 +128,11 @@ def allowed_evidence_keys(metrics: dict[str, Any]) -> set[str]:
     a metric the window could not produce is not citable, so a statement resting
     on it fails instead of being quietly accepted.
     """
-    keys: set[str] = {"sample.matches", "window.eligible"}
+    keys: set[str] = {"sample.matches", "sample.tier", "window.eligible", "window.requested"}
     keys.update((metrics.get("metrics") or {}).keys())
+    # Window metrics are published under a `metrics` block but the contract teaches
+    # the model to cite them by bare name, so both spellings are accepted here.
+    keys.update(f"metrics.{key}" for key in (metrics.get("metrics") or {}))
 
     trends = metrics.get("trends") or {}
     if trends.get("available"):
@@ -138,11 +141,18 @@ def allowed_evidence_keys(metrics: dict[str, Any]) -> set[str]:
     deaths = metrics.get("deaths_by_phase") or {}
     if deaths.get("available"):
         keys.add("deaths_by_phase")
+        keys.update({"deaths_by_phase.matches", "deaths_by_phase.excluded",
+                     "deaths_by_phase.total_deaths", "deaths_by_phase.per_match"})
         keys.update(f"deaths_by_phase.{phase}" for phase in (deaths.get("phases") or {}))
+        keys.update(f"deaths_by_phase.{phase}.{field}"
+                    for phase, detail in (deaths.get("phases") or {}).items()
+                    for field in (detail or {}))
 
     benchmark = metrics.get("benchmark") or {}
     if benchmark.get("available"):
-        keys.update({"benchmark.rank", "benchmark.score"})
+        keys.update({"benchmark.rank", "benchmark.score", "benchmark.role",
+                     "benchmark.ranked_players", "benchmark.eligible_players",
+                     "benchmark.minimum_matches"})
         keys.update(f"benchmark.{part['key']}" for part in benchmark.get("metrics") or [] if part.get("key"))
 
     lifetime = metrics.get("lifetime") or {}
@@ -151,7 +161,9 @@ def allowed_evidence_keys(metrics: dict[str, Any]) -> set[str]:
 
     role = metrics.get("role") or {}
     if role.get("value"):
-        keys.update({"role.confidence", "role.mean_role_confidence", "role.dominant_share"})
+        keys.update({"role.value", "role.confidence", "role.mean_role_confidence",
+                     "role.dominant_share", "role.roles_seen"})
+        keys.update(f"role.roles_seen.{name}" for name in (role.get("roles_seen") or {}))
 
     if metrics.get("hero_pool"):
         keys.add("hero_pool")
@@ -242,6 +254,12 @@ def unsupported_figures(text: str, metrics: dict[str, Any]) -> bool:
         # both directions would accept 4242 wherever the payload happens to
         # carry 42.42, which is exactly the invented score this catches.
         scaled.add(number * 100.0 if abs(number) <= 1.0 else number / 100.0)
+        # A trend delta is published signed (`"change": -127.4`) while prose carries
+        # the direction in words ("GPM declined by 127.4"), so the magnitude is what
+        # gets cited. Without this every declining trend reads as an invented figure
+        # — observed on the first live generation, where it also doubled the cost,
+        # because a flag triggers the retry.
+        scaled.add(abs(number))
     for match in FIGURE.finditer(text or ""):
         if any(abs(cited - value) <= max(0.5, 0.01 * abs(value))
                for cited in figure_readings(match.group(1)) for value in scaled):
@@ -365,6 +383,37 @@ def unsupported_claims(profile: dict[str, Any], metrics: dict[str, Any]) -> list
 
 
 
+def clamp_text(text: str, limit: int) -> str:
+    """Bound a prose field without slicing it in the middle of a word.
+
+    The prompt states these limits and the model mostly respects them, but it does
+    overrun: the first live generation stored a `limitations` ending in
+    "win rate (25.11" and a `role_read` ending in "with a sc", because `text[:limit]`
+    cuts wherever the budget ends. Cut at the last sentence end inside the budget
+    instead, else at the last word boundary, and mark a word-boundary cut so the
+    reader knows text was dropped. Nothing is invented, no sentence is left
+    ungrammatical, and the result never exceeds the published limit: the budget the
+    prompt states is the budget the UI was sized against.
+    """
+    body = (text or "").strip()
+    if len(body) <= limit:
+        return body
+    if limit < 4:
+        return body[:limit]
+
+    floor = int(limit * 0.6)
+    for boundary in (". ", "? ", "! "):
+        cut = body[:limit].rfind(boundary)
+        if cut >= floor:
+            return body[:cut + 1].strip()
+
+    # Reserve room for the ellipsis so the stored field still honours the limit.
+    cut = body[:limit - 2].rfind(" ")
+    if cut >= floor:
+        return body[:cut].rstrip(" ,;:") + " …"
+    return body[:limit - 1].rstrip(" ,;:") + "…"
+
+
 def _cite(entry: Any, limit: int) -> tuple[str, list[str]]:
     """Validate the prose plus the evidence citation every block owes.
 
@@ -379,7 +428,7 @@ def _cite(entry: Any, limit: int) -> tuple[str, list[str]]:
         raise ValueError("Invalid profile block text")
     if not isinstance(keys, list) or not keys or not all(isinstance(key, str) and key.strip() for key in keys):
         raise ValueError("Invalid profile block metrics")
-    return body.strip()[:limit], [key.strip()[:60] for key in keys[:8]]
+    return clamp_text(body, limit), [key.strip()[:60] for key in keys[:8]]
 
 
 def _finding(entry: Any) -> dict[str, Any]:
@@ -389,7 +438,7 @@ def _finding(entry: Any) -> dict[str, Any]:
     if not isinstance(title, str) or not title.strip():
         raise ValueError("Invalid profile finding title")
     body, keys = _cite(entry, 300)
-    return {"title": title.strip()[:60], "text": body, "metrics": keys}
+    return {"title": clamp_text(title, 60), "text": body, "metrics": keys}
 
 
 def parse_profile(text: str, metrics: dict[str, Any]) -> dict[str, Any]:
@@ -405,7 +454,7 @@ def parse_profile(text: str, metrics: dict[str, Any]) -> dict[str, Any]:
     for key, limit in (("headline", 180), ("limitations", 300)):
         if not isinstance(value.get(key), str) or not value[key].strip():
             raise ValueError("Incomplete profile: " + key)
-        result[key] = value[key].strip()[:limit]
+        result[key] = clamp_text(value[key], limit)
 
     for key in ("strengths", "focus_areas"):
         entries = value.get(key)

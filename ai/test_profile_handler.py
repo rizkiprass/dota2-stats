@@ -535,6 +535,22 @@ class GroundingTests(unittest.TestCase):
         self.assertFalse(ph.unsupported_figures("Averaged 23419 net worth.", metrics))
         self.assertTrue(ph.unsupported_figures("Averaged 23,419,000 net worth.", metrics))
 
+    def test_a_declining_trend_may_be_quoted_as_a_magnitude(self):
+        # A trend delta is published signed while prose carries the direction in
+        # words, so "declined by 126.4" cites -126.4. Flagging that made every
+        # declining trend read as an invented figure on the first live generation,
+        # and a flag costs a paid retry.
+        metrics = {"metrics": {"gpm": {"value": 608.6, "sample_size": 20}},
+                   "trends": {"available": True,
+                              "changes": {"gpm": {"older": 735.0, "newer": 608.6, "change": -126.4}}}}
+        published = ph._numbers_in(metrics)
+        self.assertIn(-126.4, published)
+        self.assertNotIn(126.4, published, "the magnitude must only pass through the sign rule")
+
+        self.assertFalse(ph.unsupported_figures("GPM declined by 126.4 over the newer half.", metrics))
+        self.assertTrue(ph.unsupported_figures("GPM declined by 1264 over the newer half.", metrics))
+        self.assertTrue(ph.unsupported_figures("GPM declined by 900 over the newer half.", metrics))
+
     def test_structural_numbers_are_not_treated_as_inventions(self):
         # The phase boundaries are given to the model in seconds while a reader
         # says "ten minutes"; quoting them is not an invented figure.
@@ -781,6 +797,25 @@ class EvidenceKeyTests(unittest.TestCase):
                          "role.confidence", "sample.matches"):
             self.assertIn(expected, keys, expected)
 
+    def test_keys_published_by_the_context_are_citable(self):
+        # Found in production, not in test: the first live generation cited
+        # role.value and benchmark.ranked_players, both published in the context
+        # sent to the model and both echoed into the stored meta, and both were
+        # flagged as unknown. Everything an available block publishes has to be
+        # citable; a block the window could not produce still contributes nothing.
+        keys = ph.allowed_evidence_keys(_metrics())
+        for expected in ("role.value", "role.roles_seen", "role.roles_seen.carry",
+                         "benchmark.ranked_players", "benchmark.eligible_players",
+                         "benchmark.minimum_matches", "deaths_by_phase.matches",
+                         "deaths_by_phase.total_deaths", "deaths_by_phase.per_match",
+                         "sample.tier", "window.requested", "metrics.gpm"):
+            self.assertIn(expected, keys, expected)
+
+        unranked = _metrics(6, stats={**_stats(), "role_rankings": {}})
+        self.assertFalse(unranked["benchmark"]["available"])
+        for forbidden in ("benchmark.ranked_players", "benchmark.eligible_players"):
+            self.assertNotIn(forbidden, ph.allowed_evidence_keys(unranked), forbidden)
+
     def test_an_unavailable_block_contributes_no_citable_key(self):
         short = _metrics(pm.MIN_TREND_MATCHES - 1)
         keys = ph.allowed_evidence_keys(short)
@@ -812,6 +847,51 @@ class EvidenceKeyTests(unittest.TestCase):
 
         self.assertIsNone(blank["role"]["value"])
         self.assertNotIn("role.confidence", ph.allowed_evidence_keys(blank))
+
+
+class ClampTextTests(unittest.TestCase):
+    def setUp(self):
+        self.metrics = _metrics()
+        self.context = ph.profile_context(self.metrics)
+
+    def test_a_field_within_budget_is_returned_trimmed(self):
+        self.assertEqual(ph.clamp_text("  A complete sentence.  ", 300), "A complete sentence.")
+
+    def test_an_overrun_is_cut_at_a_sentence_end(self):
+        out = ph.clamp_text("Ward counts are published. " + "Placement and coverage are not. " * 12, 60)
+
+        self.assertLessEqual(len(out), 60)
+        self.assertTrue(out.endswith("."), out)
+        self.assertNotIn("…", out, "a whole sentence needs no ellipsis")
+
+    def test_a_cut_inside_a_sentence_lands_on_a_word_boundary_and_is_marked(self):
+        source = "alpha beta gamma delta epsilon zeta"
+        out = ph.clamp_text(source, 20)
+
+        self.assertTrue(out.endswith("…"), out)
+        self.assertTrue(all(word in source.split() for word in out.rstrip(" …").split()), out)
+
+    def test_an_overlong_answer_is_stored_without_a_broken_word(self):
+        # The first live generation stored a `limitations` ending in "win rate (25.11"
+        # and a `role_read` ending in "with a sc", because text[:limit] cuts wherever
+        # the budget happens to end rather than where the sentence does.
+        answer = json.loads(_answer(self.context))
+        answer["limitations"] = "Vision is limited to ward counts. " + "Placement is not published. " * 14
+        answer["role_read"]["text"] = "word " * 90
+        stored = ph.parse_profile(json.dumps(answer), self.metrics)
+
+        self.assertLessEqual(len(stored["limitations"]), 300)
+        self.assertTrue(stored["limitations"].endswith("."), stored["limitations"][-40:])
+        self.assertLessEqual(len(stored["role_read"]["text"]), 300)
+        self.assertTrue(stored["role_read"]["text"].endswith("…"), stored["role_read"]["text"][-40:])
+        self.assertTrue(all(word == "word" for word in stored["role_read"]["text"].rstrip(" …").split()))
+
+    def test_the_clamp_never_exceeds_the_budget_it_was_given(self):
+        # The budget the prompt states is the budget the UI was sized against, so
+        # the ellipsis has to be paid for out of it rather than added on top.
+        for limit in (60, 180, 300):
+            for body in ("h" * (limit * 3), "word " * (limit // 2), "One sentence here. " * 20):
+                self.assertLessEqual(len(ph.clamp_text(body, limit)), limit, (limit, body[:20]))
 
 
 class PromptTests(unittest.TestCase):
