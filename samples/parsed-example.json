@@ -1,31 +1,4196 @@
 {
-  "match_id": "8938123456",
-  "duration": 2518,
-  "radiant_win": true,
-  "start_time": 1700000000,
-  "game_mode": 22,
+  "schema_version": 8,
+  "match_id": "9053903780",
+  "duration": 1369,
+  "radiant_win": false,
+  "start_time": 1792506011,
+  "game_mode": 23,
+  "lobby_type": 1,
+  "timeline": {
+    "snapshots": [
+      {
+        "time": 0,
+        "radiant": {
+          "networth": 3000,
+          "xp": 0,
+          "lh": 0,
+          "hero_damage": 0,
+          "tower_damage": 0
+        },
+        "dire": {
+          "networth": 2950,
+          "xp": 0,
+          "lh": 0,
+          "hero_damage": 0,
+          "tower_damage": 0
+        }
+      },
+      {
+        "time": 60,
+        "radiant": {
+          "networth": 5224,
+          "xp": 1050,
+          "lh": 8,
+          "hero_damage": 742,
+          "tower_damage": 0
+        },
+        "dire": {
+          "networth": 5342,
+          "xp": 1484,
+          "lh": 10,
+          "hero_damage": 968,
+          "tower_damage": 0
+        }
+      },
+      {
+        "time": 120,
+        "radiant": {
+          "networth": 7406,
+          "xp": 4208,
+          "lh": 20,
+          "hero_damage": 3497,
+          "tower_damage": 0
+        },
+        "dire": {
+          "networth": 6921,
+          "xp": 4159,
+          "lh": 24,
+          "hero_damage": 3657,
+          "tower_damage": 0
+        }
+      },
+      {
+        "time": 180,
+        "radiant": {
+          "networth": 9162,
+          "xp": 6403,
+          "lh": 31,
+          "hero_damage": 4352,
+          "tower_damage": 0
+        },
+        "dire": {
+          "networth": 9010,
+          "xp": 6861,
+          "lh": 39,
+          "hero_damage": 4163,
+          "tower_damage": 0
+        }
+      },
+      {
+        "time": 240,
+        "radiant": {
+          "networth": 11307,
+          "xp": 9851,
+          "lh": 40,
+          "hero_damage": 7398,
+          "tower_damage": 0
+        },
+        "dire": {
+          "networth": 11792,
+          "xp": 10261,
+          "lh": 60,
+          "hero_damage": 6515,
+          "tower_damage": 0
+        }
+      },
+      {
+        "time": 300,
+        "radiant": {
+          "networth": 13109,
+          "xp": 12599,
+          "lh": 48,
+          "hero_damage": 8824,
+          "tower_damage": 0
+        },
+        "dire": {
+          "networth": 15029,
+          "xp": 14347,
+          "lh": 73,
+          "hero_damage": 10253,
+          "tower_damage": 121
+        }
+      },
+      {
+        "time": 360,
+        "radiant": {
+          "networth": 14731,
+          "xp": 14523,
+          "lh": 56,
+          "hero_damage": 9673,
+          "tower_damage": 0
+        },
+        "dire": {
+          "networth": 17507,
+          "xp": 18159,
+          "lh": 96,
+          "hero_damage": 12225,
+          "tower_damage": 143
+        }
+      },
+      {
+        "time": 420,
+        "radiant": {
+          "networth": 16046,
+          "xp": 17041,
+          "lh": 62,
+          "hero_damage": 13056,
+          "tower_damage": 0
+        },
+        "dire": {
+          "networth": 22236,
+          "xp": 23072,
+          "lh": 101,
+          "hero_damage": 16740,
+          "tower_damage": 173
+        }
+      },
+      {
+        "time": 480,
+        "radiant": {
+          "networth": 19232,
+          "xp": 21074,
+          "lh": 93,
+          "hero_damage": 13686,
+          "tower_damage": 0
+        },
+        "dire": {
+          "networth": 26756,
+          "xp": 28008,
+          "lh": 123,
+          "hero_damage": 17991,
+          "tower_damage": 537
+        }
+      },
+      {
+        "time": 540,
+        "radiant": {
+          "networth": 21192,
+          "xp": 24144,
+          "lh": 111,
+          "hero_damage": 14123,
+          "tower_damage": 0
+        },
+        "dire": {
+          "networth": 31030,
+          "xp": 32238,
+          "lh": 154,
+          "hero_damage": 17991,
+          "tower_damage": 557
+        }
+      },
+      {
+        "time": 600,
+        "radiant": {
+          "networth": 22786,
+          "xp": 27185,
+          "lh": 119,
+          "hero_damage": 16033,
+          "tower_damage": 0
+        },
+        "dire": {
+          "networth": 36144,
+          "xp": 39382,
+          "lh": 186,
+          "hero_damage": 21878,
+          "tower_damage": 1216
+        }
+      },
+      {
+        "time": 660,
+        "radiant": {
+          "networth": 24814,
+          "xp": 30795,
+          "lh": 141,
+          "hero_damage": 16033,
+          "tower_damage": 0
+        },
+        "dire": {
+          "networth": 42714,
+          "xp": 45271,
+          "lh": 221,
+          "hero_damage": 23333,
+          "tower_damage": 2331
+        }
+      },
+      {
+        "time": 720,
+        "radiant": {
+          "networth": 26210,
+          "xp": 33288,
+          "lh": 146,
+          "hero_damage": 20320,
+          "tower_damage": 0
+        },
+        "dire": {
+          "networth": 47848,
+          "xp": 54179,
+          "lh": 247,
+          "hero_damage": 28383,
+          "tower_damage": 2711
+        }
+      },
+      {
+        "time": 780,
+        "radiant": {
+          "networth": 30726,
+          "xp": 43276,
+          "lh": 161,
+          "hero_damage": 21473,
+          "tower_damage": 67
+        },
+        "dire": {
+          "networth": 53238,
+          "xp": 60317,
+          "lh": 271,
+          "hero_damage": 30077,
+          "tower_damage": 3845
+        }
+      },
+      {
+        "time": 840,
+        "radiant": {
+          "networth": 33232,
+          "xp": 46593,
+          "lh": 177,
+          "hero_damage": 21473,
+          "tower_damage": 250
+        },
+        "dire": {
+          "networth": 58999,
+          "xp": 69855,
+          "lh": 297,
+          "hero_damage": 32434,
+          "tower_damage": 4926
+        }
+      },
+      {
+        "time": 900,
+        "radiant": {
+          "networth": 36122,
+          "xp": 54553,
+          "lh": 195,
+          "hero_damage": 21720,
+          "tower_damage": 250
+        },
+        "dire": {
+          "networth": 62759,
+          "xp": 73931,
+          "lh": 322,
+          "hero_damage": 34024,
+          "tower_damage": 5706
+        }
+      },
+      {
+        "time": 960,
+        "radiant": {
+          "networth": 38812,
+          "xp": 58605,
+          "lh": 212,
+          "hero_damage": 21792,
+          "tower_damage": 250
+        },
+        "dire": {
+          "networth": 69647,
+          "xp": 88595,
+          "lh": 356,
+          "hero_damage": 40091,
+          "tower_damage": 6179
+        }
+      },
+      {
+        "time": 1020,
+        "radiant": {
+          "networth": 40668,
+          "xp": 70260,
+          "lh": 215,
+          "hero_damage": 28311,
+          "tower_damage": 250
+        },
+        "dire": {
+          "networth": 76782,
+          "xp": 103268,
+          "lh": 370,
+          "hero_damage": 47822,
+          "tower_damage": 8339
+        }
+      }
+    ],
+    "player_snapshots": [
+      {
+        "time": 0,
+        "player_index": 0,
+        "networth": 600,
+        "xp": 0,
+        "lh": 0,
+        "hero_damage": 0,
+        "tower_damage": 0
+      },
+      {
+        "time": 0,
+        "player_index": 1,
+        "networth": 600,
+        "xp": 0,
+        "lh": 0,
+        "hero_damage": 0,
+        "tower_damage": 0
+      },
+      {
+        "time": 0,
+        "player_index": 2,
+        "networth": 600,
+        "xp": 0,
+        "lh": 0,
+        "hero_damage": 0,
+        "tower_damage": 0
+      },
+      {
+        "time": 0,
+        "player_index": 3,
+        "networth": 600,
+        "xp": 0,
+        "lh": 0,
+        "hero_damage": 0,
+        "tower_damage": 0
+      },
+      {
+        "time": 0,
+        "player_index": 4,
+        "networth": 600,
+        "xp": 0,
+        "lh": 0,
+        "hero_damage": 0,
+        "tower_damage": 0
+      },
+      {
+        "time": 0,
+        "player_index": 5,
+        "networth": 600,
+        "xp": 0,
+        "lh": 0,
+        "hero_damage": 0,
+        "tower_damage": 0
+      },
+      {
+        "time": 0,
+        "player_index": 6,
+        "networth": 550,
+        "xp": 0,
+        "lh": 0,
+        "hero_damage": 0,
+        "tower_damage": 0
+      },
+      {
+        "time": 0,
+        "player_index": 7,
+        "networth": 600,
+        "xp": 0,
+        "lh": 0,
+        "hero_damage": 0,
+        "tower_damage": 0
+      },
+      {
+        "time": 0,
+        "player_index": 8,
+        "networth": 600,
+        "xp": 0,
+        "lh": 0,
+        "hero_damage": 0,
+        "tower_damage": 0
+      },
+      {
+        "time": 0,
+        "player_index": 9,
+        "networth": 600,
+        "xp": 0,
+        "lh": 0,
+        "hero_damage": 0,
+        "tower_damage": 0
+      },
+      {
+        "time": 60,
+        "player_index": 0,
+        "networth": 1262,
+        "xp": 594,
+        "lh": 4,
+        "hero_damage": 183,
+        "tower_damage": 0
+      },
+      {
+        "time": 60,
+        "player_index": 1,
+        "networth": 1032,
+        "xp": 171,
+        "lh": 2,
+        "hero_damage": 90,
+        "tower_damage": 0
+      },
+      {
+        "time": 60,
+        "player_index": 2,
+        "networth": 938,
+        "xp": 57,
+        "lh": 0,
+        "hero_damage": 97,
+        "tower_damage": 0
+      },
+      {
+        "time": 60,
+        "player_index": 3,
+        "networth": 978,
+        "xp": 114,
+        "lh": 1,
+        "hero_damage": 84,
+        "tower_damage": 0
+      },
+      {
+        "time": 60,
+        "player_index": 4,
+        "networth": 1014,
+        "xp": 114,
+        "lh": 1,
+        "hero_damage": 288,
+        "tower_damage": 0
+      },
+      {
+        "time": 60,
+        "player_index": 5,
+        "networth": 1240,
+        "xp": 297,
+        "lh": 4,
+        "hero_damage": 233,
+        "tower_damage": 0
+      },
+      {
+        "time": 60,
+        "player_index": 6,
+        "networth": 838,
+        "xp": 205,
+        "lh": 0,
+        "hero_damage": 245,
+        "tower_damage": 0
+      },
+      {
+        "time": 60,
+        "player_index": 7,
+        "networth": 1008,
+        "xp": 205,
+        "lh": 1,
+        "hero_damage": 358,
+        "tower_damage": 0
+      },
+      {
+        "time": 60,
+        "player_index": 8,
+        "networth": 1318,
+        "xp": 594,
+        "lh": 5,
+        "hero_damage": 44,
+        "tower_damage": 0
+      },
+      {
+        "time": 60,
+        "player_index": 9,
+        "networth": 938,
+        "xp": 183,
+        "lh": 0,
+        "hero_damage": 88,
+        "tower_damage": 0
+      },
+      {
+        "time": 120,
+        "player_index": 0,
+        "networth": 1834,
+        "xp": 1485,
+        "lh": 9,
+        "hero_damage": 579,
+        "tower_damage": 0
+      },
+      {
+        "time": 120,
+        "player_index": 1,
+        "networth": 1360,
+        "xp": 634,
+        "lh": 4,
+        "hero_damage": 394,
+        "tower_damage": 0
+      },
+      {
+        "time": 120,
+        "player_index": 2,
+        "networth": 888,
+        "xp": 439,
+        "lh": 0,
+        "hero_damage": 587,
+        "tower_damage": 0
+      },
+      {
+        "time": 120,
+        "player_index": 3,
+        "networth": 2066,
+        "xp": 825,
+        "lh": 5,
+        "hero_damage": 700,
+        "tower_damage": 0
+      },
+      {
+        "time": 120,
+        "player_index": 4,
+        "networth": 1258,
+        "xp": 825,
+        "lh": 2,
+        "hero_damage": 1237,
+        "tower_damage": 0
+      },
+      {
+        "time": 120,
+        "player_index": 5,
+        "networth": 1431,
+        "xp": 571,
+        "lh": 5,
+        "hero_damage": 581,
+        "tower_damage": 0
+      },
+      {
+        "time": 120,
+        "player_index": 6,
+        "networth": 883,
+        "xp": 616,
+        "lh": 1,
+        "hero_damage": 605,
+        "tower_damage": 0
+      },
+      {
+        "time": 120,
+        "player_index": 7,
+        "networth": 1582,
+        "xp": 754,
+        "lh": 6,
+        "hero_damage": 956,
+        "tower_damage": 0
+      },
+      {
+        "time": 120,
+        "player_index": 8,
+        "networth": 2017,
+        "xp": 1647,
+        "lh": 12,
+        "hero_damage": 330,
+        "tower_damage": 0
+      },
+      {
+        "time": 120,
+        "player_index": 9,
+        "networth": 1008,
+        "xp": 571,
+        "lh": 0,
+        "hero_damage": 1185,
+        "tower_damage": 0
+      },
+      {
+        "time": 180,
+        "player_index": 0,
+        "networth": 2518,
+        "xp": 2337,
+        "lh": 14,
+        "hero_damage": 836,
+        "tower_damage": 0
+      },
+      {
+        "time": 180,
+        "player_index": 1,
+        "networth": 1790,
+        "xp": 829,
+        "lh": 7,
+        "hero_damage": 505,
+        "tower_damage": 0
+      },
+      {
+        "time": 180,
+        "player_index": 2,
+        "networth": 1068,
+        "xp": 976,
+        "lh": 0,
+        "hero_damage": 820,
+        "tower_damage": 0
+      },
+      {
+        "time": 180,
+        "player_index": 3,
+        "networth": 2468,
+        "xp": 1222,
+        "lh": 8,
+        "hero_damage": 700,
+        "tower_damage": 0
+      },
+      {
+        "time": 180,
+        "player_index": 4,
+        "networth": 1318,
+        "xp": 1039,
+        "lh": 2,
+        "hero_damage": 1491,
+        "tower_damage": 0
+      },
+      {
+        "time": 180,
+        "player_index": 5,
+        "networth": 2081,
+        "xp": 1216,
+        "lh": 10,
+        "hero_damage": 581,
+        "tower_damage": 0
+      },
+      {
+        "time": 180,
+        "player_index": 6,
+        "networth": 1012,
+        "xp": 923,
+        "lh": 2,
+        "hero_damage": 767,
+        "tower_damage": 0
+      },
+      {
+        "time": 180,
+        "player_index": 7,
+        "networth": 2146,
+        "xp": 1481,
+        "lh": 11,
+        "hero_damage": 1168,
+        "tower_damage": 0
+      },
+      {
+        "time": 180,
+        "player_index": 8,
+        "networth": 2613,
+        "xp": 2442,
+        "lh": 16,
+        "hero_damage": 462,
+        "tower_damage": 0
+      },
+      {
+        "time": 180,
+        "player_index": 9,
+        "networth": 1158,
+        "xp": 799,
+        "lh": 0,
+        "hero_damage": 1185,
+        "tower_damage": 0
+      },
+      {
+        "time": 240,
+        "player_index": 0,
+        "networth": 3371,
+        "xp": 3795,
+        "lh": 16,
+        "hero_damage": 2413,
+        "tower_damage": 0
+      },
+      {
+        "time": 240,
+        "player_index": 1,
+        "networth": 2472,
+        "xp": 1482,
+        "lh": 12,
+        "hero_damage": 656,
+        "tower_damage": 0
+      },
+      {
+        "time": 240,
+        "player_index": 2,
+        "networth": 1188,
+        "xp": 1623,
+        "lh": 0,
+        "hero_damage": 907,
+        "tower_damage": 0
+      },
+      {
+        "time": 240,
+        "player_index": 3,
+        "networth": 2778,
+        "xp": 1567,
+        "lh": 10,
+        "hero_damage": 1117,
+        "tower_damage": 0
+      },
+      {
+        "time": 240,
+        "player_index": 4,
+        "networth": 1498,
+        "xp": 1384,
+        "lh": 2,
+        "hero_damage": 2305,
+        "tower_damage": 0
+      },
+      {
+        "time": 240,
+        "player_index": 5,
+        "networth": 2745,
+        "xp": 2169,
+        "lh": 17,
+        "hero_damage": 839,
+        "tower_damage": 0
+      },
+      {
+        "time": 240,
+        "player_index": 6,
+        "networth": 1222,
+        "xp": 1365,
+        "lh": 2,
+        "hero_damage": 1015,
+        "tower_damage": 0
+      },
+      {
+        "time": 240,
+        "player_index": 7,
+        "networth": 2774,
+        "xp": 1923,
+        "lh": 15,
+        "hero_damage": 1714,
+        "tower_damage": 0
+      },
+      {
+        "time": 240,
+        "player_index": 8,
+        "networth": 3713,
+        "xp": 3708,
+        "lh": 26,
+        "hero_damage": 1172,
+        "tower_damage": 0
+      },
+      {
+        "time": 240,
+        "player_index": 9,
+        "networth": 1338,
+        "xp": 1096,
+        "lh": 0,
+        "hero_damage": 1775,
+        "tower_damage": 0
+      },
+      {
+        "time": 300,
+        "player_index": 0,
+        "networth": 3761,
+        "xp": 4565,
+        "lh": 18,
+        "hero_damage": 2739,
+        "tower_damage": 0
+      },
+      {
+        "time": 300,
+        "player_index": 1,
+        "networth": 2796,
+        "xp": 1807,
+        "lh": 14,
+        "hero_damage": 852,
+        "tower_damage": 0
+      },
+      {
+        "time": 300,
+        "player_index": 2,
+        "networth": 1460,
+        "xp": 2068,
+        "lh": 0,
+        "hero_damage": 1586,
+        "tower_damage": 0
+      },
+      {
+        "time": 300,
+        "player_index": 3,
+        "networth": 3382,
+        "xp": 2499,
+        "lh": 14,
+        "hero_damage": 1153,
+        "tower_damage": 0
+      },
+      {
+        "time": 300,
+        "player_index": 4,
+        "networth": 1710,
+        "xp": 1660,
+        "lh": 2,
+        "hero_damage": 2494,
+        "tower_damage": 0
+      },
+      {
+        "time": 300,
+        "player_index": 5,
+        "networth": 3899,
+        "xp": 3040,
+        "lh": 22,
+        "hero_damage": 1354,
+        "tower_damage": 0
+      },
+      {
+        "time": 300,
+        "player_index": 6,
+        "networth": 1482,
+        "xp": 2095,
+        "lh": 2,
+        "hero_damage": 1533,
+        "tower_damage": 0
+      },
+      {
+        "time": 300,
+        "player_index": 7,
+        "networth": 3570,
+        "xp": 2653,
+        "lh": 17,
+        "hero_damage": 2739,
+        "tower_damage": 22
+      },
+      {
+        "time": 300,
+        "player_index": 8,
+        "networth": 4396,
+        "xp": 4706,
+        "lh": 32,
+        "hero_damage": 2344,
+        "tower_damage": 99
+      },
+      {
+        "time": 300,
+        "player_index": 9,
+        "networth": 1682,
+        "xp": 1853,
+        "lh": 0,
+        "hero_damage": 2283,
+        "tower_damage": 0
+      },
+      {
+        "time": 360,
+        "player_index": 0,
+        "networth": 3961,
+        "xp": 4963,
+        "lh": 19,
+        "hero_damage": 3075,
+        "tower_damage": 0
+      },
+      {
+        "time": 360,
+        "player_index": 1,
+        "networth": 2968,
+        "xp": 1845,
+        "lh": 14,
+        "hero_damage": 933,
+        "tower_damage": 0
+      },
+      {
+        "time": 360,
+        "player_index": 2,
+        "networth": 1902,
+        "xp": 2234,
+        "lh": 1,
+        "hero_damage": 1586,
+        "tower_damage": 0
+      },
+      {
+        "time": 360,
+        "player_index": 3,
+        "networth": 3838,
+        "xp": 3223,
+        "lh": 19,
+        "hero_damage": 1293,
+        "tower_damage": 0
+      },
+      {
+        "time": 360,
+        "player_index": 4,
+        "networth": 2062,
+        "xp": 2258,
+        "lh": 3,
+        "hero_damage": 2786,
+        "tower_damage": 0
+      },
+      {
+        "time": 360,
+        "player_index": 5,
+        "networth": 4511,
+        "xp": 4080,
+        "lh": 31,
+        "hero_damage": 2124,
+        "tower_damage": 0
+      },
+      {
+        "time": 360,
+        "player_index": 6,
+        "networth": 1662,
+        "xp": 2420,
+        "lh": 2,
+        "hero_damage": 1642,
+        "tower_damage": 0
+      },
+      {
+        "time": 360,
+        "player_index": 7,
+        "networth": 4410,
+        "xp": 3600,
+        "lh": 25,
+        "hero_damage": 2739,
+        "tower_damage": 44
+      },
+      {
+        "time": 360,
+        "player_index": 8,
+        "networth": 5062,
+        "xp": 5912,
+        "lh": 38,
+        "hero_damage": 2807,
+        "tower_damage": 99
+      },
+      {
+        "time": 360,
+        "player_index": 9,
+        "networth": 1862,
+        "xp": 2147,
+        "lh": 0,
+        "hero_damage": 2913,
+        "tower_damage": 0
+      },
+      {
+        "time": 420,
+        "player_index": 0,
+        "networth": 4294,
+        "xp": 5518,
+        "lh": 22,
+        "hero_damage": 5274,
+        "tower_damage": 0
+      },
+      {
+        "time": 420,
+        "player_index": 1,
+        "networth": 3148,
+        "xp": 2131,
+        "lh": 14,
+        "hero_damage": 1695,
+        "tower_damage": 0
+      },
+      {
+        "time": 420,
+        "player_index": 2,
+        "networth": 2188,
+        "xp": 3393,
+        "lh": 2,
+        "hero_damage": 1586,
+        "tower_damage": 0
+      },
+      {
+        "time": 420,
+        "player_index": 3,
+        "networth": 4100,
+        "xp": 3460,
+        "lh": 20,
+        "hero_damage": 1385,
+        "tower_damage": 0
+      },
+      {
+        "time": 420,
+        "player_index": 4,
+        "networth": 2316,
+        "xp": 2539,
+        "lh": 4,
+        "hero_damage": 3116,
+        "tower_damage": 0
+      },
+      {
+        "time": 420,
+        "player_index": 5,
+        "networth": 5669,
+        "xp": 5222,
+        "lh": 34,
+        "hero_damage": 3824,
+        "tower_damage": 0
+      },
+      {
+        "time": 420,
+        "player_index": 6,
+        "networth": 2908,
+        "xp": 3800,
+        "lh": 3,
+        "hero_damage": 2278,
+        "tower_damage": 0
+      },
+      {
+        "time": 420,
+        "player_index": 7,
+        "networth": 4770,
+        "xp": 4301,
+        "lh": 26,
+        "hero_damage": 2785,
+        "tower_damage": 44
+      },
+      {
+        "time": 420,
+        "player_index": 8,
+        "networth": 5893,
+        "xp": 6304,
+        "lh": 38,
+        "hero_damage": 3558,
+        "tower_damage": 129
+      },
+      {
+        "time": 420,
+        "player_index": 9,
+        "networth": 2996,
+        "xp": 3445,
+        "lh": 0,
+        "hero_damage": 4295,
+        "tower_damage": 0
+      },
+      {
+        "time": 480,
+        "player_index": 0,
+        "networth": 4610,
+        "xp": 5694,
+        "lh": 23,
+        "hero_damage": 5691,
+        "tower_damage": 0
+      },
+      {
+        "time": 480,
+        "player_index": 1,
+        "networth": 4162,
+        "xp": 3394,
+        "lh": 25,
+        "hero_damage": 1695,
+        "tower_damage": 0
+      },
+      {
+        "time": 480,
+        "player_index": 2,
+        "networth": 2694,
+        "xp": 4479,
+        "lh": 5,
+        "hero_damage": 1586,
+        "tower_damage": 0
+      },
+      {
+        "time": 480,
+        "player_index": 3,
+        "networth": 5320,
+        "xp": 4968,
+        "lh": 36,
+        "hero_damage": 1385,
+        "tower_damage": 0
+      },
+      {
+        "time": 480,
+        "player_index": 4,
+        "networth": 2446,
+        "xp": 2539,
+        "lh": 4,
+        "hero_damage": 3329,
+        "tower_damage": 0
+      },
+      {
+        "time": 480,
+        "player_index": 5,
+        "networth": 6793,
+        "xp": 6000,
+        "lh": 43,
+        "hero_damage": 3824,
+        "tower_damage": 0
+      },
+      {
+        "time": 480,
+        "player_index": 6,
+        "networth": 3332,
+        "xp": 4811,
+        "lh": 3,
+        "hero_damage": 2278,
+        "tower_damage": 46
+      },
+      {
+        "time": 480,
+        "player_index": 7,
+        "networth": 5618,
+        "xp": 5611,
+        "lh": 30,
+        "hero_damage": 2799,
+        "tower_damage": 142
+      },
+      {
+        "time": 480,
+        "player_index": 8,
+        "networth": 7243,
+        "xp": 7481,
+        "lh": 47,
+        "hero_damage": 3947,
+        "tower_damage": 349
+      },
+      {
+        "time": 480,
+        "player_index": 9,
+        "networth": 3770,
+        "xp": 4105,
+        "lh": 0,
+        "hero_damage": 5143,
+        "tower_damage": 0
+      },
+      {
+        "time": 540,
+        "player_index": 0,
+        "networth": 4790,
+        "xp": 5851,
+        "lh": 23,
+        "hero_damage": 6102,
+        "tower_damage": 0
+      },
+      {
+        "time": 540,
+        "player_index": 1,
+        "networth": 5040,
+        "xp": 4529,
+        "lh": 31,
+        "hero_damage": 1695,
+        "tower_damage": 0
+      },
+      {
+        "time": 540,
+        "player_index": 2,
+        "networth": 2802,
+        "xp": 4938,
+        "lh": 7,
+        "hero_damage": 1586,
+        "tower_damage": 0
+      },
+      {
+        "time": 540,
+        "player_index": 3,
+        "networth": 6034,
+        "xp": 5761,
+        "lh": 46,
+        "hero_damage": 1385,
+        "tower_damage": 0
+      },
+      {
+        "time": 540,
+        "player_index": 4,
+        "networth": 2526,
+        "xp": 3065,
+        "lh": 4,
+        "hero_damage": 3355,
+        "tower_damage": 0
+      },
+      {
+        "time": 540,
+        "player_index": 5,
+        "networth": 8067,
+        "xp": 7046,
+        "lh": 53,
+        "hero_damage": 3824,
+        "tower_damage": 0
+      },
+      {
+        "time": 540,
+        "player_index": 6,
+        "networth": 3936,
+        "xp": 5286,
+        "lh": 3,
+        "hero_damage": 2278,
+        "tower_damage": 66
+      },
+      {
+        "time": 540,
+        "player_index": 7,
+        "networth": 6908,
+        "xp": 7175,
+        "lh": 43,
+        "hero_damage": 2799,
+        "tower_damage": 142
+      },
+      {
+        "time": 540,
+        "player_index": 8,
+        "networth": 8021,
+        "xp": 8451,
+        "lh": 53,
+        "hero_damage": 3947,
+        "tower_damage": 349
+      },
+      {
+        "time": 540,
+        "player_index": 9,
+        "networth": 4098,
+        "xp": 4280,
+        "lh": 2,
+        "hero_damage": 5143,
+        "tower_damage": 0
+      },
+      {
+        "time": 600,
+        "player_index": 0,
+        "networth": 4970,
+        "xp": 6029,
+        "lh": 23,
+        "hero_damage": 6598,
+        "tower_damage": 0
+      },
+      {
+        "time": 600,
+        "player_index": 1,
+        "networth": 5120,
+        "xp": 4929,
+        "lh": 31,
+        "hero_damage": 2156,
+        "tower_damage": 0
+      },
+      {
+        "time": 600,
+        "player_index": 2,
+        "networth": 2982,
+        "xp": 5173,
+        "lh": 7,
+        "hero_damage": 2114,
+        "tower_damage": 0
+      },
+      {
+        "time": 600,
+        "player_index": 3,
+        "networth": 6868,
+        "xp": 7006,
+        "lh": 52,
+        "hero_damage": 1385,
+        "tower_damage": 0
+      },
+      {
+        "time": 600,
+        "player_index": 4,
+        "networth": 2846,
+        "xp": 4048,
+        "lh": 6,
+        "hero_damage": 3780,
+        "tower_damage": 0
+      },
+      {
+        "time": 600,
+        "player_index": 5,
+        "networth": 9317,
+        "xp": 8347,
+        "lh": 60,
+        "hero_damage": 5156,
+        "tower_damage": 0
+      },
+      {
+        "time": 600,
+        "player_index": 6,
+        "networth": 4358,
+        "xp": 6374,
+        "lh": 4,
+        "hero_damage": 2450,
+        "tower_damage": 66
+      },
+      {
+        "time": 600,
+        "player_index": 7,
+        "networth": 8518,
+        "xp": 9577,
+        "lh": 64,
+        "hero_damage": 2799,
+        "tower_damage": 309
+      },
+      {
+        "time": 600,
+        "player_index": 8,
+        "networth": 8629,
+        "xp": 9796,
+        "lh": 56,
+        "hero_damage": 4610,
+        "tower_damage": 841
+      },
+      {
+        "time": 600,
+        "player_index": 9,
+        "networth": 5322,
+        "xp": 5288,
+        "lh": 2,
+        "hero_damage": 6863,
+        "tower_damage": 0
+      },
+      {
+        "time": 660,
+        "player_index": 0,
+        "networth": 5334,
+        "xp": 6550,
+        "lh": 25,
+        "hero_damage": 6598,
+        "tower_damage": 0
+      },
+      {
+        "time": 660,
+        "player_index": 1,
+        "networth": 5646,
+        "xp": 5885,
+        "lh": 39,
+        "hero_damage": 2156,
+        "tower_damage": 0
+      },
+      {
+        "time": 660,
+        "player_index": 2,
+        "networth": 3162,
+        "xp": 5335,
+        "lh": 7,
+        "hero_damage": 2114,
+        "tower_damage": 0
+      },
+      {
+        "time": 660,
+        "player_index": 3,
+        "networth": 7696,
+        "xp": 8173,
+        "lh": 64,
+        "hero_damage": 1385,
+        "tower_damage": 0
+      },
+      {
+        "time": 660,
+        "player_index": 4,
+        "networth": 2976,
+        "xp": 4852,
+        "lh": 6,
+        "hero_damage": 3780,
+        "tower_damage": 0
+      },
+      {
+        "time": 660,
+        "player_index": 5,
+        "networth": 10557,
+        "xp": 9044,
+        "lh": 68,
+        "hero_damage": 5156,
+        "tower_damage": 158
+      },
+      {
+        "time": 660,
+        "player_index": 6,
+        "networth": 4938,
+        "xp": 6518,
+        "lh": 4,
+        "hero_damage": 2450,
+        "tower_damage": 66
+      },
+      {
+        "time": 660,
+        "player_index": 7,
+        "networth": 10144,
+        "xp": 11227,
+        "lh": 78,
+        "hero_damage": 2799,
+        "tower_damage": 351
+      },
+      {
+        "time": 660,
+        "player_index": 8,
+        "networth": 10575,
+        "xp": 11180,
+        "lh": 69,
+        "hero_damage": 4610,
+        "tower_damage": 1756
+      },
+      {
+        "time": 660,
+        "player_index": 9,
+        "networth": 6500,
+        "xp": 7302,
+        "lh": 2,
+        "hero_damage": 8318,
+        "tower_damage": 0
+      },
+      {
+        "time": 720,
+        "player_index": 0,
+        "networth": 5636,
+        "xp": 6954,
+        "lh": 26,
+        "hero_damage": 8471,
+        "tower_damage": 0
+      },
+      {
+        "time": 720,
+        "player_index": 1,
+        "networth": 5698,
+        "xp": 5885,
+        "lh": 39,
+        "hero_damage": 2595,
+        "tower_damage": 0
+      },
+      {
+        "time": 720,
+        "player_index": 2,
+        "networth": 3438,
+        "xp": 5335,
+        "lh": 7,
+        "hero_damage": 2628,
+        "tower_damage": 0
+      },
+      {
+        "time": 720,
+        "player_index": 3,
+        "networth": 8282,
+        "xp": 9455,
+        "lh": 68,
+        "hero_damage": 2070,
+        "tower_damage": 0
+      },
+      {
+        "time": 720,
+        "player_index": 4,
+        "networth": 3156,
+        "xp": 5659,
+        "lh": 6,
+        "hero_damage": 4556,
+        "tower_damage": 0
+      },
+      {
+        "time": 720,
+        "player_index": 5,
+        "networth": 11589,
+        "xp": 10190,
+        "lh": 70,
+        "hero_damage": 6599,
+        "tower_damage": 158
+      },
+      {
+        "time": 720,
+        "player_index": 6,
+        "networth": 5298,
+        "xp": 7782,
+        "lh": 4,
+        "hero_damage": 2818,
+        "tower_damage": 66
+      },
+      {
+        "time": 720,
+        "player_index": 7,
+        "networth": 11994,
+        "xp": 14591,
+        "lh": 95,
+        "hero_damage": 3349,
+        "tower_damage": 351
+      },
+      {
+        "time": 720,
+        "player_index": 8,
+        "networth": 12147,
+        "xp": 13405,
+        "lh": 76,
+        "hero_damage": 7223,
+        "tower_damage": 2136
+      },
+      {
+        "time": 720,
+        "player_index": 9,
+        "networth": 6820,
+        "xp": 8211,
+        "lh": 2,
+        "hero_damage": 8394,
+        "tower_damage": 0
+      },
+      {
+        "time": 780,
+        "player_index": 0,
+        "networth": 6406,
+        "xp": 9042,
+        "lh": 29,
+        "hero_damage": 8722,
+        "tower_damage": 0
+      },
+      {
+        "time": 780,
+        "player_index": 1,
+        "networth": 7288,
+        "xp": 9469,
+        "lh": 45,
+        "hero_damage": 3431,
+        "tower_damage": 0
+      },
+      {
+        "time": 780,
+        "player_index": 2,
+        "networth": 4140,
+        "xp": 6585,
+        "lh": 7,
+        "hero_damage": 2628,
+        "tower_damage": 0
+      },
+      {
+        "time": 780,
+        "player_index": 3,
+        "networth": 8912,
+        "xp": 10113,
+        "lh": 73,
+        "hero_damage": 2070,
+        "tower_damage": 67
+      },
+      {
+        "time": 780,
+        "player_index": 4,
+        "networth": 3980,
+        "xp": 8067,
+        "lh": 7,
+        "hero_damage": 4622,
+        "tower_damage": 0
+      },
+      {
+        "time": 780,
+        "player_index": 5,
+        "networth": 12927,
+        "xp": 11218,
+        "lh": 81,
+        "hero_damage": 6599,
+        "tower_damage": 474
+      },
+      {
+        "time": 780,
+        "player_index": 6,
+        "networth": 5814,
+        "xp": 8108,
+        "lh": 4,
+        "hero_damage": 3113,
+        "tower_damage": 231
+      },
+      {
+        "time": 780,
+        "player_index": 7,
+        "networth": 13156,
+        "xp": 16138,
+        "lh": 101,
+        "hero_damage": 4177,
+        "tower_damage": 351
+      },
+      {
+        "time": 780,
+        "player_index": 8,
+        "networth": 13443,
+        "xp": 14980,
+        "lh": 83,
+        "hero_damage": 7380,
+        "tower_damage": 2789
+      },
+      {
+        "time": 780,
+        "player_index": 9,
+        "networth": 7898,
+        "xp": 9873,
+        "lh": 2,
+        "hero_damage": 8808,
+        "tower_damage": 0
+      },
+      {
+        "time": 840,
+        "player_index": 0,
+        "networth": 6856,
+        "xp": 9871,
+        "lh": 32,
+        "hero_damage": 8722,
+        "tower_damage": 0
+      },
+      {
+        "time": 840,
+        "player_index": 1,
+        "networth": 7714,
+        "xp": 10137,
+        "lh": 48,
+        "hero_damage": 3431,
+        "tower_damage": 183
+      },
+      {
+        "time": 840,
+        "player_index": 2,
+        "networth": 4458,
+        "xp": 6585,
+        "lh": 7,
+        "hero_damage": 2628,
+        "tower_damage": 0
+      },
+      {
+        "time": 840,
+        "player_index": 3,
+        "networth": 9834,
+        "xp": 11077,
+        "lh": 81,
+        "hero_damage": 2070,
+        "tower_damage": 67
+      },
+      {
+        "time": 840,
+        "player_index": 4,
+        "networth": 4370,
+        "xp": 8923,
+        "lh": 9,
+        "hero_damage": 4622,
+        "tower_damage": 0
+      },
+      {
+        "time": 840,
+        "player_index": 5,
+        "networth": 13917,
+        "xp": 12687,
+        "lh": 86,
+        "hero_damage": 6599,
+        "tower_damage": 474
+      },
+      {
+        "time": 840,
+        "player_index": 6,
+        "networth": 6408,
+        "xp": 10040,
+        "lh": 4,
+        "hero_damage": 3113,
+        "tower_damage": 231
+      },
+      {
+        "time": 840,
+        "player_index": 7,
+        "networth": 14267,
+        "xp": 17801,
+        "lh": 114,
+        "hero_damage": 4198,
+        "tower_damage": 351
+      },
+      {
+        "time": 840,
+        "player_index": 8,
+        "networth": 15161,
+        "xp": 16176,
+        "lh": 89,
+        "hero_damage": 8853,
+        "tower_damage": 3836
+      },
+      {
+        "time": 840,
+        "player_index": 9,
+        "networth": 9246,
+        "xp": 13151,
+        "lh": 4,
+        "hero_damage": 9671,
+        "tower_damage": 34
+      },
+      {
+        "time": 900,
+        "player_index": 0,
+        "networth": 7368,
+        "xp": 10766,
+        "lh": 35,
+        "hero_damage": 8722,
+        "tower_damage": 0
+      },
+      {
+        "time": 900,
+        "player_index": 1,
+        "networth": 8170,
+        "xp": 11703,
+        "lh": 52,
+        "hero_damage": 3431,
+        "tower_damage": 183
+      },
+      {
+        "time": 900,
+        "player_index": 2,
+        "networth": 5074,
+        "xp": 10378,
+        "lh": 11,
+        "hero_damage": 2628,
+        "tower_damage": 0
+      },
+      {
+        "time": 900,
+        "player_index": 3,
+        "networth": 10862,
+        "xp": 12111,
+        "lh": 88,
+        "hero_damage": 2177,
+        "tower_damage": 67
+      },
+      {
+        "time": 900,
+        "player_index": 4,
+        "networth": 4648,
+        "xp": 9595,
+        "lh": 9,
+        "hero_damage": 4762,
+        "tower_damage": 0
+      },
+      {
+        "time": 900,
+        "player_index": 5,
+        "networth": 15257,
+        "xp": 13618,
+        "lh": 95,
+        "hero_damage": 7043,
+        "tower_damage": 623
+      },
+      {
+        "time": 900,
+        "player_index": 6,
+        "networth": 6668,
+        "xp": 10942,
+        "lh": 4,
+        "hero_damage": 3113,
+        "tower_damage": 231
+      },
+      {
+        "time": 900,
+        "player_index": 7,
+        "networth": 15209,
+        "xp": 18899,
+        "lh": 125,
+        "hero_damage": 4219,
+        "tower_damage": 351
+      },
+      {
+        "time": 900,
+        "player_index": 8,
+        "networth": 16069,
+        "xp": 17167,
+        "lh": 94,
+        "hero_damage": 9978,
+        "tower_damage": 4467
+      },
+      {
+        "time": 900,
+        "player_index": 9,
+        "networth": 9556,
+        "xp": 13305,
+        "lh": 4,
+        "hero_damage": 9671,
+        "tower_damage": 34
+      },
+      {
+        "time": 960,
+        "player_index": 0,
+        "networth": 7958,
+        "xp": 11369,
+        "lh": 37,
+        "hero_damage": 8722,
+        "tower_damage": 0
+      },
+      {
+        "time": 960,
+        "player_index": 1,
+        "networth": 9170,
+        "xp": 13085,
+        "lh": 59,
+        "hero_damage": 3431,
+        "tower_damage": 183
+      },
+      {
+        "time": 960,
+        "player_index": 2,
+        "networth": 5394,
+        "xp": 10817,
+        "lh": 11,
+        "hero_damage": 2700,
+        "tower_damage": 0
+      },
+      {
+        "time": 960,
+        "player_index": 3,
+        "networth": 11320,
+        "xp": 12563,
+        "lh": 95,
+        "hero_damage": 2177,
+        "tower_damage": 67
+      },
+      {
+        "time": 960,
+        "player_index": 4,
+        "networth": 4970,
+        "xp": 10771,
+        "lh": 10,
+        "hero_damage": 4762,
+        "tower_damage": 0
+      },
+      {
+        "time": 960,
+        "player_index": 5,
+        "networth": 17396,
+        "xp": 17231,
+        "lh": 103,
+        "hero_damage": 8473,
+        "tower_damage": 623
+      },
+      {
+        "time": 960,
+        "player_index": 6,
+        "networth": 7314,
+        "xp": 12994,
+        "lh": 7,
+        "hero_damage": 3113,
+        "tower_damage": 231
+      },
+      {
+        "time": 960,
+        "player_index": 7,
+        "networth": 17058,
+        "xp": 22082,
+        "lh": 136,
+        "hero_damage": 6067,
+        "tower_damage": 351
+      },
+      {
+        "time": 960,
+        "player_index": 8,
+        "networth": 17623,
+        "xp": 19567,
+        "lh": 105,
+        "hero_damage": 11316,
+        "tower_damage": 4940
+      },
+      {
+        "time": 960,
+        "player_index": 9,
+        "networth": 10256,
+        "xp": 16721,
+        "lh": 5,
+        "hero_damage": 11122,
+        "tower_damage": 34
+      },
+      {
+        "time": 1020,
+        "player_index": 0,
+        "networth": 8148,
+        "xp": 12495,
+        "lh": 37,
+        "hero_damage": 10621,
+        "tower_damage": 0
+      },
+      {
+        "time": 1020,
+        "player_index": 1,
+        "networth": 9906,
+        "xp": 15211,
+        "lh": 59,
+        "hero_damage": 4223,
+        "tower_damage": 183
+      },
+      {
+        "time": 1020,
+        "player_index": 2,
+        "networth": 6310,
+        "xp": 13809,
+        "lh": 11,
+        "hero_damage": 2993,
+        "tower_damage": 0
+      },
+      {
+        "time": 1020,
+        "player_index": 3,
+        "networth": 10944,
+        "xp": 16345,
+        "lh": 96,
+        "hero_damage": 3427,
+        "tower_damage": 67
+      },
+      {
+        "time": 1020,
+        "player_index": 4,
+        "networth": 5360,
+        "xp": 12400,
+        "lh": 12,
+        "hero_damage": 7047,
+        "tower_damage": 0
+      },
+      {
+        "time": 1020,
+        "player_index": 5,
+        "networth": 18696,
+        "xp": 21078,
+        "lh": 106,
+        "hero_damage": 8833,
+        "tower_damage": 980
+      },
+      {
+        "time": 1020,
+        "player_index": 6,
+        "networth": 8534,
+        "xp": 16432,
+        "lh": 7,
+        "hero_damage": 3115,
+        "tower_damage": 231
+      },
+      {
+        "time": 1020,
+        "player_index": 7,
+        "networth": 20236,
+        "xp": 25590,
+        "lh": 146,
+        "hero_damage": 9880,
+        "tower_damage": 1150
+      },
+      {
+        "time": 1020,
+        "player_index": 8,
+        "networth": 18340,
+        "xp": 23075,
+        "lh": 105,
+        "hero_damage": 14872,
+        "tower_damage": 5701
+      },
+      {
+        "time": 1020,
+        "player_index": 9,
+        "networth": 10976,
+        "xp": 17093,
+        "lh": 6,
+        "hero_damage": 11122,
+        "tower_damage": 277
+      }
+    ],
+    "events": [
+      {
+        "type": "hero_death",
+        "time": 106,
+        "target": "npc_dota_hero_kunkka",
+        "attacker": "npc_dota_hero_phantom_assassin",
+        "attacker_hero": true
+      },
+      {
+        "type": "hero_death",
+        "time": 197,
+        "target": "npc_dota_hero_sniper",
+        "attacker": "npc_dota_hero_zuus",
+        "attacker_hero": true
+      },
+      {
+        "type": "hero_death",
+        "time": 269,
+        "target": "npc_dota_hero_jakiro",
+        "attacker": "npc_dota_hero_kunkka",
+        "attacker_hero": true
+      },
+      {
+        "type": "hero_death",
+        "time": 296,
+        "target": "npc_dota_hero_silencer",
+        "attacker": "npc_dota_hero_necrolyte",
+        "attacker_hero": true
+      },
+      {
+        "type": "hero_death",
+        "time": 361,
+        "target": "npc_dota_hero_slardar",
+        "attacker": "npc_dota_creep_badguys_ranged",
+        "attacker_hero": false
+      },
+      {
+        "type": "building_destroyed",
+        "time": 376,
+        "target": "npc_dota_goodguys_tower1_mid"
+      },
+      {
+        "type": "hero_death",
+        "time": 388,
+        "target": "npc_dota_hero_phantom_assassin",
+        "attacker": "npc_dota_hero_abaddon",
+        "attacker_hero": true
+      },
+      {
+        "type": "hero_death",
+        "time": 402,
+        "target": "npc_dota_hero_jakiro",
+        "attacker": "npc_dota_hero_skywrath_mage",
+        "attacker_hero": true
+      },
+      {
+        "type": "hero_death",
+        "time": 409,
+        "target": "npc_dota_hero_slardar",
+        "attacker": "npc_dota_hero_sniper",
+        "attacker_hero": true
+      },
+      {
+        "type": "hero_death",
+        "time": 427,
+        "target": "npc_dota_hero_zuus",
+        "attacker": "npc_dota_hero_skywrath_mage",
+        "attacker_hero": true
+      },
+      {
+        "type": "building_destroyed",
+        "time": 435,
+        "target": "npc_dota_goodguys_tower1_bot"
+      },
+      {
+        "type": "hero_death",
+        "time": 569,
+        "target": "npc_dota_hero_zuus",
+        "attacker": "npc_dota_hero_skywrath_mage",
+        "attacker_hero": true
+      },
+      {
+        "type": "hero_death",
+        "time": 577,
+        "target": "npc_dota_hero_jakiro",
+        "attacker": "npc_dota_hero_skywrath_mage",
+        "attacker_hero": true
+      },
+      {
+        "type": "building_destroyed",
+        "time": 614,
+        "target": "npc_dota_goodguys_tower1_top"
+      },
+      {
+        "type": "building_destroyed",
+        "time": 627,
+        "target": "npc_dota_goodguys_tower2_bot"
+      },
+      {
+        "type": "hero_death",
+        "time": 659,
+        "target": "npc_dota_hero_silencer",
+        "attacker": "npc_dota_hero_skywrath_mage",
+        "attacker_hero": true
+      },
+      {
+        "type": "hero_death",
+        "time": 688,
+        "target": "npc_dota_hero_slardar",
+        "attacker": "npc_dota_hero_kunkka",
+        "attacker_hero": true
+      },
+      {
+        "type": "hero_death",
+        "time": 693,
+        "target": "npc_dota_hero_zuus",
+        "attacker": "npc_dota_hero_sniper",
+        "attacker_hero": true
+      },
+      {
+        "type": "hero_death",
+        "time": 707,
+        "target": "npc_dota_hero_jakiro",
+        "attacker": "npc_dota_hero_necrolyte",
+        "attacker_hero": true
+      },
+      {
+        "type": "hero_death",
+        "time": 749,
+        "target": "npc_dota_hero_phantom_assassin",
+        "attacker": "npc_dota_hero_skywrath_mage",
+        "attacker_hero": true
+      },
+      {
+        "type": "hero_death",
+        "time": 755,
+        "target": "npc_dota_hero_abaddon",
+        "attacker": "npc_dota_hero_slardar",
+        "attacker_hero": true
+      },
+      {
+        "type": "hero_death",
+        "time": 816,
+        "target": "npc_dota_hero_zuus",
+        "attacker": "npc_dota_hero_skywrath_mage",
+        "attacker_hero": true
+      },
+      {
+        "type": "hero_death",
+        "time": 818,
+        "target": "npc_dota_hero_jakiro",
+        "attacker": "npc_dota_hero_sniper",
+        "attacker_hero": true
+      },
+      {
+        "type": "building_destroyed",
+        "time": 833,
+        "target": "npc_dota_goodguys_tower2_mid"
+      },
+      {
+        "type": "building_destroyed",
+        "time": 863,
+        "target": "npc_dota_goodguys_tower2_top"
+      },
+      {
+        "type": "hero_death",
+        "time": 950,
+        "target": "npc_dota_hero_slardar",
+        "attacker": "npc_dota_hero_necrolyte",
+        "attacker_hero": true
+      },
+      {
+        "type": "hero_death",
+        "time": 958,
+        "target": "npc_dota_hero_zuus",
+        "attacker": "npc_dota_hero_kunkka",
+        "attacker_hero": true
+      },
+      {
+        "type": "hero_death",
+        "time": 959,
+        "target": "npc_dota_hero_jakiro",
+        "attacker": "npc_dota_hero_kunkka",
+        "attacker_hero": true
+      },
+      {
+        "type": "building_destroyed",
+        "time": 994,
+        "target": "npc_dota_goodguys_tower3_mid"
+      },
+      {
+        "type": "hero_death",
+        "time": 996,
+        "target": "npc_dota_hero_skywrath_mage",
+        "attacker": "npc_dota_hero_phantom_assassin",
+        "attacker_hero": true
+      },
+      {
+        "type": "hero_death",
+        "time": 998,
+        "target": "npc_dota_hero_slardar",
+        "attacker": "npc_dota_hero_abaddon",
+        "attacker_hero": true
+      },
+      {
+        "type": "hero_death",
+        "time": 1004,
+        "target": "npc_dota_hero_phantom_assassin",
+        "attacker": "npc_dota_hero_necrolyte",
+        "attacker_hero": true
+      },
+      {
+        "type": "hero_death",
+        "time": 1004,
+        "target": "npc_dota_hero_silencer",
+        "attacker": "npc_dota_hero_necrolyte",
+        "attacker_hero": true
+      },
+      {
+        "type": "building_destroyed",
+        "time": 1028,
+        "target": "npc_dota_goodguys_range_rax_mid"
+      },
+      {
+        "type": "building_destroyed",
+        "time": 1040,
+        "target": "npc_dota_goodguys_melee_rax_mid"
+      },
+      {
+        "type": "hero_death",
+        "time": 1046,
+        "target": "npc_dota_hero_slardar",
+        "attacker": "npc_dota_hero_sniper",
+        "attacker_hero": true
+      },
+      {
+        "type": "hero_death",
+        "time": 1050,
+        "target": "npc_dota_hero_zuus",
+        "attacker": "npc_dota_hero_kunkka",
+        "attacker_hero": true
+      },
+      {
+        "type": "hero_death",
+        "time": 1051,
+        "target": "npc_dota_hero_phantom_assassin",
+        "attacker": "npc_dota_hero_skywrath_mage",
+        "attacker_hero": true
+      },
+      {
+        "type": "building_destroyed",
+        "time": 1063,
+        "target": "npc_dota_goodguys_fort"
+      }
+    ]
+  },
   "players": [
     {
-      "account_id": "123456789",
-      "steam_id": "76561198084064457",
+      "account_id": "100000000",
+      "steam_id": null,
       "player_name": "Player A",
-      "hero_id": 2,
+      "hero_id": 22,
       "team": "radiant",
-      "kills": 12,
-      "deaths": 4,
-      "assists": 18,
-      "win": true
+      "kills": 1,
+      "deaths": 6,
+      "assists": 1,
+      "win": false,
+      "items": [
+        {
+          "item": "tango",
+          "time": -47
+        },
+        {
+          "item": "circlet",
+          "time": -47
+        },
+        {
+          "item": "mantle",
+          "time": -47
+        },
+        {
+          "item": "null_talisman",
+          "time": -47
+        },
+        {
+          "item": "recipe_null_talisman",
+          "time": -47
+        },
+        {
+          "item": "ward_observer",
+          "time": -46
+        },
+        {
+          "item": "boots",
+          "time": 121
+        },
+        {
+          "item": "sobi_mask",
+          "time": 122
+        },
+        {
+          "item": "ring_of_basilius",
+          "time": 122
+        },
+        {
+          "item": "recipe_ring_of_basilius",
+          "time": 122
+        },
+        {
+          "item": "wizard_hat",
+          "time": 122
+        },
+        {
+          "item": "recipe_arcane_boots",
+          "time": 147
+        },
+        {
+          "item": "arcane_boots",
+          "time": 155
+        },
+        {
+          "item": "enchanted_mango",
+          "time": 176
+        },
+        {
+          "item": "enchanted_mango",
+          "time": 176
+        },
+        {
+          "item": "ward_observer",
+          "time": 234
+        },
+        {
+          "item": "ring_of_health",
+          "time": 267
+        },
+        {
+          "item": "pers",
+          "time": 267
+        },
+        {
+          "item": "void_stone",
+          "time": 267
+        },
+        {
+          "item": "tpscroll",
+          "time": 269
+        },
+        {
+          "item": "smoke_of_deceit",
+          "time": 329
+        },
+        {
+          "item": "diadem",
+          "time": 465
+        },
+        {
+          "item": "recipe_phylactery",
+          "time": 478
+        },
+        {
+          "item": "phylactery",
+          "time": 484
+        },
+        {
+          "item": "tpscroll",
+          "time": 514
+        },
+        {
+          "item": "void_stone",
+          "time": 732
+        },
+        {
+          "item": "energy_booster",
+          "time": 760
+        },
+        {
+          "item": "recipe_aether_lens",
+          "time": 863
+        },
+        {
+          "item": "aether_lens",
+          "time": 867
+        }
+      ],
+      "final_items": [
+        "phylactery",
+        "arcane_boots",
+        "null_talisman",
+        "aether_lens",
+        null,
+        null
+      ],
+      "neutral_item": "pogo_stick",
+      "gold": 8136,
+      "xp": 14852,
+      "last_hits": 38,
+      "denies": 2,
+      "networth": 8366,
+      "hero_damage": 11883,
+      "tower_damage": 0,
+      "stuns": 4.4003778,
+      "obs_placed": 2,
+      "sen_placed": 0,
+      "towers_killed": 0,
+      "roshans_killed": 0,
+      "rune_pickups": 0,
+      "creeps_stacked": 0,
+      "teamfight_participation": 0.5,
+      "behavior": {
+        "chat_messages": 2,
+        "pings": 1,
+        "ping_bursts": 0,
+        "chatwheel": {
+          "71": 2
+        },
+        "disconnects": 1,
+        "abandons": 0
+      },
+      "lane": "mid",
+      "role": "mid",
+      "role_confidence": 0.667,
+      "kill_participation": 0.5
     },
     {
-      "account_id": "987654321",
-      "steam_id": "76561198947920049",
+      "account_id": "100000001",
+      "steam_id": null,
       "player_name": "Player B",
-      "hero_id": 14,
+      "hero_id": 28,
+      "team": "radiant",
+      "kills": 1,
+      "deaths": 6,
+      "assists": 1,
+      "win": false,
+      "items": [
+        {
+          "item": "tango",
+          "time": -50
+        },
+        {
+          "item": "quelling_blade",
+          "time": -49
+        },
+        {
+          "item": "branches",
+          "time": -49
+        },
+        {
+          "item": "branches",
+          "time": -49
+        },
+        {
+          "item": "branches",
+          "time": -47
+        },
+        {
+          "item": "branches",
+          "time": -47
+        },
+        {
+          "item": "magic_stick",
+          "time": 74
+        },
+        {
+          "item": "recipe_magic_wand",
+          "time": 74
+        },
+        {
+          "item": "gloves",
+          "time": 76
+        },
+        {
+          "item": "magic_wand",
+          "time": 84
+        },
+        {
+          "item": "flask",
+          "time": 109
+        },
+        {
+          "item": "boots",
+          "time": 156
+        },
+        {
+          "item": "belt_of_strength",
+          "time": 212
+        },
+        {
+          "item": "power_treads",
+          "time": 222
+        },
+        {
+          "item": "tpscroll",
+          "time": 296
+        },
+        {
+          "item": "blink",
+          "time": 500
+        },
+        {
+          "item": "tpscroll",
+          "time": 545
+        },
+        {
+          "item": "tpscroll",
+          "time": 546
+        },
+        {
+          "item": "smoke_of_deceit",
+          "time": 612
+        },
+        {
+          "item": "ogre_axe",
+          "time": 641
+        },
+        {
+          "item": "tpscroll",
+          "time": 672
+        },
+        {
+          "item": "mithril_hammer",
+          "time": 757
+        },
+        {
+          "item": "tpscroll",
+          "time": 836
+        },
+        {
+          "item": "tpscroll",
+          "time": 836
+        },
+        {
+          "item": "tpscroll",
+          "time": 896
+        },
+        {
+          "item": "recipe_black_king_bar",
+          "time": 909
+        },
+        {
+          "item": "black_king_bar",
+          "time": 916
+        }
+      ],
+      "final_items": [
+        "branches",
+        "power_treads",
+        "magic_wand",
+        "black_king_bar",
+        "quelling_blade",
+        "blink"
+      ],
+      "neutral_item": "partisans_brand",
+      "gold": 10310,
+      "xp": 15302,
+      "last_hits": 59,
+      "denies": 1,
+      "networth": 10042,
+      "hero_damage": 5031,
+      "tower_damage": 183,
+      "stuns": 23.466663,
+      "obs_placed": 0,
+      "sen_placed": 0,
+      "towers_killed": 0,
+      "roshans_killed": 0,
+      "rune_pickups": 4,
+      "creeps_stacked": 0,
+      "teamfight_participation": 0.5,
+      "behavior": {
+        "chat_messages": 0,
+        "pings": 3,
+        "ping_bursts": 0,
+        "chatwheel": {},
+        "disconnects": 1,
+        "abandons": 0
+      },
+      "lane": "offlane",
+      "role": "offlane",
+      "role_confidence": 0.638,
+      "kill_participation": 0.5
+    },
+    {
+      "account_id": "100000002",
+      "steam_id": null,
+      "player_name": "Player C",
+      "hero_id": 75,
+      "team": "radiant",
+      "kills": 0,
+      "deaths": 3,
+      "assists": 2,
+      "win": false,
+      "items": [
+        {
+          "item": "magic_stick",
+          "time": 2
+        },
+        {
+          "item": "sobi_mask",
+          "time": 4
+        },
+        {
+          "item": "branches",
+          "time": 30
+        },
+        {
+          "item": "branches",
+          "time": 30
+        },
+        {
+          "item": "recipe_magic_wand",
+          "time": 30
+        },
+        {
+          "item": "ward_observer",
+          "time": 36
+        },
+        {
+          "item": "ward_dispenser",
+          "time": 36
+        },
+        {
+          "item": "ward_sentry",
+          "time": 36
+        },
+        {
+          "item": "blood_grenade",
+          "time": 38
+        },
+        {
+          "item": "magic_wand",
+          "time": 54
+        },
+        {
+          "item": "flask",
+          "time": 75
+        },
+        {
+          "item": "tango",
+          "time": 75
+        },
+        {
+          "item": "wizard_hat",
+          "time": 163
+        },
+        {
+          "item": "recipe_ring_of_basilius",
+          "time": 222
+        },
+        {
+          "item": "ring_of_basilius",
+          "time": 229
+        },
+        {
+          "item": "recipe_arcane_boots",
+          "time": 304
+        },
+        {
+          "item": "boots",
+          "time": 373
+        },
+        {
+          "item": "arcane_boots",
+          "time": 381
+        },
+        {
+          "item": "tpscroll",
+          "time": 390
+        },
+        {
+          "item": "tpscroll",
+          "time": 462
+        },
+        {
+          "item": "ward_sentry",
+          "time": 463
+        },
+        {
+          "item": "ward_dispenser",
+          "time": 471
+        },
+        {
+          "item": "blitz_knuckles",
+          "time": 775
+        },
+        {
+          "item": "robe",
+          "time": 776
+        },
+        {
+          "item": "oblivion_staff",
+          "time": 776
+        },
+        {
+          "item": "sobi_mask",
+          "time": 776
+        },
+        {
+          "item": "orb_of_venom",
+          "time": 777
+        },
+        {
+          "item": "chainmail",
+          "time": 854
+        },
+        {
+          "item": "recipe_witch_blade",
+          "time": 872
+        },
+        {
+          "item": "witch_blade",
+          "time": 875
+        },
+        {
+          "item": "ward_observer",
+          "time": 918
+        },
+        {
+          "item": "ward_observer",
+          "time": 918
+        },
+        {
+          "item": "ward_dispenser",
+          "time": 919
+        },
+        {
+          "item": "ward_sentry",
+          "time": 919
+        },
+        {
+          "item": "ward_dispenser",
+          "time": 919
+        },
+        {
+          "item": "ward_sentry",
+          "time": 919
+        },
+        {
+          "item": "staff_of_wizardry",
+          "time": 1045
+        },
+        {
+          "item": "fluffy_hat",
+          "time": 1045
+        }
+      ],
+      "final_items": [
+        "famango",
+        "arcane_boots",
+        "witch_blade",
+        "magic_wand",
+        "ward_dispenser",
+        "staff_of_wizardry"
+      ],
+      "neutral_item": "medallion_of_courage",
+      "gold": 6378,
+      "xp": 14000,
+      "last_hits": 11,
+      "denies": 1,
+      "networth": 6538,
+      "hero_damage": 3285,
+      "tower_damage": 0,
+      "stuns": 0.0,
+      "obs_placed": 2,
+      "sen_placed": 2,
+      "towers_killed": 0,
+      "roshans_killed": 0,
+      "rune_pickups": 0,
+      "creeps_stacked": 0,
+      "teamfight_participation": 0.25,
+      "behavior": {
+        "chat_messages": 3,
+        "pings": 5,
+        "ping_bursts": 1,
+        "chatwheel": {},
+        "disconnects": 1,
+        "abandons": 0
+      },
+      "lane": "offlane",
+      "role": "support",
+      "role_confidence": 0.757,
+      "kill_participation": 0.5
+    },
+    {
+      "account_id": "100000003",
+      "steam_id": null,
+      "player_name": "Player D",
+      "hero_id": 44,
+      "team": "radiant",
+      "kills": 2,
+      "deaths": 4,
+      "assists": 0,
+      "win": false,
+      "items": [
+        {
+          "item": "quelling_blade",
+          "time": -32
+        },
+        {
+          "item": "magic_stick",
+          "time": -31
+        },
+        {
+          "item": "tango",
+          "time": -31
+        },
+        {
+          "item": "branches",
+          "time": -31
+        },
+        {
+          "item": "branches",
+          "time": -30
+        },
+        {
+          "item": "recipe_magic_wand",
+          "time": 10
+        },
+        {
+          "item": "magic_wand",
+          "time": 21
+        },
+        {
+          "item": "boots_of_elves",
+          "time": 89
+        },
+        {
+          "item": "boots",
+          "time": 120
+        },
+        {
+          "item": "gloves",
+          "time": 120
+        },
+        {
+          "item": "flask",
+          "time": 123
+        },
+        {
+          "item": "power_treads",
+          "time": 132
+        },
+        {
+          "item": "clarity",
+          "time": 144
+        },
+        {
+          "item": "blight_stone",
+          "time": 162
+        },
+        {
+          "item": "flask",
+          "time": 240
+        },
+        {
+          "item": "mithril_hammer",
+          "time": 368
+        },
+        {
+          "item": "mithril_hammer",
+          "time": 497
+        },
+        {
+          "item": "desolator",
+          "time": 504
+        },
+        {
+          "item": "blade_of_alacrity",
+          "time": 598
+        },
+        {
+          "item": "boots_of_elves",
+          "time": 604
+        },
+        {
+          "item": "tpscroll",
+          "time": 647
+        },
+        {
+          "item": "recipe_yasha",
+          "time": 671
+        },
+        {
+          "item": "yasha",
+          "time": 677
+        },
+        {
+          "item": "tpscroll",
+          "time": 711
+        },
+        {
+          "item": "diadem",
+          "time": 734
+        },
+        {
+          "item": "recipe_manta",
+          "time": 851
+        },
+        {
+          "item": "manta",
+          "time": 855
+        }
+      ],
+      "final_items": [
+        "magic_wand",
+        "power_treads",
+        "manta",
+        "desolator",
+        "quelling_blade",
+        null
+      ],
+      "neutral_item": "defiant_shell",
+      "gold": 13350,
+      "xp": 16525,
+      "last_hits": 96,
+      "denies": 3,
+      "networth": 11080,
+      "hero_damage": 4589,
+      "tower_damage": 67,
+      "stuns": 0.0,
+      "obs_placed": 0,
+      "sen_placed": 0,
+      "towers_killed": 0,
+      "roshans_killed": 0,
+      "rune_pickups": 0,
+      "creeps_stacked": 0,
+      "teamfight_participation": 0.5,
+      "behavior": {
+        "chat_messages": 19,
+        "pings": 5,
+        "ping_bursts": 0,
+        "chatwheel": {},
+        "disconnects": 1,
+        "abandons": 0
+      },
+      "lane": "safelane",
+      "role": "carry",
+      "role_confidence": 0.881,
+      "kill_participation": 0.5
+    },
+    {
+      "account_id": "100000004",
+      "steam_id": null,
+      "player_name": "Player E",
+      "hero_id": 64,
+      "team": "radiant",
+      "kills": 0,
+      "deaths": 6,
+      "assists": 2,
+      "win": false,
+      "items": [
+        {
+          "item": "blood_grenade",
+          "time": -53
+        },
+        {
+          "item": "tango",
+          "time": -53
+        },
+        {
+          "item": "magic_stick",
+          "time": -52
+        },
+        {
+          "item": "boots",
+          "time": 47
+        },
+        {
+          "item": "ward_observer",
+          "time": 97
+        },
+        {
+          "item": "ward_dispenser",
+          "time": 97
+        },
+        {
+          "item": "ward_sentry",
+          "time": 97
+        },
+        {
+          "item": "flask",
+          "time": 129
+        },
+        {
+          "item": "clarity",
+          "time": 130
+        },
+        {
+          "item": "sobi_mask",
+          "time": 141
+        },
+        {
+          "item": "ring_of_basilius",
+          "time": 145
+        },
+        {
+          "item": "recipe_ring_of_basilius",
+          "time": 145
+        },
+        {
+          "item": "wizard_hat",
+          "time": 199
+        },
+        {
+          "item": "clarity",
+          "time": 244
+        },
+        {
+          "item": "tpscroll",
+          "time": 274
+        },
+        {
+          "item": "recipe_arcane_boots",
+          "time": 320
+        },
+        {
+          "item": "arcane_boots",
+          "time": 328
+        },
+        {
+          "item": "ward_sentry",
+          "time": 331
+        },
+        {
+          "item": "flask",
+          "time": 368
+        },
+        {
+          "item": "ward_observer",
+          "time": 447
+        },
+        {
+          "item": "ward_dispenser",
+          "time": 447
+        },
+        {
+          "item": "ward_sentry",
+          "time": 447
+        },
+        {
+          "item": "ward_dispenser",
+          "time": 452
+        },
+        {
+          "item": "ward_sentry",
+          "time": 501
+        },
+        {
+          "item": "ward_dispenser",
+          "time": 501
+        },
+        {
+          "item": "ward_observer",
+          "time": 501
+        },
+        {
+          "item": "ward_dispenser",
+          "time": 502
+        },
+        {
+          "item": "ward_sentry",
+          "time": 502
+        },
+        {
+          "item": "ward_dispenser",
+          "time": 509
+        },
+        {
+          "item": "ward_sentry",
+          "time": 522
+        },
+        {
+          "item": "ward_observer",
+          "time": 669
+        },
+        {
+          "item": "ward_dispenser",
+          "time": 669
+        },
+        {
+          "item": "ward_sentry",
+          "time": 669
+        },
+        {
+          "item": "staff_of_wizardry",
+          "time": 786
+        },
+        {
+          "item": "fluffy_hat",
+          "time": 786
+        },
+        {
+          "item": "recipe_force_staff",
+          "time": 803
+        },
+        {
+          "item": "force_staff",
+          "time": 807
+        },
+        {
+          "item": "ward_sentry",
+          "time": 934
+        },
+        {
+          "item": "ward_sentry",
+          "time": 934
+        }
+      ],
+      "final_items": [
+        "magic_stick",
+        "ward_sentry",
+        null,
+        "arcane_boots",
+        "force_staff",
+        null
+      ],
+      "neutral_item": "mana_draught",
+      "gold": 5706,
+      "xp": 15700,
+      "last_hits": 12,
+      "denies": 0,
+      "networth": 5496,
+      "hero_damage": 7978,
+      "tower_damage": 0,
+      "stuns": 34.399963,
+      "obs_placed": 4,
+      "sen_placed": 7,
+      "towers_killed": 0,
+      "roshans_killed": 0,
+      "rune_pickups": 1,
+      "creeps_stacked": 0,
+      "teamfight_participation": 0.5,
+      "behavior": {
+        "chat_messages": 2,
+        "pings": 3,
+        "ping_bursts": 0,
+        "chatwheel": {},
+        "disconnects": 1,
+        "abandons": 0
+      },
+      "lane": "safelane",
+      "role": "support",
+      "role_confidence": 0.734,
+      "kill_participation": 0.5
+    },
+    {
+      "account_id": "100000005",
+      "steam_id": null,
+      "player_name": "Player F",
+      "hero_id": 23,
       "team": "dire",
-      "kills": 7,
-      "deaths": 8,
+      "kills": 5,
+      "deaths": 1,
+      "assists": 12,
+      "win": true,
+      "items": [
+        {
+          "item": "magic_stick",
+          "time": -51
+        },
+        {
+          "item": "circlet",
+          "time": -50
+        },
+        {
+          "item": "gauntlets",
+          "time": -50
+        },
+        {
+          "item": "faerie_fire",
+          "time": -45
+        },
+        {
+          "item": "recipe_bracer",
+          "time": 7
+        },
+        {
+          "item": "bracer",
+          "time": 17
+        },
+        {
+          "item": "branches",
+          "time": 22
+        },
+        {
+          "item": "flask",
+          "time": 84
+        },
+        {
+          "item": "boots",
+          "time": 110
+        },
+        {
+          "item": "branches",
+          "time": 116
+        },
+        {
+          "item": "chainmail",
+          "time": 238
+        },
+        {
+          "item": "blades_of_attack",
+          "time": 238
+        },
+        {
+          "item": "recipe_magic_wand",
+          "time": 239
+        },
+        {
+          "item": "magic_wand",
+          "time": 254
+        },
+        {
+          "item": "phase_boots",
+          "time": 254
+        },
+        {
+          "item": "tpscroll",
+          "time": 299
+        },
+        {
+          "item": "gloves",
+          "time": 430
+        },
+        {
+          "item": "hand_of_midas",
+          "time": 430
+        },
+        {
+          "item": "recipe_hand_of_midas",
+          "time": 430
+        },
+        {
+          "item": "platemail",
+          "time": 464
+        },
+        {
+          "item": "tpscroll",
+          "time": 466
+        },
+        {
+          "item": "ring_of_health",
+          "time": 517
+        },
+        {
+          "item": "void_stone",
+          "time": 581
+        },
+        {
+          "item": "energy_booster",
+          "time": 581
+        },
+        {
+          "item": "recipe_lotus_orb",
+          "time": 581
+        },
+        {
+          "item": "pers",
+          "time": 594
+        },
+        {
+          "item": "lotus_orb",
+          "time": 594
+        },
+        {
+          "item": "ogre_axe",
+          "time": 649
+        },
+        {
+          "item": "point_booster",
+          "time": 778
+        },
+        {
+          "item": "staff_of_wizardry",
+          "time": 778
+        },
+        {
+          "item": "blade_of_alacrity",
+          "time": 779
+        },
+        {
+          "item": "tpscroll",
+          "time": 779
+        },
+        {
+          "item": "ultimate_scepter",
+          "time": 788
+        },
+        {
+          "item": "tpscroll",
+          "time": 897
+        },
+        {
+          "item": "point_booster",
+          "time": 911
+        },
+        {
+          "item": "vitality_booster",
+          "time": 911
+        },
+        {
+          "item": "soul_booster",
+          "time": 911
+        },
+        {
+          "item": "energy_booster",
+          "time": 911
+        },
+        {
+          "item": "tiara_of_selemene",
+          "time": 964
+        },
+        {
+          "item": "recipe_octarine_core",
+          "time": 964
+        },
+        {
+          "item": "octarine_core",
+          "time": 980
+        },
+        {
+          "item": "tpscroll",
+          "time": 981
+        },
+        {
+          "item": "tpscroll",
+          "time": 981
+        },
+        {
+          "item": "aghanims_shard",
+          "time": 1039
+        }
+      ],
+      "final_items": [
+        "magic_wand",
+        "hand_of_midas",
+        "lotus_orb",
+        "ultimate_scepter",
+        "octarine_core",
+        "phase_boots"
+      ],
+      "neutral_item": "unrelenting_eye",
+      "gold": 20904,
+      "xp": 24358,
+      "last_hits": 111,
+      "denies": 10,
+      "networth": 20686,
+      "hero_damage": 11207,
+      "tower_damage": 1279,
+      "stuns": 15.899933,
+      "obs_placed": 0,
+      "sen_placed": 0,
+      "towers_killed": 0,
+      "roshans_killed": 0,
+      "rune_pickups": 2,
+      "creeps_stacked": 0,
+      "teamfight_participation": 0.68,
+      "behavior": {
+        "chat_messages": 0,
+        "pings": 4,
+        "ping_bursts": 0,
+        "chatwheel": {},
+        "disconnects": 1,
+        "abandons": 0
+      },
+      "lane": "offlane",
+      "role": "offlane",
+      "role_confidence": 0.978,
+      "kill_participation": 0.7083333333333334
+    },
+    {
+      "account_id": "100000006",
+      "steam_id": null,
+      "player_name": "Player G",
+      "hero_id": 102,
+      "team": "dire",
+      "kills": 2,
+      "deaths": 1,
+      "assists": 13,
+      "win": true,
+      "items": [
+        {
+          "item": "tango",
+          "time": -58
+        },
+        {
+          "item": "branches",
+          "time": -58
+        },
+        {
+          "item": "branches",
+          "time": -58
+        },
+        {
+          "item": "sobi_mask",
+          "time": -53
+        },
+        {
+          "item": "ward_sentry",
+          "time": -50
+        },
+        {
+          "item": "smoke_of_deceit",
+          "time": -47
+        },
+        {
+          "item": "blood_grenade",
+          "time": -46
+        },
+        {
+          "item": "recipe_ring_of_basilius",
+          "time": 7
+        },
+        {
+          "item": "ring_of_basilius",
+          "time": 18
+        },
+        {
+          "item": "ward_sentry",
+          "time": 55
+        },
+        {
+          "item": "clarity",
+          "time": 116
+        },
+        {
+          "item": "clarity",
+          "time": 116
+        },
+        {
+          "item": "boots",
+          "time": 218
+        },
+        {
+          "item": "wizard_hat",
+          "time": 304
+        },
+        {
+          "item": "ward_observer",
+          "time": 324
+        },
+        {
+          "item": "ward_dispenser",
+          "time": 324
+        },
+        {
+          "item": "ward_sentry",
+          "time": 324
+        },
+        {
+          "item": "recipe_arcane_boots",
+          "time": 364
+        },
+        {
+          "item": "arcane_boots",
+          "time": 376
+        },
+        {
+          "item": "point_booster",
+          "time": 463
+        },
+        {
+          "item": "ward_observer",
+          "time": 492
+        },
+        {
+          "item": "ward_dispenser",
+          "time": 492
+        },
+        {
+          "item": "ward_sentry",
+          "time": 492
+        },
+        {
+          "item": "ward_dispenser",
+          "time": 492
+        },
+        {
+          "item": "ward_sentry",
+          "time": 492
+        },
+        {
+          "item": "ogre_axe",
+          "time": 530
+        },
+        {
+          "item": "tpscroll",
+          "time": 619
+        },
+        {
+          "item": "staff_of_wizardry",
+          "time": 632
+        },
+        {
+          "item": "ward_sentry",
+          "time": 648
+        },
+        {
+          "item": "ward_dispenser",
+          "time": 648
+        },
+        {
+          "item": "ward_observer",
+          "time": 648
+        },
+        {
+          "item": "blade_of_alacrity",
+          "time": 800
+        },
+        {
+          "item": "ultimate_scepter",
+          "time": 809
+        },
+        {
+          "item": "ward_sentry",
+          "time": 837
+        },
+        {
+          "item": "ward_sentry",
+          "time": 837
+        },
+        {
+          "item": "ward_sentry",
+          "time": 837
+        },
+        {
+          "item": "ward_dispenser",
+          "time": 837
+        },
+        {
+          "item": "ward_observer",
+          "time": 837
+        },
+        {
+          "item": "ward_dispenser",
+          "time": 838
+        },
+        {
+          "item": "ward_sentry",
+          "time": 838
+        },
+        {
+          "item": "point_booster",
+          "time": 984
+        },
+        {
+          "item": "tpscroll",
+          "time": 1018
+        }
+      ],
+      "final_items": [
+        "blood_grenade",
+        "arcane_boots",
+        "ultimate_scepter",
+        "point_booster",
+        null,
+        null
+      ],
+      "neutral_item": "ash_legion_shield",
+      "gold": 9956,
+      "xp": 19712,
+      "last_hits": 7,
+      "denies": 1,
+      "networth": 9586,
+      "hero_damage": 3682,
+      "tower_damage": 420,
+      "stuns": 0.0,
+      "obs_placed": 4,
+      "sen_placed": 10,
+      "towers_killed": 0,
+      "roshans_killed": 0,
+      "rune_pickups": 2,
+      "creeps_stacked": 0,
+      "teamfight_participation": 0.6,
+      "behavior": {
+        "chat_messages": 0,
+        "pings": 0,
+        "ping_bursts": 0,
+        "chatwheel": {},
+        "disconnects": 2,
+        "abandons": 0
+      },
+      "lane": "offlane",
+      "role": "support",
+      "role_confidence": 0.511,
+      "kill_participation": 0.625
+    },
+    {
+      "account_id": "100000007",
+      "steam_id": null,
+      "player_name": "Player H",
+      "hero_id": 36,
+      "team": "dire",
+      "kills": 5,
+      "deaths": 0,
+      "assists": 8,
+      "win": true,
+      "items": [
+        {
+          "item": "branches",
+          "time": -58
+        },
+        {
+          "item": "tango",
+          "time": -58
+        },
+        {
+          "item": "branches",
+          "time": -58
+        },
+        {
+          "item": "circlet",
+          "time": -58
+        },
+        {
+          "item": "magic_stick",
+          "time": -58
+        },
+        {
+          "item": "faerie_fire",
+          "time": 25
+        },
+        {
+          "item": "mantle",
+          "time": 29
+        },
+        {
+          "item": "recipe_null_talisman",
+          "time": 47
+        },
+        {
+          "item": "null_talisman",
+          "time": 61
+        },
+        {
+          "item": "recipe_magic_wand",
+          "time": 88
+        },
+        {
+          "item": "boots",
+          "time": 116
+        },
+        {
+          "item": "recipe_magic_wand",
+          "time": 135
+        },
+        {
+          "item": "wind_lace",
+          "time": 137
+        },
+        {
+          "item": "magic_wand",
+          "time": 152
+        },
+        {
+          "item": "clarity",
+          "time": 445
+        },
+        {
+          "item": "relic",
+          "time": 457
+        },
+        {
+          "item": "talisman_of_evasion",
+          "time": 525
+        },
+        {
+          "item": "radiance",
+          "time": 534
+        },
+        {
+          "item": "recipe_travel_boots",
+          "time": 593
+        },
+        {
+          "item": "travel_boots",
+          "time": 605
+        },
+        {
+          "item": "aghanims_shard",
+          "time": 647
+        },
+        {
+          "item": "vitality_booster",
+          "time": 713
+        },
+        {
+          "item": "shawl",
+          "time": 713
+        },
+        {
+          "item": "crown",
+          "time": 718
+        },
+        {
+          "item": "recipe_consecrated_wraps",
+          "time": 745
+        },
+        {
+          "item": "consecrated_wraps",
+          "time": 757
+        },
+        {
+          "item": "great_famango",
+          "time": 761
+        },
+        {
+          "item": "chasm_stone",
+          "time": 797
+        },
+        {
+          "item": "platemail",
+          "time": 877
+        },
+        {
+          "item": "splintmail",
+          "time": 920
+        },
+        {
+          "item": "recipe_shivas_guard",
+          "time": 954
+        },
+        {
+          "item": "shivas_guard",
+          "time": 968
+        },
+        {
+          "item": "reaver",
+          "time": 1038
+        },
+        {
+          "item": "ring_of_tarrasque",
+          "time": 1040
+        }
+      ],
+      "final_items": [
+        "radiance",
+        "shivas_guard",
+        "null_talisman",
+        "consecrated_wraps",
+        "travel_boots",
+        "magic_wand"
+      ],
+      "neutral_item": "psychic_headband",
+      "gold": 21656,
+      "xp": 28870,
+      "last_hits": 151,
+      "denies": 13,
+      "networth": 21960,
+      "hero_damage": 11205,
+      "tower_damage": 1605,
+      "stuns": 2.5999389,
+      "obs_placed": 0,
+      "sen_placed": 0,
+      "towers_killed": 1,
+      "roshans_killed": 0,
+      "rune_pickups": 2,
+      "creeps_stacked": 1,
+      "teamfight_participation": 0.52,
+      "behavior": {
+        "chat_messages": 2,
+        "pings": 33,
+        "ping_bursts": 1,
+        "chatwheel": {
+          "9": 2
+        },
+        "disconnects": 1,
+        "abandons": 0
+      },
+      "lane": "safelane",
+      "role": "carry",
+      "role_confidence": 0.898,
+      "kill_participation": 0.5416666666666666
+    },
+    {
+      "account_id": "100000008",
+      "steam_id": null,
+      "player_name": "Player I",
+      "hero_id": 35,
+      "team": "dire",
+      "kills": 4,
+      "deaths": 1,
+      "assists": 13,
+      "win": true,
+      "items": [
+        {
+          "item": "ward_dispenser",
+          "time": -59
+        },
+        {
+          "item": "magic_stick",
+          "time": -58
+        },
+        {
+          "item": "ward_dispenser",
+          "time": -58
+        },
+        {
+          "item": "slippers",
+          "time": -58
+        },
+        {
+          "item": "slippers",
+          "time": -58
+        },
+        {
+          "item": "faerie_fire",
+          "time": -50
+        },
+        {
+          "item": "tango",
+          "time": 51
+        },
+        {
+          "item": "boots",
+          "time": 140
+        },
+        {
+          "item": "gloves",
+          "time": 140
+        },
+        {
+          "item": "power_treads",
+          "time": 140
+        },
+        {
+          "item": "boots_of_elves",
+          "time": 140
+        },
+        {
+          "item": "infused_raindrop",
+          "time": 206
+        },
+        {
+          "item": "circlet",
+          "time": 208
+        },
+        {
+          "item": "wraith_band",
+          "time": 208
+        },
+        {
+          "item": "recipe_wraith_band",
+          "time": 208
+        },
+        {
+          "item": "circlet",
+          "time": 208
+        },
+        {
+          "item": "wraith_band",
+          "time": 208
+        },
+        {
+          "item": "recipe_wraith_band",
+          "time": 208
+        },
+        {
+          "item": "clarity",
+          "time": 284
+        },
+        {
+          "item": "blade_of_alacrity",
+          "time": 339
+        },
+        {
+          "item": "belt_of_strength",
+          "time": 339
+        },
+        {
+          "item": "dragon_lance",
+          "time": 339
+        },
+        {
+          "item": "recipe_dragon_lance",
+          "time": 339
+        },
+        {
+          "item": "flask",
+          "time": 356
+        },
+        {
+          "item": "tpscroll",
+          "time": 431
+        },
+        {
+          "item": "tpscroll",
+          "time": 450
+        },
+        {
+          "item": "claymore",
+          "time": 496
+        },
+        {
+          "item": "blades_of_attack",
+          "time": 496
+        },
+        {
+          "item": "lesser_crit",
+          "time": 496
+        },
+        {
+          "item": "recipe_lesser_crit",
+          "time": 496
+        },
+        {
+          "item": "blink",
+          "time": 616
+        },
+        {
+          "item": "demon_edge",
+          "time": 736
+        },
+        {
+          "item": "recipe_greater_crit",
+          "time": 736
+        },
+        {
+          "item": "tpscroll",
+          "time": 752
+        },
+        {
+          "item": "greater_crit",
+          "time": 754
+        },
+        {
+          "item": "aghanims_shard",
+          "time": 780
+        },
+        {
+          "item": "staff_of_wizardry",
+          "time": 859
+        },
+        {
+          "item": "recipe_force_staff",
+          "time": 859
+        },
+        {
+          "item": "force_staff",
+          "time": 859
+        },
+        {
+          "item": "fluffy_hat",
+          "time": 859
+        },
+        {
+          "item": "recipe_hurricane_pike",
+          "time": 864
+        },
+        {
+          "item": "hurricane_pike",
+          "time": 878
+        },
+        {
+          "item": "tpscroll",
+          "time": 880
+        },
+        {
+          "item": "blitz_knuckles",
+          "time": 986
+        },
+        {
+          "item": "demon_edge",
+          "time": 1034
+        }
+      ],
+      "final_items": [
+        "hurricane_pike",
+        "blink",
+        "blitz_knuckles",
+        "power_treads",
+        "greater_crit",
+        "wraith_band"
+      ],
+      "neutral_item": "serrated_shiv",
+      "gold": 20890,
+      "xp": 26355,
+      "last_hits": 107,
+      "denies": 8,
+      "networth": 20284,
+      "hero_damage": 17204,
+      "tower_damage": 7215,
+      "stuns": 0.16657715,
+      "obs_placed": 1,
+      "sen_placed": 1,
+      "towers_killed": 1,
+      "roshans_killed": 0,
+      "rune_pickups": 2,
+      "creeps_stacked": 0,
+      "teamfight_participation": 0.68,
+      "behavior": {
+        "chat_messages": 34,
+        "pings": 3,
+        "ping_bursts": 0,
+        "chatwheel": {},
+        "disconnects": 1,
+        "abandons": 0
+      },
+      "lane": "mid",
+      "role": "mid",
+      "role_confidence": 0.64,
+      "kill_participation": 0.7083333333333334
+    },
+    {
+      "account_id": "100000009",
+      "steam_id": null,
+      "player_name": "Player J",
+      "hero_id": 101,
+      "team": "dire",
+      "kills": 8,
+      "deaths": 1,
       "assists": 10,
-      "win": false
+      "win": true,
+      "items": [
+        {
+          "item": "tango",
+          "time": -52
+        },
+        {
+          "item": "mantle",
+          "time": -51
+        },
+        {
+          "item": "circlet",
+          "time": -51
+        },
+        {
+          "item": "branches",
+          "time": -51
+        },
+        {
+          "item": "branches",
+          "time": -51
+        },
+        {
+          "item": "blood_grenade",
+          "time": -50
+        },
+        {
+          "item": "ward_sentry",
+          "time": -47
+        },
+        {
+          "item": "ward_dispenser",
+          "time": -46
+        },
+        {
+          "item": "ward_observer",
+          "time": -46
+        },
+        {
+          "item": "recipe_null_talisman",
+          "time": 23
+        },
+        {
+          "item": "null_talisman",
+          "time": 34
+        },
+        {
+          "item": "magic_stick",
+          "time": 91
+        },
+        {
+          "item": "recipe_magic_wand",
+          "time": 132
+        },
+        {
+          "item": "magic_wand",
+          "time": 141
+        },
+        {
+          "item": "circlet",
+          "time": 221
+        },
+        {
+          "item": "mantle",
+          "time": 247
+        },
+        {
+          "item": "recipe_null_talisman",
+          "time": 273
+        },
+        {
+          "item": "null_talisman",
+          "time": 287
+        },
+        {
+          "item": "sobi_mask",
+          "time": 364
+        },
+        {
+          "item": "ring_of_basilius",
+          "time": 364
+        },
+        {
+          "item": "recipe_ring_of_basilius",
+          "time": 364
+        },
+        {
+          "item": "clarity",
+          "time": 371
+        },
+        {
+          "item": "clarity",
+          "time": 371
+        },
+        {
+          "item": "clarity",
+          "time": 371
+        },
+        {
+          "item": "ward_observer",
+          "time": 372
+        },
+        {
+          "item": "ward_observer",
+          "time": 372
+        },
+        {
+          "item": "boots",
+          "time": 431
+        },
+        {
+          "item": "wizard_hat",
+          "time": 431
+        },
+        {
+          "item": "recipe_arcane_boots",
+          "time": 431
+        },
+        {
+          "item": "arcane_boots",
+          "time": 445
+        },
+        {
+          "item": "vitality_booster",
+          "time": 536
+        },
+        {
+          "item": "staff_of_wizardry",
+          "time": 587
+        },
+        {
+          "item": "recipe_rod_of_atos",
+          "time": 587
+        },
+        {
+          "item": "rod_of_atos",
+          "time": 604
+        },
+        {
+          "item": "staff_of_wizardry",
+          "time": 677
+        },
+        {
+          "item": "tpscroll",
+          "time": 679
+        },
+        {
+          "item": "ward_sentry",
+          "time": 681
+        },
+        {
+          "item": "ward_sentry",
+          "time": 681
+        },
+        {
+          "item": "smoke_of_deceit",
+          "time": 681
+        },
+        {
+          "item": "robe",
+          "time": 724
+        },
+        {
+          "item": "recipe_kaya",
+          "time": 757
+        },
+        {
+          "item": "kaya",
+          "time": 771
+        },
+        {
+          "item": "tpscroll",
+          "time": 775
+        },
+        {
+          "item": "tpscroll",
+          "time": 793
+        },
+        {
+          "item": "tpscroll",
+          "time": 794
+        },
+        {
+          "item": "aghanims_shard",
+          "time": 853
+        },
+        {
+          "item": "ogre_axe",
+          "time": 1041
+        },
+        {
+          "item": "belt_of_strength",
+          "time": 1041
+        },
+        {
+          "item": "sange",
+          "time": 1041
+        },
+        {
+          "item": "kaya_and_sange",
+          "time": 1041
+        },
+        {
+          "item": "recipe_sange",
+          "time": 1041
+        }
+      ],
+      "final_items": [
+        "rod_of_atos",
+        "null_talisman",
+        "kaya_and_sange",
+        "null_talisman",
+        "ward_sentry",
+        "arcane_boots"
+      ],
+      "neutral_item": "searing_signet",
+      "gold": 12316,
+      "xp": 18639,
+      "last_hits": 6,
+      "denies": 0,
+      "networth": 12296,
+      "hero_damage": 12221,
+      "tower_damage": 277,
+      "stuns": 12.866516,
+      "obs_placed": 3,
+      "sen_placed": 1,
+      "towers_killed": 0,
+      "roshans_killed": 0,
+      "rune_pickups": 1,
+      "creeps_stacked": 0,
+      "teamfight_participation": 0.72,
+      "behavior": {
+        "chat_messages": 10,
+        "pings": 5,
+        "ping_bursts": 0,
+        "chatwheel": {},
+        "disconnects": 2,
+        "abandons": 0
+      },
+      "lane": "offlane",
+      "role": "support",
+      "role_confidence": 0.982,
+      "kill_participation": 0.75
     }
   ]
 }

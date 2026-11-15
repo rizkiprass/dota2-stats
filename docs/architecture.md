@@ -177,6 +177,57 @@ The parser output is stored at `parsed/<match_id>.json` and has this practical c
 
 `start_time` currently uses a Unix epoch value. MVP 2 supports this existing output format; it does not require a `schema_version` field in the input object.
 
+### Timeline telemetry (parser schema 8)
+
+From schema 8 the parsed object also carries `timeline`, which is what makes
+per-player trends and phase metrics derivable without re-reading the `.dem`:
+
+```json
+{
+  "schema_version": 8,
+  "timeline": {
+    "snapshots": [
+      {"time": 600, "radiant": {"networth": 31204, "xp": 24118, "lh": 986, "hero_damage": 41205, "tower_damage": 3120},
+                 "dire":      {"networth": 29881, "xp": 22905, "lh": 902, "hero_damage": 38442, "tower_damage": 1904}}
+    ],
+    "player_snapshots": [
+      {"time": 600, "player_index": 0, "networth": 6100, "xp": 4800, "lh": 52, "hero_damage": 1200, "tower_damage": 0}
+    ],
+    "events": [
+      {"type": "hero_death", "time": 121, "target": "npc_dota_hero_skywrath_mage", "attacker": "npc_dota_hero_phantom_assassin", "attacker_hero": true},
+      {"type": "building_destroyed", "time": 365, "target": "npc_dota_badguys_tower1_mid"}
+    ]
+  }
+}
+```
+
+| Field | Granularity | Notes |
+|---|---|---|
+| `snapshots` | Team, one entry per whole minute | Only emitted when all five slots of **both** teams reported that minute, so a team sum is never partial. Unchanged since schema 6. |
+| `player_snapshots` | Per player, one entry per whole minute | **Added in schema 8.** Reads the same collected values as `snapshots`, so the two views cannot disagree: `snapshots[t].radiant.networth == sum(player_snapshots[t][i].networth for radiant i)`. |
+| `events` | Per occurrence | `hero_death` names the destroyed hero and the attacking hero. `building_destroyed` names only the structure — it carries **no attacker**, so it cannot credit a player or a team. |
+
+`player_index` is explicit rather than positional, and is index-aligned with
+the top-level `players` array. Two players sharing a hero therefore stay
+distinguishable in the series, which a hero-name join would silently collapse.
+
+A slot that reported nothing at a given minute produces **no entry** for that
+minute, and a non-numeric value is dropped rather than written as zero. A gap in
+the replay stays a gap; it never becomes a measured value of nothing. Consumers
+must treat a missing minute as unknown, not as zero.
+
+The series costs roughly 100 bytes per player-minute. Measured against seven
+real replays already stored under `raw/`, re-parsed locally with the schema 8
+image, each file grows by 65–81% (mean 73%): a 30-minute match moves from about
+44 KB to 75 KB. The whole 57-match `parsed/` prefix projects from about 2.3 MB
+to 4.0 MB, which is immaterial for S3 storage but does raise the aggregator's
+per-rebuild read volume, since it reads the full history every time.
+
+`player_snapshots` is deliberately **not** forwarded to the analysis API. That
+context allowlists the timeline fields it sends to the model, so the per-player
+series cannot inflate a match insight prompt; a test in `ai/test_handler.py`
+holds that boundary.
+
 If parsing fails, the original replay remains under `raw/`. The parser logs the error and the replay can be uploaded again after the issue is fixed.
 
 ## Aggregator Lambda (MVP 2)
@@ -287,7 +338,33 @@ Useful CloudWatch log groups:
 
 ## Out of Scope
 
-The system intentionally has no database, DynamoDB, Athena, Glue, SQS, Step Functions, or ECS. The only API surface is the replay upload API — a single API Gateway HTTP API in front of the upload Lambda — and there are no player accounts: uploads are gated by a shared password, not authentication. Advanced analytics (timelines, positions, combat logs) remain out of scope.
+The system intentionally has no database service behind its statistics, no
+Athena, Glue, Step Functions, or ECS, and no queue. Statistics are rebuilt
+from S3 on every parsed match and published as static JSON.
+
+Three statements that used to appear here are no longer true and are corrected
+so a reader does not design against them:
+
+- **DynamoDB.** One table exists, `<project>-ai-rate`, and it is not a data
+  store. It holds only the per-IP hourly counter behind the analysis API's
+  fairness limit, with a TTL that expires each window. Every statistic still
+  lives in S3.
+- **API surface.** Besides the replay upload API there is a second API Gateway
+  HTTP API for AI analysis (`ai_enabled`). It serves match details, item
+  analysis, match chat, and match insight under `/matches/{id}/…`, and — behind
+  explicit routes on the same API, handled by a separate Lambda — the on-demand
+  player profile under `/players/{id}/profile`. It is still disabled by default
+  and still gated by an OpenRouter key with a monthly spending limit. The
+  profile route answers a read from one cached object and regenerates only when
+  the evidence hash changes; see `docs/ai-player-analysis.md`.
+- **Advanced analytics.** Timelines and combat logs are now in scope: schema 6
+  added team minute snapshots plus hero-death and building events, and schema 8
+  adds the per-player minute series. Positions are still not published — the
+  lane heuristic reads them during parsing and then discards them — and there is
+  no reconstructed teamfight timeline and no patch-specific item reference.
+
+There are still no player accounts: uploads are gated by a shared password, not
+authentication, and the dashboard itself is public.
 
 ## AI-assisted frontend development
 

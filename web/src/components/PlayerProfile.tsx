@@ -23,6 +23,7 @@ import {
 } from "../lib/derived";
 import { useDashboard } from "../lib/dashboard-context";
 import { PlayerActivity } from "./Behavior";
+import { PlayerInsight } from "./PlayerInsight";
 import { heroPortraitUrl } from "../lib/heroes";
 
 export function PlayerProfile() {
@@ -123,6 +124,14 @@ function PlayerProfileContent({ id }: { id: string }) {
   const badges = computeBadges(stats, id);
   const [showAllHeroes, setShowAllHeroes] = useState(false);
 
+  // The newest published match is the only thing the AI card needs to decide
+  // whether a stored analysis is behind: a replay is parsed after it is played,
+  // so a match newer than the analysis cannot have been inside its window.
+  const newestMatchTime = useMemo(
+    () => recentMatches.reduce((latest, entry) => Math.max(latest, Number(entry.match.start_time) || 0), 0) || null,
+    [recentMatches],
+  );
+
   const totalKills = metricValues(stats, "kills").reduce((sum, value) => sum + value, 0);
   const killsShare = totalKills ? (Number(player.kills) / totalKills) * 100 : 0;
 
@@ -216,6 +225,8 @@ function PlayerProfileContent({ id }: { id: string }) {
           ))}
         </div>
       </section>
+
+      <PlayerInsight key={id} id={id} name={playerName(stats, id)} newestMatchTime={newestMatchTime} />
 
       <PlayerActivity stats={stats} playerId={id} />
 

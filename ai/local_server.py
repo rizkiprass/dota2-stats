@@ -6,7 +6,7 @@ import re
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
 
-from handler import MAX_QUESTION, INSIGHT_QUESTION, cache_key, generate, insight_context, match_context, parse_insight
+from handler import MAX_QUESTION, INSIGHT_QUESTION, cache_key, generate, generate_insight, insight_context, match_context
 
 parser = argparse.ArgumentParser()
 parser.add_argument("fixture", help="Path to one parsed match JSON")
@@ -70,11 +70,11 @@ class Handler(BaseHTTPRequestHandler):
             key = os.environ.get("OPENROUTER_API_KEY")
             if not key:
                 return self.send(503, {"message": "Set OPENROUTER_API_KEY to enable AI analysis."})
-            answer = generate(insight_context(data) if action == "insight" else data, question, key)
             if action == "insight":
-                insight = parse_insight(answer)
+                insight = generate_insight(insight_context(data), key)
                 cache[identifier] = insight
                 return self.send(200, {"insight": insight, "cached": False})
+            answer = generate(data, question, key)
             if action == "analysis":
                 cache[identifier] = answer
             return self.send(200, {"answer": answer, "cached": False})

@@ -24,6 +24,13 @@ dota-lobby-stats2/
 |   +-- aggregator.py      Lists parsed JSON, validates/deduplicates, rebuilds stats/stats.json (+ stats/matches.json)
 |   +-- requirements.txt
 |
++-- ai/                    Optional AI surfaces (match insight + on-demand player profile)
+|   +-- handler.py         Match insight / item analysis / chat Lambda
+|   +-- profile_handler.py On-demand player profile Lambda (routing, prompt, grounding checks, cache)
+|   +-- profile_metrics.py Deterministic per-player evidence layer (pure, zero dependencies)
+|   +-- eval_profile.py    Local-only evaluation harness: replays recorded answers through the validators
+|   +-- local_server.py    Local-only loopback API for the match surfaces
+|
 +-- terraform/            Infrastructure as code (S3, ECR, Lambda, IAM, dashboard)
 |   +-- main.tf
 |   +-- variables.tf
@@ -55,6 +62,10 @@ dota-lobby-stats2/
 |
 +-- docs/
 |   +-- architecture.md
+|   +-- ai-match-analysis.md   Replay-grounded match insight: evidence rules and limits
+|   +-- ai-player-analysis.md  On-demand player profile: cache contract, grounding, runbook
+|   +-- frontend-cicd.md
+|   +-- upload-via-api.md
 |
 +-- dota_replay_mvp_plan.md
 +-- README.md
@@ -159,13 +170,24 @@ The odota/parser project normally runs as an HTTP server on port 5600 (`java -ja
 
 ```bash
 cd parser
-docker build -t dota-replay-parser .
+# --provenance=false --sbom=false are required, not cosmetic. BuildKit's default
+# output is an OCI image *index* carrying an extra unknown/unknown attestation
+# manifest, and Lambda rejects that with "The image manifest, config or layer
+# media type for the source image ... is not supported" during
+# UpdateFunctionCode. Lambda accepts a single image manifest only.
+docker build --provenance=false --sbom=false --platform linux/amd64 -t dota-replay-parser:latest .
 
 aws ecr get-login-password --region <region> \
   | docker login --username AWS --password-stdin <account_id>.dkr.ecr.<region>.amazonaws.com
 
 docker tag dota-replay-parser:latest <account_id>.dkr.ecr.<region>.amazonaws.com/dota-replay-parser:latest
 docker push <account_id>.dkr.ecr.<region>.amazonaws.com/dota-replay-parser:latest
+
+# Verify what actually landed in ECR before running terraform apply: the
+# MediaType must be a single manifest, and there must be no attestation entry.
+docker buildx imagetools inspect <account_id>.dkr.ecr.<region>.amazonaws.com/dota-replay-parser:latest
+#   MediaType: application/vnd.oci.image.manifest.v1+json   <- accepted
+#   MediaType: application/vnd.oci.image.index.v1+json      <- Lambda rejects this
 ```
 
 ### 2. Provision infrastructure with Terraform
@@ -403,11 +425,23 @@ in `parsed/*.json`:
 
 1. Add extraction and normalization in `parser/normalize.py`.
 2. Bump the parser `SCHEMA_VERSION`.
-3. Build and deploy the parser container image.
-4. Reprocess old raw objects without changing them; see the next section.
-5. The newly written parsed JSON automatically triggers the full aggregator.
-6. Add the field to `web/src/types/stats.ts` and the relevant component if it
+3. Bump `CURRENT_SCHEMA_VERSION` in `api/handler.py` to the same value. The upload
+   API keeps its own copy because it runs in a separate ZIP package and cannot
+   import from `parser/`. If it is left behind, a stale parsed payload still
+   compares as current, so re-uploading the replay is rejected as a duplicate
+   and the reprocess path in the next section silently stops working.
+4. Build and deploy the parser container image.
+5. Reprocess old raw objects without changing them; see the next section.
+6. The newly written parsed JSON automatically triggers the full aggregator.
+7. Add the field to `web/src/types/stats.ts` and the relevant component if it
    needs to be displayed.
+
+A parser schema bump also strands every cached AI response. The analysis API
+cache key hashes the whole match context, and that context carries
+`schema_version`, so each stored `ai-cache/` object becomes unreachable and the
+next view regenerates it at real provider cost. Plan the reparse against the
+OpenRouter key's monthly limit rather than treating it as AWS-only spend, and
+check the AI cache object count before scheduling it.
 
 The parser schema and aggregate schema are independent. The parser currently
 uses an integer schema version, while the dashboard aggregate publishes its

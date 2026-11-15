@@ -47,7 +47,17 @@ except ImportError:  # Lambda imports this module as a top-level script
     from item_ids import ITEM_NAMES
 
 STEAM64_BASE = 76561197960265728
-SCHEMA_VERSION = 7
+# Version 8 adds per-player minute snapshots to `timeline.player_snapshots`.
+# Version 7 keeps those values internally but publishes team-level sums only.
+# The change is additive: `timeline.snapshots` (team-level) and `timeline.events`
+# are byte-for-byte unchanged, so every existing consumer keeps working. Bumping
+# the version is also what makes the parser reprocess already-parsed replays,
+# because the skip guard compares the stored `schema_version` against this value.
+SCHEMA_VERSION = 8
+# Per-player minute series carried by both the team-level `timeline.snapshots`
+# sum and the new `timeline.player_snapshots`. Shared so the two views can never
+# disagree about which signals a snapshot actually carries.
+SNAPSHOT_METRICS = ("networth", "xp", "lh", "hero_damage", "tower_damage")
 PING_BURST_WINDOW_SECONDS = 5
 PING_BURST_MINIMUM = 3
 
@@ -349,7 +359,7 @@ def normalize_events(raw_output: str, match_id_hint: str) -> dict:
                 continue
             time_ = e.get("time") or 0
             if isinstance(slot, int) and isinstance(time_, (int, float)) and time_ >= 0 and int(time_) % 60 == 0:
-                minute_snapshots.setdefault(int(time_), {})[slot] = {key: e.get(key) for key in ("networth", "xp", "lh", "hero_damage", "tower_damage")}
+                minute_snapshots.setdefault(int(time_), {})[slot] = {key: e.get(key) for key in SNAPSHOT_METRICS}
             prev = latest_interval_by_slot.get(slot)
             if prev is None or (prev.get("time") or 0) <= time_:
                 latest_interval_by_slot[slot] = e
@@ -531,13 +541,38 @@ def normalize_events(raw_output: str, match_id_hint: str) -> dict:
             if len(slots) != 5 or any(entry is None for entry in entries):
                 continue
             metrics = {}
-            for metric in ("networth", "xp", "lh", "hero_damage", "tower_damage"):
+            for metric in SNAPSHOT_METRICS:
                 values = [entry.get(metric) for entry in entries]
                 if all(isinstance(value, (int, float)) for value in values):
                     metrics[metric] = sum(values)
             teams[team] = metrics
         if len(teams) == 2:
             timeline_snapshots.append({"time": timestamp, **teams})
+
+    # Per-player minute series. This reads the same `minute_snapshots` values the
+    # team reduction above sums, in the `player_slots` order that is already
+    # index-aligned with `players` (see the `zip(players, player_slots)` loop). A
+    # slot missing at one minute yields no entry rather than a zero, so a gap in
+    # the replay never becomes a measured value of nothing.
+    #
+    # Each entry carries an explicit `player_index` instead of relying on list
+    # position, matching the `player_index` convention the analysis API already
+    # publishes, so the series stays attributable even if the player order changes.
+    player_snapshots: list[dict[str, Any]] = []
+    for timestamp, snapshots in sorted(minute_snapshots.items()):
+        for player_index, slot in enumerate(player_slots):
+            entry = snapshots.get(slot)
+            if entry is None:
+                continue
+            player_snapshots.append({
+                "time": timestamp,
+                "player_index": player_index,
+                **{
+                    metric: entry[metric]
+                    for metric in SNAPSHOT_METRICS
+                    if isinstance(entry.get(metric), (int, float))
+                },
+            })
 
     return {
         "schema_version": SCHEMA_VERSION,
@@ -547,6 +582,10 @@ def normalize_events(raw_output: str, match_id_hint: str) -> dict:
         "start_time": start_time,
         "game_mode": game_mode,
         "lobby_type": lobby_type,
-        "timeline": {"snapshots": timeline_snapshots, "events": sorted(timeline_events, key=lambda item: item["time"])},
+        "timeline": {
+            "snapshots": timeline_snapshots,
+            "player_snapshots": player_snapshots,
+            "events": sorted(timeline_events, key=lambda item: item["time"]),
+        },
         "players": players,
     }
