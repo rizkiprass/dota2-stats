@@ -1,0 +1,40 @@
+name: Python CI
+
+on:
+  pull_request:
+    paths:
+      - "parser/**"
+      - "aggregator/**"
+      - "api/**"
+      - ".github/workflows/python-ci.yml"
+  push:
+    branches: [main]
+    paths:
+      - "parser/**"
+      - "aggregator/**"
+      - "api/**"
+      - ".github/workflows/python-ci.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: python-ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Run parser and aggregator tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      # The suites are stdlib-only: parser/normalize.py imports no third-party
+      # packages and aggregator/test_aggregator.py installs its own boto3 stub.
+      - name: Run parser tests
+        run: python -m unittest parser.test_normalize -v
+      - name: Run aggregator tests
+        run: python -m unittest aggregator.test_aggregator -v
