@@ -376,6 +376,56 @@ class AnalysisTests(unittest.TestCase):
         self.assertEqual([event["time"] for event in context["timeline"]["events"]], [20, 30])
         self.assertTrue(handler.match_facts(context)["data_availability"]["building_events"])
 
+    def test_player_snapshots_never_reach_the_match_prompt(self):
+        """Schema 8 adds a per-player minute series that this API must ignore.
+
+        `match_context` allowlists the timeline fields it forwards, so the new
+        series stays out of the insight prompt. Without that guarantee a replay
+        with hundreds of per-player minutes would inflate every cached insight.
+        """
+        self.raw["schema_version"] = 8
+        self.raw["timeline"] = {
+            "snapshots": [{"time": 60, "radiant": {"networth": 5000}, "dire": {"networth": 5010}}],
+            "player_snapshots": [
+                {"time": minute, "player_index": index, "networth": 1000 + index, "lh": index}
+                for minute in range(60, 660, 60)
+                for index in range(10)
+            ],
+            "events": [{"type": "hero_death", "time": 30, "target": "npc_dota_hero_axe"}],
+        }
+
+        context = handler.match_context(self.raw, "123")
+        serialized = json.dumps(handler.insight_context(context))
+
+        self.assertNotIn("player_snapshots", serialized)
+        self.assertNotIn("player_snapshots", json.dumps(context))
+        self.assertEqual(list(context["timeline"].keys()), ["snapshots", "events", "truncated", "hero_death_event_count", "scoreboard_deaths", "death_count_matches_scoreboard"])
+
+    def test_a_schema_bump_invalidates_cached_insights(self):
+        """Characterizes the cost of a parser schema bump.
+
+        The cache key hashes the whole context, which carries `schema_version`,
+        so raising the parser version strands every stored insight and the next
+        view regenerates it at a real OpenRouter cost. A reparse is therefore
+        planned against the monthly key limit, not treated as AWS-only spend.
+        """
+        current = dict(self.raw, schema_version=8)
+        previous = dict(self.raw, schema_version=7)
+
+        self.assertNotEqual(
+            handler.cache_key(handler.match_context(current, "123"), -1),
+            handler.cache_key(handler.match_context(previous, "123"), -1),
+        )
+        # Everything except the version is untouched, so the regenerated answer
+        # is analytically identical to the stranded one.
+        def without_version(payload: dict) -> dict:
+            return {key: value for key, value in payload.items() if key != "schema_version"}
+
+        self.assertEqual(
+            without_version(handler.match_context(current, "123")),
+            without_version(handler.match_context(previous, "123")),
+        )
+
     def _team_match(self):
         return {
             "match_id": "123",

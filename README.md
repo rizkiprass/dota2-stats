@@ -403,11 +403,23 @@ in `parsed/*.json`:
 
 1. Add extraction and normalization in `parser/normalize.py`.
 2. Bump the parser `SCHEMA_VERSION`.
-3. Build and deploy the parser container image.
-4. Reprocess old raw objects without changing them; see the next section.
-5. The newly written parsed JSON automatically triggers the full aggregator.
-6. Add the field to `web/src/types/stats.ts` and the relevant component if it
+3. Bump `CURRENT_SCHEMA_VERSION` in `api/handler.py` to the same value. The upload
+   API keeps its own copy because it runs in a separate ZIP package and cannot
+   import from `parser/`. If it is left behind, a stale parsed payload still
+   compares as current, so re-uploading the replay is rejected as a duplicate
+   and the reprocess path in the next section silently stops working.
+4. Build and deploy the parser container image.
+5. Reprocess old raw objects without changing them; see the next section.
+6. The newly written parsed JSON automatically triggers the full aggregator.
+7. Add the field to `web/src/types/stats.ts` and the relevant component if it
    needs to be displayed.
+
+A parser schema bump also strands every cached AI response. The analysis API
+cache key hashes the whole match context, and that context carries
+`schema_version`, so each stored `ai-cache/` object becomes unreachable and the
+next view regenerates it at real provider cost. Plan the reparse against the
+OpenRouter key's monthly limit rather than treating it as AWS-only spend, and
+check the AI cache object count before scheduling it.
 
 The parser schema and aggregate schema are independent. The parser currently
 uses an integer schema version, while the dashboard aggregate publishes its
