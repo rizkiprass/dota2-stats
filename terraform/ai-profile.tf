@@ -90,6 +90,20 @@ resource "aws_iam_role_policy" "ai_profile" {
         Action   = ["s3:GetObject"]
         Resource = ["${aws_s3_bucket.replay_data.arn}/parsed/*", "${aws_s3_bucket.replay_data.arn}/stats/*", "${aws_s3_bucket.replay_data.arn}/ai-cache/profile/*"]
       },
+      # S3 answers GetObject on a missing key with 404 NoSuchKey only when the
+      # caller may list the bucket; without this it answers 403 AccessDenied and
+      # the handler fails the request instead of reporting "not generated yet".
+      # The cache miss is the most common path there is, so this is not optional.
+      # Scoped by prefix, mirroring the match-analysis role, so the function still
+      # cannot enumerate unrelated keys.
+      {
+        Effect   = "Allow"
+        Action   = ["s3:ListBucket"]
+        Resource = aws_s3_bucket.replay_data.arn
+        Condition = {
+          StringLike = { "s3:prefix" = ["ai-cache/profile/*"] }
+        }
+      },
       # Scoped to ai-cache/profile/ so a bug in this function cannot overwrite a
       # stored match insight or item analysis.
       {
@@ -114,9 +128,11 @@ resource "aws_iam_role_policy" "ai_profile" {
   })
 }
 
-# No s3:ListBucket anywhere above. The window is selected from the published
-# matches.json index, so the function reads the objects it needs by key and never
-# enumerates the bucket.
+# The function never enumerates the bucket: the window is selected from the
+# published matches.json index and every other object is read by exact key. The
+# ListBucket statement above exists only so that a missing cache object is
+# reported by S3 as 404 rather than 403, which is what lets the handler answer
+# "not generated yet" instead of failing.
 resource "aws_lambda_function" "ai_profile" {
   count            = local.ai_profile_enabled
   function_name    = "${var.project_name}-ai-profile"

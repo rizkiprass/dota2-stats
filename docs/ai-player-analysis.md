@@ -19,6 +19,12 @@ Satu-satunya hal yang boleh menghabiskan token provider adalah `POST`. Kontrakny
   (`ai-cache/profile/<account_id>.json`) dan mengembalikan isinya. Tidak ada
   perhitungan metrik, tidak ada pembacaan replay, tidak ada panggilan model, dan
   tidak ada trace Langfuse. Page view karena itu praktis gratis.
+- Konsekuensinya `GET` tidak bisa membedakan "pemain tidak dikenal" dari "belum
+  pernah dibuat": keduanya `404` dengan `status: "not_generated"`. Hanya `POST` yang
+  menjawab `unknown_player`, karena hanya `POST` yang membaca `stats.json`. Frontend
+  memanggil `GET` hanya untuk pemain yang sudah ada di daftar, jadi ambiguitas itu
+  tidak pernah sampai ke pengguna — tapi jangan membacanya sebagai bug saat probing
+  dengan `curl`.
 - `POST` menghitung ulang metrik, membandingkan `source_hash` dengan yang tersimpan,
   dan **hanya** memanggil model bila hash berubah (atau `{"force": true}`). Cache hit
   mengembalikan jawaban tersimpan dengan `cached: true`.
@@ -28,16 +34,23 @@ Satu-satunya hal yang boleh menghabiskan token provider adalah `POST`. Kontrakny
 - Kegagalan menulis cache tidak membuang jawaban yang sudah dibayar: respons tetap
   `200` dengan `stored: false`, dan permintaan berikutnya membangkitkan ulang.
 
-Angka terukur pada dataset production (57 replay, 26 pemain): konteks yang dikirim ke
-model 1239–1507 token (rata-rata ≈1357, pagar 3500), termasuk daftar kunci yang boleh
-dikutip (≈300 token) — daftar itulah yang membuat cek sitasi bisa ditegakkan oleh
-model sendiri alih-alih hanya oleh validator. Satu analisis ≈ **$0.0059** (≈ $0.012
-bila retry terpakai). 18 pemain memenuhi syarat, 8 tidak. Backfill 18 pemain ≈
-$0.11–0.22 sekali jalan. Kontrol biaya yang sebenarnya adalah limit bulanan kunci
-OpenRouter (**$1/bulan**); tabel rate DynamoDB (`dota-replay-ai-rate`, dipakai bersama
-dengan match analysis) hanya pembatas abuse 10 panggilan uncached per IP per jam — dan
-sengaja dipakai bersama supaya satu klien tidak bisa mengelak lewat permukaan AI
-satunya saat budget hampir habis.
+Angka terukur pada dataset production sesudah reparse schema 8 (57 replay, 26 pemain):
+konteks yang dikirim ke model **1604–1905 token** (rata-rata ≈1741, pagar 3500). Naik
+dari 1239–1507 yang terukur sebelum reparse karena dua hal nyata: schema 8 mengaktifkan
+metrik turunan `player_snapshots` (networth/last-hits pada menit ke-10 dan teman-temannya),
+dan daftar kunci yang boleh dikutip tumbuh dari ≈55 jadi ≈100 kunci setelah dilengkapi
+(lihat §Bukti). Daftar itu ≈300 token dan memang dipertahankan: itulah yang membuat cek
+sitasi bisa ditegakkan oleh model sendiri alih-alih hanya oleh validator.
+
+Biaya terukur dari panggilan live, bukan taksiran: **$0.0042** untuk satu profil yang
+lolos sekali jalan (3087 prompt token + ≈1300 completion token), **$0.0068** bila satu
+retry terpakai. 18 pemain memenuhi syarat, 8 tidak. Backfill 18 pemain karena itu ≈
+**$0.075** sekali jalan (taksiran lama $0.11–0.22 mengandaikan retry terpakai di mana-mana,
+dan retry itu ternyata sebagian besar dipicu oleh false positive yang sudah diperbaiki).
+Kontrol biaya yang sebenarnya adalah limit bulanan kunci OpenRouter (**$1/bulan**); tabel
+rate DynamoDB (`dota-replay-ai-rate`, dipakai bersama dengan match analysis) hanya
+pembatas abuse 10 panggilan uncached per IP per jam — dan sengaja dipakai bersama supaya
+satu klien tidak bisa mengelak lewat permukaan AI satunya saat budget hampir habis.
 
 ## Bukti: apa yang boleh dan tidak boleh dikatakan model
 
@@ -48,9 +61,15 @@ jawaban diterima:
 - **Angka**: setiap figure dalam prosa harus cocok (toleransi 1% atau setengah
   satuan, plus konversi persen satu arah) dengan angka yang benar-benar ada di
   payload. Skala persen dibatasi supaya `42.42` di payload tidak melisensi `4242`
-  di prosa.
+  di prosa. Magnitudo juga diterima: delta tren diterbitkan bertanda
+  (`"change": -127.4`) sedangkan prosa menyatakan arahnya lewat kata
+  ("GPM declined by 127.4"), jadi yang dikutip adalah besarnya.
 - **Kutipan**: setiap finding wajib menyebut kunci metrik yang ada
-  (`evidence_keys`); kunci yang tidak dipublikasikan jendela itu ditolak.
+  (`evidence_keys`); kunci yang tidak dipublikasikan jendela itu ditolak. Daftar itu
+  harus mencakup **semua** yang diterbitkan blok yang tersedia — termasuk
+  `role.value`, `role.roles_seen`, `benchmark.ranked_players` dan
+  `deaths_by_phase.matches` — sementara blok yang `available: false` tetap tidak
+  menyumbang kunci sama sekali, karena di situlah klaim tanpa data tertangkap.
 - **Klaim populasi**: peringkat lobby boleh dikutip karena memang dipublikasikan;
   "top 5% semua pemain", persentil global, MMR, atau bracket tidak.
 - **Kemampuan yang tidak direkam**: ward placement / map awareness / positioning /
@@ -69,6 +88,35 @@ jawaban diterima:
 Jawaban yang melanggar dicoba ulang satu kali dengan nama aturan yang dilanggar;
 bila tetap melanggar, jawaban dengan pelanggaran paling sedikit yang dipakai, dan
 nama aturannya (bukan prosanya) masuk log serta trace.
+
+Aturan-aturan itu ditala terhadap jawaban live pertama, dan hasilnya layak dicatat
+karena dua di antaranya gagal dengan arah yang berlawanan:
+
+- **Dua false positive.** Jawaban production pertama kena tiga flag, dan dua di
+  antaranya menghukum bukti yang sah: model mengutip `role.value` dan
+  `benchmark.ranked_players` (keduanya ada di konteks yang dikirim dan di `meta` yang
+  disimpan), dan menulis "declined by 127.4" untuk delta yang diterbitkan sebagai
+  `-127.4`. Karena flag memicu retry, false positive yang sistematis membuat **setiap**
+  profil membayar dua panggilan model — $0.0068 alih-alih $0.0042. Keduanya sudah
+  diperbaiki; generasi berikutnya lolos sekali jalan dengan nol flag, terkonfirmasi
+  oleh log dan oleh pemeriksaan silang lokal pada payload yang `source_hash`-nya identik.
+- **Satu true positive.** `vision_claim` menyala pada kalimat "This suggests less vision
+  control in recent games". Yang diterbitkan data hanyalah hitungan ward
+  (`obs_placed + sen_placed`), bukan penempatan maupun cakupan, jadi kalimat itu memang
+  melampaui bukti. Aturan itu dipertahankan apa adanya — dan pada generasi berikutnya
+  model menuliskan batasannya ("only a total ward count") alih-alih menyimpulkan.
+
+Pelajaran umumnya: harness lokal yang membangkitkan jawaban sintetis *dari* angka yang
+diizinkan tidak akan pernah menemukan false positive semacam ini, karena ia menguji
+aturan terhadap asumsi penulisnya sendiri. Hanya jawaban model sungguhan yang bisa.
+
+Panggilan live yang sama menemukan satu cacat bentuk. `parse_profile` memotong field yang
+melebihi budget dengan `text[:limit]`, sehingga `limitations` tersimpan berakhir di
+"win rate (25.11" dan `role_read` di "with a sc" — patah di tengah angka dan di tengah
+kata, dan prompt sudah menyebut batasnya (`max 300 characters`) sehingga ini murni soal
+model yang kadang melampauinya. Pemotongan sekarang mencari akhir kalimat terdekat di
+dalam budget, dan bila tidak ada, batas kata yang ditandai elipsis; hasilnya tidak pernah
+melebihi limit yang diumumkan prompt, karena budget itulah yang dipakai mengukur kartu UI.
 
 ## Privasi
 
@@ -116,10 +164,23 @@ jalan berurutan:
    "boleh di-upload ulang" — itu memang jalur reprocess yang didokumentasikan,
    tetapi jendela itu harus ditutup dengan reparse segera setelah apply.
 
-Karena itu: build+push image → apply → reparse 57 replay, dalam satu langkah yang
-disetujui, dan dijadwalkan **tepat setelah reset limit bulanan OpenRouter** karena
-schema bump membuat 48 objek `ai-cache/` lama stranded (regenerasi ≈ $0.22–0.32).
-Jangan batch pre-warm; pantau Langfuse setelahnya.
+Karena itu: build+push image → apply → reparse, dalam satu langkah yang disetujui.
+Urutan ini sudah dijalankan pada 2026-11-15 dan tersandung dua jebakan yang tidak
+terlihat oleh test lokal, keduanya sekarang terdokumentasi di tempat yang
+bersangkutan: `docker build` default menghasilkan OCI image *index* yang ditolak
+Lambda (lihat README §Build & deploy), dan role tanpa `s3:ListBucket` membuat cache
+miss menjadi `503` (lihat §Deployment).
+
+Soal biaya: schema bump membuat 48 objek `ai-cache/` match analysis stranded
+(regenerasi ≈ $0.22–0.32). Yang perlu dimengerti sebelum menjadwalkannya: pengeluaran
+itu **pull-based** — tidak ada yang terbakar saat reparse selesai, setiap objek baru
+dibayar saat ada orang membuka match itu. Jadi ia menyebar mengikuti traffic, bukan
+jatuh sekaligus. Itu tetap harus diperhitungkan terhadap limit kunci OpenRouter
+($1/bulan menurut `docs/ai-match-analysis.md`), bersama backfill profil (≈ $0.11–0.22)
+yang justru push-based karena tiap profil dibayar begitu tombolnya diklik. Kalau
+keduanya masuk jendela yang sama, totalnya ≈ $0.86–1.07 dan menyentuh pagarnya;
+memisahkan backfill ke jendela berikutnya membuat masing-masing aman. Jangan batch
+pre-warm; pantau Langfuse setelahnya.
 
 ## Deployment
 
@@ -134,8 +195,20 @@ Langfuse aktif), role sendiri (bukan role match analysis — role itu punya
 route eksplisit (`GET`/`POST`/`OPTIONS /players/{account_id}/profile`) pada API HTTP
 yang sudah ada (route spesifik mendahului `$default`, jadi fungsi live tidak
 tersentuh), dan permission invoke. IAM hanya `s3:GetObject` pada `parsed/*`,
-`stats/*`, `ai-cache/profile/*`; `s3:PutObject` hanya pada `ai-cache/profile/*`;
-tidak ada `s3:ListBucket` karena jendela dipilih dari index `matches.json`.
+`stats/*`, `ai-cache/profile/*`; `s3:PutObject` hanya pada `ai-cache/profile/*`
+(sengaja sempit: bug di fungsi ini tidak boleh bisa menimpa insight match yang
+sudah tersimpan); dan `s3:ListBucket` pada bucket dengan condition
+`s3:prefix = ai-cache/profile/*`.
+
+`ListBucket` itu wajib, bukan kelonggaran. Fungsinya memang tidak pernah
+mengenumerasi bucket — jendela dipilih dari index `matches.json` dan sisanya dibaca
+per key — tapi S3 hanya menjawab `404 NoSuchKey` untuk key yang tidak ada bila
+pemanggil boleh me-list bucket; tanpa izin itu ia menjawab `403 AccessDenied`.
+Karena handler membedakan `NoSuchKey` dari error lain dan menaikkan error lain
+sebagai kegagalan, cache miss — jalur yang paling sering terjadi — berubah menjadi
+`503`. Ini terdeteksi saat deploy, bukan saat test: mock menaikkan `NoSuchKey`
+sehingga 81 unit test dan smoke test data nyata semuanya hijau sementara production
+gagal. Role match analysis sudah punya statement berbentuk sama sejak awal.
 
 Kill switch runtime: env `AI_PROFILE_ENABLED=false` → `503` untuk GET dan POST tanpa
 menyentuh model atau S3.

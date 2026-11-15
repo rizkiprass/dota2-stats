@@ -170,13 +170,24 @@ The odota/parser project normally runs as an HTTP server on port 5600 (`java -ja
 
 ```bash
 cd parser
-docker build -t dota-replay-parser .
+# --provenance=false --sbom=false are required, not cosmetic. BuildKit's default
+# output is an OCI image *index* carrying an extra unknown/unknown attestation
+# manifest, and Lambda rejects that with "The image manifest, config or layer
+# media type for the source image ... is not supported" during
+# UpdateFunctionCode. Lambda accepts a single image manifest only.
+docker build --provenance=false --sbom=false --platform linux/amd64 -t dota-replay-parser:latest .
 
 aws ecr get-login-password --region <region> \
   | docker login --username AWS --password-stdin <account_id>.dkr.ecr.<region>.amazonaws.com
 
 docker tag dota-replay-parser:latest <account_id>.dkr.ecr.<region>.amazonaws.com/dota-replay-parser:latest
 docker push <account_id>.dkr.ecr.<region>.amazonaws.com/dota-replay-parser:latest
+
+# Verify what actually landed in ECR before running terraform apply: the
+# MediaType must be a single manifest, and there must be no attestation entry.
+docker buildx imagetools inspect <account_id>.dkr.ecr.<region>.amazonaws.com/dota-replay-parser:latest
+#   MediaType: application/vnd.oci.image.manifest.v1+json   <- accepted
+#   MediaType: application/vnd.oci.image.index.v1+json      <- Lambda rejects this
 ```
 
 ### 2. Provision infrastructure with Terraform
