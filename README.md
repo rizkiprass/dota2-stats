@@ -24,6 +24,13 @@ dota-lobby-stats2/
 |   +-- aggregator.py      Lists parsed JSON, validates/deduplicates, rebuilds stats/stats.json (+ stats/matches.json)
 |   +-- requirements.txt
 |
++-- ai/                    Optional AI surfaces (match insight + on-demand player profile)
+|   +-- handler.py         Match insight / item analysis / chat Lambda
+|   +-- profile_handler.py On-demand player profile Lambda (routing, prompt, grounding checks, cache)
+|   +-- profile_metrics.py Deterministic per-player evidence layer (pure, zero dependencies)
+|   +-- eval_profile.py    Local-only evaluation harness: replays recorded answers through the validators
+|   +-- local_server.py    Local-only loopback API for the match surfaces
+|
 +-- terraform/            Infrastructure as code (S3, ECR, Lambda, IAM, dashboard)
 |   +-- main.tf
 |   +-- variables.tf
@@ -55,6 +62,10 @@ dota-lobby-stats2/
 |
 +-- docs/
 |   +-- architecture.md
+|   +-- ai-match-analysis.md   Replay-grounded match insight: evidence rules and limits
+|   +-- ai-player-analysis.md  On-demand player profile: cache contract, grounding, runbook
+|   +-- frontend-cicd.md
+|   +-- upload-via-api.md
 |
 +-- dota_replay_mvp_plan.md
 +-- README.md

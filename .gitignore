@@ -23,6 +23,7 @@ venv/
 terraform/aggregator.zip
 terraform/upload-api.zip
 terraform/ai-api.zip
+terraform/ai-profile-api.zip
 terraform/langfuse-layer.zip
 
 # Saved Terraform plan files (binary, machine-specific)
