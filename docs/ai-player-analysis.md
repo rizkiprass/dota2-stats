@@ -238,6 +238,28 @@ lewat API (atau invoke Lambda langsung). Lakukan di bulan yang berbeda dari repa
 bila budget bulan berjalan sudah terpakai; gabungan keduanya ≈ $0.86–1.07 dan
 menyentuh limit $1.
 
+**Smoke test production** (empat `curl`, semuanya gratis — GET tidak pernah memanggil model):
+
+```sh
+API=https://elchusse96.execute-api.us-east-1.amazonaws.com
+
+# 1. Profil tersimpan: 200 + objek profile + meta.cached
+curl -s -o /dev/null -w '%{http_code}\n' "$API/players/174379091/profile"
+
+# 2. Profil yang belum ada: 404 (bukan 500, bukan POST)
+curl -s -o /dev/null -w '%{http_code}\n' "$API/players/000000000/profile"
+
+# 3. CORS preflight untuk halaman dashboard
+curl -s -o /dev/null -D - -X OPTIONS "$API/players/174379091/profile" \
+  -H 'Origin: https://dls.rpras.my.id' -H 'Access-Control-Request-Method: GET' | grep -i access-control
+
+# 4. Kartu profil benar-benar ter-deploy (chunk lazy, bukan index-*.js)
+curl -s https://dls.rpras.my.id/ | grep -o 'assets/index-[A-Za-z0-9_-]*\.js' | head -1
+```
+
+Untuk nomor 4, buka `index-*.js` yang dilaporkan lalu `grep -o 'PlayerProfile-[A-Za-z0-9_-]*\.js'`
+untuk mendapat nama chunk; chunk itu harus memuat string `Player read` dan `/profile`.
+
 **Rollback**: set `ai_profile_enabled = false` dan apply (route + Lambda hilang,
 objek cache tetap tidak berbahaya), atau lebih cepat lagi set env
 `AI_PROFILE_ENABLED=false` pada fungsi untuk mematikan tanpa deploy. Frontend
