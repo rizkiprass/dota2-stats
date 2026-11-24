@@ -238,7 +238,7 @@ const awards: MatchAward[] = [
     value: (player: MatchPlayerRecord) => `${fmtInt(player.hero_damage)} damage`
   },
   {
-    label: "Farm Machines",
+    label: "The Richest",
     description: "Most Networth",
     player: match => leader(match.players, p => p.net_worth || 0),
     value: p => `${fmtK(p.net_worth)} Networth`
@@ -272,8 +272,8 @@ function DetailAward2({ award, match }: { award: MatchAward; match: MatchRecord 
 
 function DetailLineup({ label, side, players, teamStats: sideStats, won, stats }: { label: "Radiant" | "Dire"; side: "r" | "d"; players: MatchPlayerRecord[]; teamStats: TeamStats; won: boolean; stats: ReturnType<typeof useDashboard>["stats"] }) {
   return (
-    <section className={`match - detail - side ${side}`}>
-      <h2 className={`match - detail - side - title ${side} `}><i className={`mc - dot ${side}`} aria-hidden="true" />{label}{won ? <Badge label="Victory" tone={side === "r" ? "b1" : "b2"} /> : null}</h2>
+    <section className={`match-detail-side ${side}`}>
+      <h2 className={`match-detail-side-title ${side} `}><i className={`mc-dot ${side}`} aria-hidden="true" />{label}{won ? <Badge label="Victory" tone={side === "r" ? "b1" : "b2"} /> : null}</h2>
       <div className="match-detail-table-wrap">
         <table className="match-detail-table">
           <thead>

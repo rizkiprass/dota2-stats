@@ -110,7 +110,7 @@ test("a recent match opens its full match detail", async ({ page }) => {
   await expect(page.locator(".match-detail-card .match-detail-table tfoot tr")).toHaveCount(2);
   await expect(page.locator(".match-detail-kpi")).toHaveCount(3);
   await expect(page.locator(".match-detail-comparison")).toContainText("Team KDA");
-  await expect(page.locator(".match-detail-award")).toHaveCount(4);
+  await expect(page.locator(".match-award-card")).toHaveCount(6);
 });
 
 test("an unknown match id has a clear fallback", async ({ page }) => {
