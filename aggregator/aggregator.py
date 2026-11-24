@@ -599,6 +599,11 @@ def _normalize_hero_id(hero_id: Any) -> Any:
     return int(text) if text.lstrip("-").isdigit() else hero_id
 
 
+def _optional_number(value: Any) -> Any:
+    """Numbers pass through; anything else (missing on older parses) is None."""
+    return value if _is_number(value) else None
+
+
 def _match_summary(match: dict[str, Any]) -> dict[str, Any]:
     """Counts-only per-match record for the lazy ``matches.json`` payload.
 
@@ -620,6 +625,11 @@ def _match_summary(match: dict[str, Any]) -> dict[str, Any]:
             "assists": player["assists"],
             "final_items": player.get("final_items") or [],
             "neutral_item": player.get("neutral_item"),
+            "net_worth": _optional_number(player.get("networth")),
+            "last_hits": _optional_number(player.get("last_hits")),
+            "denies": _optional_number(player.get("denies")),
+            "hero_damage": _optional_number(player.get("hero_damage")),
+            "tower_damage": _optional_number(player.get("tower_damage")),
         })
     start_time = match.get("start_time")
     return {

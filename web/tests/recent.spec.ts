@@ -106,11 +106,11 @@ test("a recent match opens its full match detail", async ({ page }) => {
   expect(await page.evaluate(() => window.scrollY), "match detail should open at the top").toBe(0);
   await expect(page.locator(".match-detail-card")).toBeVisible();
   await expect(page.locator(".match-detail-side")).toHaveCount(2);
-  await expect(page.locator(".match-detail-card .dp-hero-row")).toHaveCount(10);
+  await expect(page.locator(".match-detail-card .match-detail-table tbody tr")).toHaveCount(10);
+  await expect(page.locator(".match-detail-card .match-detail-table tfoot tr")).toHaveCount(2);
   await expect(page.locator(".match-detail-kpi")).toHaveCount(3);
   await expect(page.locator(".match-detail-comparison")).toContainText("Team KDA");
   await expect(page.locator(".match-detail-award")).toHaveCount(4);
-  await expect(page.locator(".match-detail-player-metrics")).toHaveCount(10);
 });
 
 test("an unknown match id has a clear fallback", async ({ page }) => {

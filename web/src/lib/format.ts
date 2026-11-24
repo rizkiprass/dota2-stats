@@ -49,3 +49,16 @@ export function initials(name: string | null | undefined): string {
   if (!text) return "?";
   return text.replace(/[^A-Za-z0-9]+/g, " ").trim().charAt(0).toUpperCase() || "?";
 }
+
+/** Compact thousands for scoreboard cells: 22900 -> "22.9k"; missing -> "–". */
+export function fmtK(value: number | null | undefined): string {
+  if (value === null || value === undefined || !Number.isFinite(Number(value))) return "–";
+  const n = Number(value);
+  return Math.abs(n) >= 1000 ? `${(n / 1000).toFixed(1)}k` : String(Math.round(n));
+}
+
+/** Plain integer for scoreboard cells, "–" when the figure was never recorded. */
+export function fmtCell(value: number | null | undefined): string {
+  if (value === null || value === undefined || !Number.isFinite(Number(value))) return "–";
+  return Math.round(Number(value)).toLocaleString("en-US");
+}

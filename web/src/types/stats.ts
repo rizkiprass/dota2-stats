@@ -135,6 +135,12 @@ export interface MatchPlayerRecord {
   final_items?: Array<string | null>;
   /** End-of-game neutral item, if any. */
   neutral_item?: string | null;
+  /** Scoreboard figures; null/absent for replays parsed before they were published. */
+  net_worth?: number | null;
+  last_hits?: number | null;
+  denies?: number | null;
+  hero_damage?: number | null;
+  tower_damage?: number | null;
 }
 
 export interface MatchRecord {

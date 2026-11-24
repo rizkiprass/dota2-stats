@@ -172,5 +172,24 @@ class MatchItemsTests(unittest.TestCase):
         self.assertIsNone(players[1]["neutral_item"])
 
 
+class MatchScoreboardStatsTests(unittest.TestCase):
+    def test_publishes_economy_and_damage_or_none(self):
+        match = _match("1", 1)
+        match["players"][0].update(
+            {"networth": 22900, "last_hits": 54, "denies": 6, "hero_damage": 9900, "tower_damage": 1600}
+        )
+
+        _, _, summaries = agg.aggregate_matches([("parsed/1.json", match)])
+        players = summaries[0]["players"]
+
+        self.assertEqual(players[0]["net_worth"], 22900)
+        self.assertEqual(players[0]["last_hits"], 54)
+        self.assertEqual(players[0]["denies"], 6)
+        self.assertEqual(players[0]["hero_damage"], 9900)
+        self.assertEqual(players[0]["tower_damage"], 1600)
+        self.assertIsNone(players[1]["net_worth"])
+        self.assertIsNone(players[1]["hero_damage"])
+
+
 if __name__ == "__main__":
     unittest.main()
