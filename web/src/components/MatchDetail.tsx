@@ -241,7 +241,7 @@ const awards: MatchAward[] = [
     label: "The Richest",
     description: "Most Networth",
     player: match => leader(match.players, p => p.net_worth || 0),
-    value: p => `${fmtK(p.net_worth)} Networth`
+    value: p => `${fmtInt(p.net_worth)} Networth`
   }
 ]
 
